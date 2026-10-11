@@ -1,3 +1,4 @@
+import { AnalyticsTracker } from "@/components/analytics/analytics-tracker";
 import { BookNowDialog } from "@/components/booking/book-now-dialog";
 import { BookingForm } from "@/components/booking/booking-form";
 import { BookingProvider } from "@/components/booking/booking-context";
@@ -56,6 +57,7 @@ export default async function HomePage() {
         address={getStudioAddress()}
       />
       <PageMotion />
+      <AnalyticsTracker />
     </>
   );
 }

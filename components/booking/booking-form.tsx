@@ -15,6 +15,7 @@ import { dateBounds, slotsFor } from "@/lib/schedule";
 import { formatOpeningDays, type OpeningHours } from "@/lib/site";
 import { createBookingSchema } from "@/lib/validation/booking";
 import { buildBookingMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
+import { track } from "@/lib/analytics/client";
 import { useBooking } from "./booking-context";
 import { useNow } from "./use-now";
 
@@ -108,6 +109,12 @@ export function BookingForm({
     if (popup) popup.opener = null;
     else window.location.href = url; // popup blocked: open in the same tab
     setSentUrl(url);
+    track({
+      type: "booking",
+      serviceIds: result.data.serviceIds,
+      date: result.data.date,
+      time: result.data.time,
+    });
   }
 
   if (services.length === 0) {
@@ -116,6 +123,7 @@ export function BookingForm({
         <p className="text-lg">Os serviços vão ser publicados em breve.</p>
         <p className="mt-2 text-ink-muted">Entretanto, fale connosco diretamente:</p>
         <a
+          data-track-whatsapp="no-services"
           href={buildWhatsAppUrl(whatsappNumber, "Olá, NailsLux! Gostaria de fazer uma marcação.")}
           target="_blank"
           rel="noopener noreferrer"
@@ -180,6 +188,7 @@ export function BookingForm({
                   <input
                     id={inputId}
                     type="checkbox"
+                    value={service.id}
                     checked={checked}
                     onChange={() => toggle(service.id)}
                     className="size-5 shrink-0 accent-accent"

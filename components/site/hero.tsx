@@ -52,6 +52,7 @@ export function Hero({ whatsappNumber }: { whatsappNumber: string }) {
           </div>
           <a
             data-hero="item"
+            data-track-whatsapp="hero"
             href={`https://wa.me/${whatsappNumber}`}
             target="_blank"
             rel="noopener noreferrer"

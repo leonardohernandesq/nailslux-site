@@ -30,6 +30,7 @@ export function SiteFooter({
         <ul className="flex flex-col gap-3">
           <li>
             <a
+              data-track-whatsapp="footer"
               href={`https://wa.me/${whatsappNumber}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -42,6 +43,7 @@ export function SiteFooter({
           {instagramUrl && (
             <li>
               <a
+                data-track-instagram="footer"
                 href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"

@@ -29,6 +29,7 @@ export function PortfolioSection({
         {instagramUrl && (
           <div className="mt-10 text-center">
             <a
+              data-track-instagram="portfolio"
               href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"

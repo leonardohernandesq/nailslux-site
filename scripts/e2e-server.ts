@@ -5,7 +5,7 @@
 import { spawn } from "node:child_process";
 import bcrypt from "bcryptjs";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { E2E_ADMIN, E2E_WHATSAPP } from "../e2e/constants";
+import { E2E_ADMIN, E2E_INSTAGRAM, E2E_WHATSAPP } from "../e2e/constants";
 
 const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
 
@@ -39,6 +39,7 @@ async function main() {
         MONGODB_URI: uri,
         AUTH_SECRET: "e2e-only-secret-not-for-production-000000",
         WHATSAPP_NUMBER: E2E_WHATSAPP,
+        INSTAGRAM_URL: E2E_INSTAGRAM,
         NEXT_DIST_DIR: ".next-e2e",
         NEXT_TELEMETRY_DISABLED: "1",
       },
