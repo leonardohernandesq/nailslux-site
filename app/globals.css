@@ -86,6 +86,31 @@
     min-width: 0;
   }
 
+  /* Native date/time inputs have an intrinsic width that can exceed their
+     container on phones; let them shrink to the field like other inputs. */
+  input[type="date"],
+  input[type="time"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* iOS Safari ignores width on date inputs unless the native look is removed
+     (tapping still opens the native picker). It also centres the value and
+     collapses the height when empty. Scoped to iOS so desktop keeps its icon. */
+  @supports (-webkit-touch-callout: none) {
+    input[type="date"],
+    input[type="time"] {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="date"]::-webkit-date-and-time-value,
+    input[type="time"]::-webkit-date-and-time-value {
+      min-height: 1.5em;
+      text-align: left;
+    }
+  }
+
   h1,
   h2,
   h3 {
