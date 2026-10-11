@@ -1,0 +1,6 @@
+# Runs before every `git push`; the push is cancelled if any step fails.
+echo "pre-push: typecheck, lint, unit tests, e2e tests"
+npm run typecheck
+npm run lint
+npm test
+npm run test:e2e

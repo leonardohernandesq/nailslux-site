@@ -24,21 +24,28 @@ export const OPENING_HOURS: OpeningHours = {
   maxDaysAhead: 60,
 };
 
-const DAY_NAMES = [
-  "segunda",
-  "terça",
-  "quarta",
-  "quinta",
-  "sexta",
-  "sábado",
-  "domingo",
-];
+/** Indexed by JavaScript's Date#getDay(), so 0 is Sunday (same as `Weekday`). */
+const DAY_NAMES: Record<Weekday, string> = {
+  0: "domingo",
+  1: "segunda",
+  2: "terça",
+  3: "quarta",
+  4: "quinta",
+  5: "sexta",
+  6: "sábado",
+};
 
-/** [1..6] -> "segunda a sábado"; [2,4,6] -> "terça, quinta e sábado" */
+/** Position in a Portuguese week, which starts on Monday: Sunday comes last. */
+const weekPosition = (day: Weekday) => (day === 0 ? 7 : day);
+
+/**
+ * [1..6] -> "segunda a sábado"; [1..6, 0] -> "segunda a domingo";
+ * [2,4,6] -> "terça, quinta e sábado"
+ */
 export function formatOpeningDays(days: readonly Weekday[]): string {
-  const sorted = [...days].sort((a, b) => a - b);
+  const sorted = [...days].sort((a, b) => weekPosition(a) - weekPosition(b));
   const consecutive = sorted.every(
-    (day, i) => i === 0 || day === sorted[i - 1] + 1,
+    (day, i) => i === 0 || weekPosition(day) === weekPosition(sorted[i - 1]) + 1,
   );
   if (sorted.length > 2 && consecutive) {
     return `${DAY_NAMES[sorted[0]]} a ${DAY_NAMES[sorted[sorted.length - 1]]}`;

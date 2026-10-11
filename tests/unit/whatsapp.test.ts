@@ -56,6 +56,9 @@ describe("formatters", () => {
     expect(formatOpeningDays([1, 2, 3, 4, 5, 6])).toBe("segunda a sábado");
     expect(formatOpeningDays([2, 4, 6])).toBe("terça, quinta e sábado");
     expect(formatOpeningDays([5])).toBe("sexta");
+    // Sunday is 0 (Date#getDay) but comes last in the Portuguese week.
+    expect(formatOpeningDays([1, 2, 3, 4, 5, 6, 0])).toBe("segunda a domingo");
+    expect(formatOpeningDays([0, 6])).toBe("sábado e domingo");
   });
 
   it("formats Portuguese phone numbers", () => {
