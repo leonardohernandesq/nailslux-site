@@ -1,26 +1,153 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* NailsLux design tokens.
+   Brand colours (amber -> flame -> coral, from the logo) are for decoration only.
+   Text and buttons use --color-accent, which meets WCAG AA on cream and white. */
+@theme {
+  --color-cream: #fff8f3;
+  --color-surface: #ffffff;
+  --color-peach-50: #fff1e8;
+  --color-peach-100: #fde4d4;
+  --color-peach-200: #f9cdb2;
+  --color-ink: #1f1611;
+  --color-ink-muted: #6a564b;
+  --color-line: #f0dccf;
+  --color-line-strong: #dcbfae;
+
+  --color-brand-amber: #f07c00;
+  --color-brand-flame: #f25c05;
+  --color-brand-coral: #e8463a;
+  --color-brand-rose: #e03a6e;
+
+  --color-accent: #c2410c;
+  --color-accent-hover: #9a3412;
+  --color-on-accent: #ffffff;
+
+  --color-danger: #b42318;
+  --color-danger-soft: #fef3f2;
+  --color-success: #067647;
+  --color-success-soft: #ecfdf3;
+
+  --shadow-soft: 0 1px 2px rgb(120 60 20 / 0.05), 0 10px 30px -12px rgb(120 60 20 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(120 60 20 / 0.06), 0 22px 44px -18px rgb(120 60 20 / 0.28);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-quicksand), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem; /* clears the sticky header on anchor jumps */
+    scrollbar-gutter: stable; /* no layout jump when a dialog locks scrolling */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Keep the page still behind open modals (booking prompt, lightbox, confirms). */
+  html:has(dialog[open]) {
+    overflow: hidden;
+  }
+
+  /* The hero intro is animated by GSAP (components/motion/page-motion.tsx).
+     Hide it until then so it doesn't flash, but only when JS can run and motion
+     is welcome; if the script never arrives, the fallback reveals it anyway. */
+  @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    [data-hero] {
+      opacity: 0;
+      animation: hero-fallback-reveal 0s linear 3s forwards;
+    }
+  }
+
+  @keyframes hero-fallback-reveal {
+    to {
+      opacity: 1;
+    }
+  }
+
+  body {
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    line-height: 1.6;
+  }
+
+  /* Fieldsets default to min-width: min-content, which lets wide controls
+     (like native date inputs) push them past the screen edge on phones. */
+  fieldset {
+    min-width: 0;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  button,
+  [role="button"],
+  summary,
+  label[for],
+  select {
+    cursor: pointer;
+  }
+
+  button,
+  a {
+    touch-action: manipulation;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility text-gradient-brand {
+  /* Darker cut of the logo gradient so large headings keep 3:1 contrast. */
+  background-image: linear-gradient(90deg, #d2600a, #c2410c 55%, #b93a2e);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@utility bg-gradient-brand {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-brand-amber),
+    var(--color-brand-flame) 50%,
+    var(--color-brand-coral)
+  );
+}
+
+@utility bg-glow {
+  background-image:
+    radial-gradient(60% 50% at 0% 0%, rgb(249 205 178 / 0.55), transparent 70%),
+    radial-gradient(50% 45% at 100% 100%, rgb(249 205 178 / 0.45), transparent 70%);
+}
+
+@utility font-display {
+  font-family: var(--font-display);
 }
