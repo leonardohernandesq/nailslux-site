@@ -56,19 +56,57 @@
     overflow: hidden;
   }
 
-  /* The hero intro is animated by GSAP (components/motion/page-motion.tsx).
-     Hide it until then so it doesn't flash, but only when JS can run and motion
-     is welcome; if the script never arrives, the fallback reveals it anyway. */
-  @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
-    [data-hero] {
-      opacity: 0;
-      animation: hero-fallback-reveal 0s linear 3s forwards;
+  /* Hero intro. Plain CSS so it starts with the first paint instead of waiting
+     for hydration (the photo is the LCP element). The photo leads, the text
+     follows in a short cascade, and the mascot lands last with a small hop. */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-hero="image"] {
+      animation: hero-rise 900ms var(--ease-out-soft) both;
+      --hero-from: 0 16px;
+      --hero-scale: 0.96;
+    }
+
+    [data-hero="item"] {
+      animation: hero-rise 600ms var(--ease-out-soft) both;
+      --hero-from: 0 12px;
+    }
+    [data-hero="item"]:nth-child(1) { animation-delay: 100ms; }
+    [data-hero="item"]:nth-child(2) { animation-delay: 160ms; }
+    [data-hero="item"]:nth-child(3) { animation-delay: 220ms; }
+    [data-hero="item"]:nth-child(4) { animation-delay: 280ms; }
+    [data-hero="item"]:nth-child(5) { animation-delay: 340ms; }
+
+    /* The float has no fill mode, so the landing keeps control before and after it.
+       It bobs a few times and settles, rather than looping forever. */
+    [data-hero="fox"] {
+      animation:
+        hero-fox-land 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 450ms both,
+        hero-fox-float 2.4s ease-in-out 1.3s 4 alternate;
     }
   }
 
-  @keyframes hero-fallback-reveal {
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      translate: var(--hero-from, 0 12px);
+      scale: var(--hero-scale, 1);
+    }
+  }
+
+  @keyframes hero-fox-land {
+    from {
+      opacity: 0;
+      translate: 0 20px;
+      rotate: -12deg;
+    }
+  }
+
+  @keyframes hero-fox-float {
+    from {
+      translate: 0 0;
+    }
     to {
-      opacity: 1;
+      translate: 0 -6px;
     }
   }
 
@@ -171,6 +209,49 @@
   background-image:
     radial-gradient(60% 50% at 0% 0%, rgb(249 205 178 / 0.55), transparent 70%),
     radial-gradient(50% 45% at 100% 100%, rgb(249 205 178 / 0.45), transparent 70%);
+}
+
+/* Native <dialog> that fades and settles in, and fades out a little faster.
+   Browsers without @starting-style just open it instantly. */
+@utility dialog-motion {
+  opacity: 0;
+  scale: 0.97;
+  transition:
+    opacity 160ms ease-in,
+    scale 160ms ease-in,
+    display 160ms allow-discrete,
+    overlay 160ms allow-discrete;
+
+  &[open] {
+    opacity: 1;
+    scale: 1;
+    transition-duration: 280ms;
+    transition-timing-function: var(--ease-out-soft);
+  }
+
+  &::backdrop {
+    opacity: 0;
+    transition:
+      opacity 160ms ease-in,
+      display 160ms allow-discrete,
+      overlay 160ms allow-discrete;
+  }
+
+  &[open]::backdrop {
+    opacity: 1;
+    transition-duration: 280ms;
+  }
+
+  @starting-style {
+    &[open] {
+      opacity: 0;
+      scale: 0.97;
+    }
+
+    &[open]::backdrop {
+      opacity: 0;
+    }
+  }
 }
 
 @utility font-display {

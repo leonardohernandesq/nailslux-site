@@ -48,16 +48,17 @@ export function Gallery({ items }: { items: PortfolioItemDTO[] }) {
         ))}
       </ul>
 
+      {/* `index` is kept after closing, so the photo stays in place while the dialog fades out.
+          Arrow keys swap photos instantly: keyboard navigation shouldn't wait on motion. */}
       <dialog
         ref={dialogRef}
-        onClose={() => setIndex(null)}
         onClick={(e) => e.target === dialogRef.current && dialogRef.current.close()}
         onKeyDown={(e) => {
           if (e.key === "ArrowRight") step(1);
           if (e.key === "ArrowLeft") step(-1);
         }}
         aria-label="Fotografia ampliada"
-        className="m-auto max-h-[92dvh] w-[min(92vw,960px)] overflow-visible bg-transparent p-0 backdrop:bg-ink/80"
+        className="dialog-motion m-auto max-h-[92dvh] w-[min(92vw,960px)] overflow-visible bg-transparent p-0 backdrop:bg-ink/80"
       >
         {current && (
           <figure className="relative">

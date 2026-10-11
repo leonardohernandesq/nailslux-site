@@ -10,7 +10,8 @@ export function SectionHeading({
   children?: React.ReactNode;
 }) {
   return (
-    <div data-reveal-group className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
+    // The text is there to be read, so only the underline animates.
+    <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
       <p className="text-sm font-bold tracking-[0.18em] text-accent uppercase">{eyebrow}</p>
       <h2
         id={id}

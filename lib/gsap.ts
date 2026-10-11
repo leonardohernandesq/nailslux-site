@@ -10,8 +10,8 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 export const MOTION = {
   fast: 0.22,
   base: 0.45,
-  slow: 0.8,
-  stagger: 0.08,
+  slow: 0.6,
+  stagger: 0.06,
   easeOut: "power3.out",
   easeIn: "power2.in",
 } as const;

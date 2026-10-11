@@ -344,7 +344,7 @@ export function BookingForm({
         {sentUrl && (
           <div
             role="status"
-            className="flex gap-3 rounded-2xl border border-success/25 bg-success-soft p-4 text-success"
+            className="flex gap-3 rounded-2xl border border-success/25 bg-success-soft p-4 text-success transition-[opacity,translate] duration-300 ease-(--ease-out-soft) starting:translate-y-2 starting:opacity-0"
           >
             <CheckCircleIcon size={22} weight="fill" aria-hidden="true" className="mt-0.5 shrink-0" />
             <p className="text-sm">

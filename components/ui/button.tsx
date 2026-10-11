@@ -5,8 +5,9 @@ type Size = "sm" | "md" | "lg";
 
 const base =
   "inline-flex items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap " +
-  "transition-[background-color,color,box-shadow,transform] duration-200 ease-(--ease-out-soft) " +
-  "active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 cursor-pointer [&_svg]:shrink-0";
+  // `scale` (not `transform`): Tailwind v4's scale utilities set the individual property.
+  "transition-[background-color,color,box-shadow,scale] duration-200 ease-(--ease-out-soft) " +
+  "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 cursor-pointer [&_svg]:shrink-0";
 
 const variants: Record<Variant, string> = {
   primary: "bg-accent text-on-accent shadow-soft hover:bg-accent-hover hover:shadow-lift",

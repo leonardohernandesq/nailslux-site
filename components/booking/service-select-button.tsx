@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { CheckIcon, PlusIcon } from "@phosphor-icons/react";
 import { buttonClasses } from "@/components/ui/button";
-import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap";
+import { gsap, MOTION, prefersReducedMotion, useGSAP } from "@/lib/gsap";
 import { useBooking } from "./booking-context";
 
 export function ServiceSelectButton({ id, name }: { id: string; name: string }) {
@@ -12,8 +12,8 @@ export function ServiceSelectButton({ id, name }: { id: string; name: string }) 
   const iconRef = useRef<HTMLSpanElement>(null);
   const firstRender = useRef(true);
 
-  // Pop the icon whenever the state flips. The button itself has a CSS transform
-  // transition, so the icon gets the motion instead of fighting it.
+  // Ease the new icon in whenever the state flips (plus <-> check). The button itself
+  // has a CSS scale transition on press, so the icon gets the motion instead of fighting it.
   useGSAP(
     () => {
       if (firstRender.current) {
@@ -23,8 +23,8 @@ export function ServiceSelectButton({ id, name }: { id: string; name: string }) 
       if (prefersReducedMotion()) return;
       gsap.fromTo(
         iconRef.current,
-        { scale: 0.4, rotate: selected ? -45 : 45 },
-        { scale: 1, rotate: 0, duration: 0.5, ease: "back.out(3)", overwrite: true },
+        { opacity: 0, scale: 0.6, filter: "blur(2px)" },
+        { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.25, ease: MOTION.easeOut, overwrite: true },
       );
     },
     { dependencies: [selected] },

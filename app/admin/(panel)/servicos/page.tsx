@@ -92,7 +92,10 @@ export default async function ServicesAdminPage({ searchParams }: PageProps<"/ad
                     </IconSubmitButton>
                   </form>
                 ) : (
-                  <span className="size-11" aria-hidden="true" />
+                  // Already first: a faded arrow keeps the row aligned and shows why it can't move up.
+                  <span aria-hidden="true" className="flex size-11 items-center justify-center text-ink-muted/30">
+                    <ArrowUpIcon size={20} />
+                  </span>
                 )}
                 {index < services.length - 1 ? (
                   <form action={moveService.bind(null, service.id, "down")}>
@@ -101,7 +104,10 @@ export default async function ServicesAdminPage({ searchParams }: PageProps<"/ad
                     </IconSubmitButton>
                   </form>
                 ) : (
-                  <span className="size-11" aria-hidden="true" />
+                  // Already last: same idea for moving down.
+                  <span aria-hidden="true" className="flex size-11 items-center justify-center text-ink-muted/30">
+                    <ArrowDownIcon size={20} />
+                  </span>
                 )}
                 <form action={setServiceActive.bind(null, service.id, !service.active)}>
                   <IconSubmitButton

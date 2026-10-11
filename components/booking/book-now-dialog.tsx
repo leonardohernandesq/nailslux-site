@@ -45,41 +45,22 @@ export function BookNowDialog({
       closing.current = false;
       dialog.showModal();
 
+      // This opens on every pick, so it stays quick and settles without overshoot.
       const reduced = prefersReducedMotion();
       timeline.current?.kill();
-      const tl = gsap.timeline({ defaults: { ease: MOTION.easeOut } });
-      tl.fromTo(
-        overlayRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: reduced ? 0.01 : 0.3 },
-      );
-      if (reduced) {
-        tl.fromTo(
-          panelRef.current,
+      timeline.current = gsap
+        .timeline({ defaults: { ease: MOTION.easeOut } })
+        .fromTo(
+          overlayRef.current,
           { opacity: 0 },
-          { opacity: 1, duration: 0.15 },
+          { opacity: 1, duration: reduced ? 0.01 : 0.25 },
+        )
+        .fromTo(
+          panelRef.current,
+          reduced ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.97 },
+          { opacity: 1, y: 0, scale: 1, duration: reduced ? 0.15 : 0.3 },
           0,
         );
-      } else {
-        tl.fromTo(
-          panelRef.current,
-          { opacity: 0, y: 48, scale: 0.94 },
-          {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            duration: MOTION.base,
-            ease: "back.out(1.5)",
-          },
-          0.05,
-        ).fromTo(
-          panelRef.current!.querySelectorAll("[data-dialog-item]"),
-          { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, duration: 0.35, stagger: 0.06 },
-          0.15,
-        );
-      }
-      timeline.current = tl;
     },
     { dependencies: [promptedId], scope: dialogRef },
   );
@@ -108,7 +89,7 @@ export function BookNowDialog({
         })
         .to(
           panelRef.current,
-          reduced ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.97 },
+          reduced ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 },
         )
         .to(overlayRef.current, { opacity: 0 }, 0);
     })();
@@ -157,7 +138,7 @@ export function BookNowDialog({
           ref={panelRef}
           className="pointer-events-auto w-full max-w-md rounded-4xl bg-surface p-6 text-center shadow-lift sm:p-8"
         >
-          <div data-dialog-item className="relative mx-auto w-fit">
+          <div className="relative mx-auto w-fit">
             <Image
               src="/brand/fox.png"
               alt=""
@@ -175,7 +156,7 @@ export function BookNowDialog({
 
           <h2
             id={titleId}
-            data-dialog-item
+           
             className="font-display mt-4 text-3xl leading-tight font-semibold"
           >
             Deseja agendar o seu horário agora?
@@ -183,7 +164,7 @@ export function BookNowDialog({
 
           <div
             id={descriptionId}
-            data-dialog-item
+           
             className="mt-3 text-ink-muted"
           >
             {service && (
@@ -200,7 +181,7 @@ export function BookNowDialog({
             )}
           </div>
 
-          <div data-dialog-item className="mt-6 flex flex-col gap-3">
+          <div className="mt-6 flex flex-col gap-3">
             <button
               type="button"
               autoFocus
