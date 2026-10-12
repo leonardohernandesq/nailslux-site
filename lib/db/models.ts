@@ -58,10 +58,38 @@ const analyticsEventSchema = new Schema(
 analyticsEventSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 400 });
 analyticsEventSchema.index({ type: 1, createdAt: 1 });
 
+export const APPOINTMENT_STATUSES = ["pending", "confirmed", "declined", "cancelled"] as const;
+export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
+
+/**
+ * A booking request sent from the site. Only "confirmed" appointments block the
+ * schedule; their [startMinutes, endMinutes) range is taken for that date.
+ * Service names and prices are copied so the record survives service edits.
+ */
+const appointmentSchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true, maxlength: 60 },
+    serviceIds: { type: [String], required: true },
+    serviceNames: { type: [String], required: true },
+    totalCents: { type: Number, required: true, min: 0 },
+    date: { type: String, required: true }, // YYYY-MM-DD
+    time: { type: String, required: true }, // HH:mm
+    startMinutes: { type: Number, required: true, min: 0 },
+    endMinutes: { type: Number, required: true, min: 0 },
+    notes: { type: String, trim: true, maxlength: 300 },
+    status: { type: String, required: true, enum: APPOINTMENT_STATUSES, default: "pending" },
+    decidedAt: { type: Date },
+  },
+  { timestamps: true },
+);
+appointmentSchema.index({ date: 1, status: 1 });
+appointmentSchema.index({ status: 1, createdAt: -1 });
+
 export type ServiceDoc = InferSchemaType<typeof serviceSchema>;
 export type PortfolioItemDoc = InferSchemaType<typeof portfolioItemSchema>;
 export type UserDoc = InferSchemaType<typeof userSchema>;
 export type AnalyticsEventDoc = InferSchemaType<typeof analyticsEventSchema>;
+export type AppointmentDoc = InferSchemaType<typeof appointmentSchema>;
 
 // `models.X ??` keeps hot reload from redefining models.
 export const Service: Model<ServiceDoc> =
@@ -77,3 +105,6 @@ export const User: Model<UserDoc> =
 export const AnalyticsEvent: Model<AnalyticsEventDoc> =
   (mongoose.models.AnalyticsEvent as Model<AnalyticsEventDoc>) ??
   mongoose.model("AnalyticsEvent", analyticsEventSchema);
+
+export const Appointment: Model<AppointmentDoc> =
+  (mongoose.models.Appointment as Model<AppointmentDoc>) ?? mongoose.model("Appointment", appointmentSchema);

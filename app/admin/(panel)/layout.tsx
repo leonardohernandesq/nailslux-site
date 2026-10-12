@@ -15,7 +15,7 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-line bg-cream/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
-          <Link href="/admin/servicos" className="flex items-center gap-2" aria-label="Painel NailsLux">
+          <Link href="/admin/marcacoes" className="flex items-center gap-2" aria-label="Painel NailsLux">
             <Image src="/brand/fox.png" alt="" width={279} height={339} className="h-9 w-auto" />
             <span className="font-display text-2xl font-semibold">Painel</span>
           </Link>

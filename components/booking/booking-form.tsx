@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import {
   CalendarBlankIcon,
   CheckCircleIcon,
+  CircleNotchIcon,
   ClockIcon,
   WarningCircleIcon,
   WhatsappLogoIcon,
@@ -11,15 +12,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, Input, Textarea, describedBy } from "@/components/ui/field";
 import { formatDuration, formatPrice } from "@/lib/format";
-import { dateBounds, slotsFor } from "@/lib/schedule";
+import { bookingDuration, dateBounds, isSlotFree, slotsFor, type BusyInterval } from "@/lib/schedule";
 import { formatOpeningDays, type OpeningHours } from "@/lib/site";
 import { createBookingSchema } from "@/lib/validation/booking";
 import { buildBookingMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
+import { requestAppointment, type BookingField } from "@/lib/actions/appointments";
 import { track } from "@/lib/analytics/client";
 import { useBooking } from "./booking-context";
 import { useNow } from "./use-now";
 
-type Errors = Partial<Record<"name" | "serviceIds" | "date" | "time" | "notes", string[]>>;
+type Errors = Partial<Record<BookingField, string[]>>;
+
+const TAKEN_FOR_DURATION = "Esta hora já não tem tempo livre suficiente para os serviços escolhidos. Escolha outra.";
 
 const FIELD_LABELS: Record<keyof Errors, string> = {
   serviceIds: "Serviços",
@@ -54,7 +58,24 @@ export function BookingForm({
   const [attempted, setAttempted] = useState(false);
   const [sentUrl, setSentUrl] = useState<string | null>(null);
   const [failedSubmits, setFailedSubmits] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<{ field: BookingField; message: string } | null>(null);
+  // Times already taken (confirmed appointments), per date, as loaded from the server.
+  const [busyByDate, setBusyByDate] = useState<Record<string, BusyInterval[]>>({});
+  const [availabilityVersion, setAvailabilityVersion] = useState(0);
   const summaryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    const controller = new AbortController();
+    fetch(`/api/availability?date=${date}`, { signal: controller.signal, cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : { busy: [] }))
+      .then((data: { busy?: BusyInterval[] }) => setBusyByDate((all) => ({ ...all, [date]: data.busy ?? [] })))
+      .catch(() => {
+        // Offline or aborted: the server re-checks the time when the request is sent.
+      });
+    return () => controller.abort();
+  }, [date, availabilityVersion]);
 
   // Move focus to the error summary after each failed submit.
   useEffect(() => {
@@ -63,9 +84,22 @@ export function BookingForm({
 
   const values = { name, serviceIds: selectedIds, date, time, notes };
 
+  const chosen = services.filter((service) => selectedIds.includes(service.id));
+  const total = chosen.reduce((sum, service) => sum + service.priceCents, 0);
+  const totalMinutes = chosen.reduce((sum, service) => sum + (service.durationMinutes ?? 0), 0);
+  // How long the chosen services block the agenda (unknown durations count as 1h).
+  const blockMinutes = chosen.length > 0 ? bookingDuration(chosen) : hours.slotMinutes;
+  const busy = busyByDate[date] ?? [];
+  const isFree = (slot: string) => isSlotFree(slot, blockMinutes, busy);
+
   function validate(at: Date) {
     const schema = createBookingSchema({ serviceIds: services.map((s) => s.id), hours, now: at });
-    return schema.safeParse(values);
+    const result = schema.safeParse(values);
+    if (!result.success) return { success: false as const, issues: result.error.issues };
+    if (!isFree(result.data.time)) {
+      return { success: false as const, issues: [{ path: ["time"], message: TAKEN_FOR_DURATION }] };
+    }
+    return { success: true as const, data: result.data };
   }
 
   // After the first submit attempt, errors update live as the client fixes them.
@@ -73,30 +107,31 @@ export function BookingForm({
   if (attempted && now) {
     const result = validate(now);
     if (!result.success) {
-      for (const issue of result.error.issues) {
+      for (const issue of result.issues) {
         const key = issue.path[0] as keyof Errors;
         (errors[key] ??= []).push(issue.message);
       }
     }
   }
+  if (serverError && !errors[serverError.field]) errors[serverError.field] = [serverError.message];
   const errorKeys = (Object.keys(FIELD_LABELS) as (keyof Errors)[]).filter((k) => errors[k]?.length);
 
   const bounds = now ? dateBounds(hours, now) : null;
   const slots = date && now ? slotsFor(date, hours, now) : [];
-  const chosen = services.filter((service) => selectedIds.includes(service.id));
-  const total = chosen.reduce((sum, service) => sum + service.priceCents, 0);
-  const totalMinutes = chosen.reduce((sum, service) => sum + (service.durationMinutes ?? 0), 0);
 
   function onDateChange(value: string) {
     setDate(value);
+    setServerError(null);
     // Keep the chosen time only if it's still offered on the new date.
     if (now && time && !slotsFor(value, hours, now).includes(time)) setTime("");
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
     setAttempted(true);
     setSentUrl(null);
+    setServerError(null);
 
     const result = validate(new Date());
     if (!result.success) {
@@ -104,10 +139,32 @@ export function BookingForm({
       return;
     }
 
+    // Browsers only allow pop-ups straight from a click, so open the tab now and
+    // point it at WhatsApp once the request is saved.
+    const popup = window.open("", "_blank");
+    setSubmitting(true);
+    const saved = await requestAppointment(values).catch(() => ({
+      ok: false as const,
+      field: undefined,
+      message: "Não foi possível enviar o pedido. Verifique a ligação e tente novamente.",
+    }));
+    setSubmitting(false);
+
+    if (!saved.ok) {
+      popup?.close();
+      setServerError({ field: saved.field ?? "time", message: saved.message });
+      if (saved.field === "time") setAvailabilityVersion((v) => v + 1); // someone just took it
+      setFailedSubmits((n) => n + 1);
+      return;
+    }
+
     const url = buildWhatsAppUrl(whatsappNumber, buildBookingMessage(result.data, services));
-    const popup = window.open(url, "_blank");
-    if (popup) popup.opener = null;
-    else window.location.href = url; // popup blocked: open in the same tab
+    if (popup) {
+      popup.opener = null;
+      popup.location.href = url;
+    } else {
+      window.location.href = url; // popup blocked: open in the same tab
+    }
     setSentUrl(url);
     track({
       type: "booking",
@@ -259,26 +316,45 @@ export function BookingForm({
             <p id={`${ids.time}-hint`} className="mt-2 text-sm text-ink-muted">
               Não há horas disponíveis neste dia. Escolha outra data.
             </p>
+          ) : slots.every((slot) => !isFree(slot)) ? (
+            <p id={`${ids.time}-hint`} className="mt-2 text-sm text-ink-muted">
+              Este dia já está completo. Escolha outra data.
+            </p>
           ) : (
             <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5">
               <span id={`${ids.time}-hint`} className="sr-only">
-                Horas disponíveis para o dia escolhido.
+                Horas para o dia escolhido. As riscadas já estão ocupadas.
               </span>
-              {slots.map((slot) => (
-                <label key={slot} className="relative">
-                  <input
-                    type="radio"
-                    name="time"
-                    value={slot}
-                    checked={time === slot}
-                    onChange={() => setTime(slot)}
-                    className="peer sr-only"
-                  />
-                  <span className="flex min-h-11 items-center justify-center rounded-xl border border-line text-sm font-semibold tabular-nums transition-colors duration-150 peer-checked:border-accent peer-checked:bg-accent peer-checked:text-on-accent peer-focus-visible:ring-4 peer-focus-visible:ring-accent/25 hover:border-line-strong">
-                    {slot}
-                  </span>
-                </label>
-              ))}
+              {slots.map((slot) => {
+                const free = isFree(slot);
+                return (
+                  <label key={slot} className="relative" title={free ? undefined : "Ocupado"}>
+                    <input
+                      type="radio"
+                      name="time"
+                      value={slot}
+                      checked={time === slot}
+                      // A chosen time that became taken stays selectable, so its error can be fixed.
+                      disabled={!free && time !== slot}
+                      onChange={() => {
+                        setTime(slot);
+                        setServerError(null);
+                      }}
+                      className="peer sr-only"
+                    />
+                    <span
+                      className={`flex min-h-11 items-center justify-center rounded-xl border text-sm font-semibold tabular-nums transition-colors duration-150 peer-checked:border-accent peer-checked:bg-accent peer-checked:text-on-accent peer-focus-visible:ring-4 peer-focus-visible:ring-accent/25 ${
+                        free
+                          ? "cursor-pointer border-line hover:border-line-strong"
+                          : "cursor-not-allowed border-dashed border-line text-ink-muted/60 line-through"
+                      }`}
+                    >
+                      {slot}
+                      {!free && <span className="sr-only"> (ocupado)</span>}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           )}
           <div className="mt-2">
@@ -331,8 +407,17 @@ export function BookingForm({
         </div>
 
         <div className="flex flex-col gap-3">
-          <Button type="submit" size="lg" className="w-full text-center max-sm:px-5 max-sm:whitespace-normal">
-            <WhatsappLogoIcon size={24} weight="fill" aria-hidden="true" />
+          <Button
+            type="submit"
+            size="lg"
+            aria-disabled={submitting || undefined}
+            className="w-full text-center max-sm:px-5 max-sm:whitespace-normal"
+          >
+            {submitting ? (
+              <CircleNotchIcon size={24} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <WhatsappLogoIcon size={24} weight="fill" aria-hidden="true" />
+            )}
             Enviar pedido pelo WhatsApp
           </Button>
           <p className="text-center text-sm text-ink-muted">

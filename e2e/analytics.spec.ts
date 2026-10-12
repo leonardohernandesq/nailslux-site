@@ -57,7 +57,7 @@ test("visits, WhatsApp clicks and booking requests show up in the statistics", a
   await owner.locator("#email").fill(E2E_ADMIN.email);
   await owner.locator("#password").fill(E2E_ADMIN.password);
   await owner.getByRole("button", { name: "Entrar" }).click();
-  await expect(owner).toHaveURL(/\/admin\/servicos/);
+  await expect(owner).toHaveURL(/\/admin\/marcacoes/);
 
   await owner.getByRole("link", { name: "Estatísticas" }).click();
   await expect(owner.getByRole("heading", { level: 1, name: "Estatísticas" })).toBeVisible();

@@ -1,12 +1,18 @@
 import { parseISODate, toISODate } from "./format";
 import type { OpeningHours } from "./site";
 
-function toMinutes(time: string): number {
+/** Services without a duration block this long. */
+export const DEFAULT_SERVICE_MINUTES = 60;
+
+/** A blocked stretch of a day, in minutes from midnight; `end` is exclusive. */
+export type BusyInterval = { start: number; end: number };
+
+export function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
 }
 
-function fromMinutes(total: number): string {
+export function fromMinutes(total: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
@@ -35,4 +41,21 @@ export function slotsFor(isoDate: string, hours: OpeningHours, now: Date): strin
 export function dateBounds(hours: OpeningHours, now: Date): { min: string; max: string } {
   const max = new Date(now.getFullYear(), now.getMonth(), now.getDate() + hours.maxDaysAhead);
   return { min: toISODate(now), max: toISODate(max) };
+}
+
+/** How long a booking takes: the sum of its services (unknown durations count as 1h). */
+export function bookingDuration(services: readonly { durationMinutes?: number | null }[]): number {
+  return services.reduce((sum, service) => sum + (service.durationMinutes || DEFAULT_SERVICE_MINUTES), 0);
+}
+
+/** Half-open intervals: one ending at 21:00 doesn't clash with one starting at 21:00. */
+export function overlaps(a: BusyInterval, b: BusyInterval): boolean {
+  return a.start < b.end && b.start < a.end;
+}
+
+/** Whether a booking of `durationMinutes` can start at `time` without clashing with `busy`. */
+export function isSlotFree(time: string, durationMinutes: number, busy: readonly BusyInterval[]): boolean {
+  const start = toMinutes(time);
+  const wanted = { start, end: start + Math.max(durationMinutes, 1) };
+  return !busy.some((interval) => overlaps(wanted, interval));
 }

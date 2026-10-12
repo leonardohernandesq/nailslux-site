@@ -23,24 +23,24 @@ export function Gallery({ items }: { items: PortfolioItemDTO[] }) {
 
   return (
     <>
-      <ul data-reveal-group className="columns-2 gap-3 sm:gap-4 md:columns-3 lg:columns-4">
+      {/* Every thumbnail is the same 4:5 portrait crop; the lightbox shows the full photo. */}
+      <ul data-reveal-group className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
         {items.map((item, i) => (
-          <li key={item.id} className="mb-3 break-inside-avoid sm:mb-4">
+          <li key={item.id}>
             <button
               type="button"
               onClick={() => open(i)}
-              className="group block w-full overflow-hidden rounded-2xl bg-peach-100 shadow-soft"
+              className="group relative block aspect-4/5 w-full overflow-hidden rounded-2xl bg-peach-100 shadow-soft"
               aria-label={`Ampliar fotografia: ${item.caption ?? FALLBACK_ALT}`}
             >
               <Image
                 src={item.src}
                 alt=""
-                width={item.width}
-                height={item.height}
+                fill
                 placeholder="blur"
                 blurDataURL={item.blurDataUrl}
-                sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-                className="h-auto w-full transition-transform duration-500 ease-(--ease-out-soft) group-hover:scale-[1.03]"
+                sizes="(min-width: 1152px) 270px, (min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+                className="object-cover transition-transform duration-500 ease-(--ease-out-soft) group-hover:scale-[1.03]"
               />
             </button>
             {item.caption && <p className="mt-2 px-1 text-sm text-ink-muted">{item.caption}</p>}

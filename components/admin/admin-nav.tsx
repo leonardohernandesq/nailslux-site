@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartBarIcon, HandHeartIcon, ImageIcon } from "@phosphor-icons/react";
+import { CalendarCheckIcon, ChartBarIcon, HandHeartIcon, ImageIcon } from "@phosphor-icons/react";
 
 const LINKS = [
+  { href: "/admin/marcacoes", label: "Marcações", icon: CalendarCheckIcon },
   { href: "/admin/servicos", label: "Serviços", icon: HandHeartIcon },
   { href: "/admin/portfolio", label: "Portfólio", icon: ImageIcon },
   { href: "/admin/estatisticas", label: "Estatísticas", icon: ChartBarIcon },
@@ -14,8 +15,8 @@ export function AdminNav() {
   const pathname = usePathname();
   return (
     <nav aria-label="Painel">
-      {/* Phones: three equal tabs with the icon above the label, so they always fit. */}
-      <ul className="grid grid-cols-3 gap-1 sm:flex">
+      {/* Phones: equal tabs with the icon above the label, so they always fit. */}
+      <ul className="grid grid-cols-4 gap-1 sm:flex">
         {LINKS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (

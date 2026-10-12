@@ -37,7 +37,8 @@ export default async function PortfolioAdminPage() {
           <ul className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-3">
             {items.map((item, i) => (
               <li key={item.id} className="overflow-hidden rounded-3xl bg-surface shadow-soft">
-                <div className="relative aspect-square bg-peach-100">
+                {/* Same 4:5 crop as on the site, so what you see here is what clients see. */}
+                <div className="relative aspect-4/5 bg-peach-100">
                   <Image
                     src={item.src}
                     alt={item.caption ?? `Fotografia ${i + 1} do portfólio`}

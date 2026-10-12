@@ -7,7 +7,7 @@ async function login(page: Page) {
   await page.locator("#email").fill(E2E_ADMIN.email);
   await page.locator("#password").fill(E2E_ADMIN.password);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/admin\/servicos/);
+  await expect(page).toHaveURL(/\/admin\/marcacoes/);
 }
 
 test("admin pages require login", async ({ page }) => {
@@ -28,6 +28,7 @@ test("wrong password shows an error", async ({ page }) => {
 test("admin creates, edits and deletes a service; changes show on the site", async ({ page }) => {
   await login(page);
   await expect(page.getByText(`Olá, Ana!`)).toBeVisible();
+  await page.getByRole("link", { name: "Serviços" }).click();
 
   // Validation errors keep what was typed
   await page.getByRole("link", { name: "Novo serviço" }).click();

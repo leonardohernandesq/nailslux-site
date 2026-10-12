@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { EyeIcon, EyeSlashIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { Field, Input, describedBy } from "@/components/ui/field";
 import { login } from "@/lib/actions/auth";
@@ -11,9 +12,12 @@ export function LoginForm() {
   const [state, formAction] = useActionState(login, idleState);
   const [showPassword, setShowPassword] = useState(false);
   const errors = state.fieldErrors ?? {};
+  // Set by the proxy when a logged-out visit (e.g. a booking link) was sent here.
+  const callbackUrl = useSearchParams().get("callbackUrl") ?? "";
 
   return (
     <form action={formAction} noValidate className="flex flex-col gap-5">
+      <input type="hidden" name="callbackUrl" value={callbackUrl} />
       {state.status === "error" && state.message && !state.fieldErrors && (
         <p
           role="alert"

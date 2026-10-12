@@ -76,6 +76,8 @@ test("client books through WhatsApp", async ({ page }) => {
   const popupPromise = page.waitForEvent("popup");
   await form.getByRole("button", { name: "Enviar pedido pelo WhatsApp" }).click();
   const popup = await popupPromise;
+  // The tab opens blank on click and moves to WhatsApp once the request is saved.
+  await popup.waitForURL(/wa\.me/);
 
   const url = new URL(popup.url());
   expect(url.host).toBe("wa.me");
