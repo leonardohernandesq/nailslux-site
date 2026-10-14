@@ -86,7 +86,7 @@ describe("BookingForm", () => {
     expect(screen.getByText(/43,00/)).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
-    await user.click(screen.getByRole("radio", { name: "10:30" }));
+    await user.click(await screen.findByRole("radio", { name: "10:30" }));
     await user.type(screen.getByLabelText(/o seu nome/i), "Ana");
     await user.type(screen.getByLabelText(/o seu whatsapp/i), "912 345 678");
     await user.click(screen.getByRole("button", { name: /enviar pedido pelo whatsapp/i }));
@@ -107,6 +107,33 @@ describe("BookingForm", () => {
     expect(text).toContain("*Hora:* 10:30");
     expect(text).not.toContain("http"); // no links in the client's message
     expect(screen.getByRole("status").textContent).toMatch(/mensagem pronta/i);
+  });
+
+  it("shows no times until it knows which are taken", async () => {
+    busy = [{ start: 11 * 60, end: 12 * 60 }];
+    let answer!: () => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>((resolve) => (answer = () => resolve(Response.json({ busy }))))),
+    );
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole("button", { name: /escolher pedicure/i }));
+    fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
+    expect(screen.getByText(/a verificar as horas disponíveis/i)).toBeTruthy();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+
+    answer();
+    // When the times appear, the taken one is already blocked.
+    expect((await screen.findByRole("radio", { name: /11:00\s*\(ocupado\)/ }) as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("still shows the times if availability can't be loaded", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("offline"))));
+    renderForm();
+    fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
+    expect(await screen.findByRole("radio", { name: "10:30" })).toBeTruthy();
   });
 
   it("greys out times taken by confirmed appointments, for the chosen services' length", async () => {

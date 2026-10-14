@@ -75,7 +75,9 @@ export function BookingForm({
       .then((response) => (response.ok ? response.json() : { busy: [] }))
       .then((data: { busy?: BusyInterval[] }) => setBusyByDate((all) => ({ ...all, [date]: data.busy ?? [] })))
       .catch(() => {
-        // Offline or aborted: the server re-checks the time when the request is sent.
+        // Offline: show every time rather than wait forever; the server re-checks
+        // the time when the request is sent.
+        if (!controller.signal.aborted) setBusyByDate((all) => ({ ...all, [date]: all[date] ?? [] }));
       });
     return () => controller.abort();
   }, [date, availabilityVersion]);
@@ -93,6 +95,8 @@ export function BookingForm({
   // How long the chosen services block the agenda (unknown durations count as 1h).
   const blockMinutes = chosen.length > 0 ? bookingDuration(chosen) : hours.slotMinutes;
   const busy = busyByDate[date] ?? [];
+  // Times only show once we know which are taken, so none flips to "occupied" a moment later.
+  const availabilityKnown = date in busyByDate;
   const isFree = (slot: string) => isSlotFree(slot, blockMinutes, busy);
 
   function validate(at: Date) {
@@ -319,6 +323,15 @@ export function BookingForm({
             <p id={`${ids.time}-hint`} className="mt-2 text-sm text-ink-muted">
               Não há horas disponíveis neste dia. Escolha outra data.
             </p>
+          ) : !availabilityKnown ? (
+            <div aria-busy="true" className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5">
+              <span id={`${ids.time}-hint`} role="status" className="sr-only">
+                A verificar as horas disponíveis…
+              </span>
+              {slots.map((slot) => (
+                <span key={slot} aria-hidden="true" className="min-h-11 animate-pulse rounded-xl bg-peach-50" />
+              ))}
+            </div>
           ) : slots.every((slot) => !isFree(slot)) ? (
             <p id={`${ids.time}-hint`} className="mt-2 text-sm text-ink-muted">
               Este dia já está completo. Escolha outra data.
