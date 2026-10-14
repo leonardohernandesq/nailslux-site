@@ -4,12 +4,18 @@ import { connection } from "next/server";
 import { lisbonDay } from "@/lib/analytics/server";
 import { requireAdmin } from "@/lib/auth/dal";
 import { connectDB } from "@/lib/db/connect";
-import { Appointment, type AppointmentStatus } from "@/lib/db/models";
+import { Appointment, Client, type AppointmentStatus } from "@/lib/db/models";
 import { fromMinutes, overlaps, type BusyInterval } from "@/lib/schedule";
+
+export type ClientMolds = { handMold?: string; footMold?: string };
 
 export type AppointmentDTO = {
   id: string;
   name: string;
+  /** WhatsApp, digits with country code. Older requests have none. */
+  phone?: string;
+  /** The client's saved mold numbers, looked up by phone. */
+  molds: ClientMolds;
   serviceNames: string[];
   totalCents: number;
   date: string;
@@ -24,6 +30,7 @@ export type AppointmentDTO = {
 type AppointmentLean = {
   _id: unknown;
   name: string;
+  phone?: string | null;
   serviceNames: string[];
   totalCents: number;
   date: string;
@@ -35,10 +42,14 @@ type AppointmentLean = {
   createdAt?: Date;
 };
 
-function toDTO(doc: AppointmentLean): AppointmentDTO {
+type MoldsByPhone = Map<string, ClientMolds>;
+
+function toDTO(doc: AppointmentLean, molds: MoldsByPhone = new Map()): AppointmentDTO {
   return {
     id: String(doc._id),
     name: doc.name,
+    phone: doc.phone ?? undefined,
+    molds: (doc.phone && molds.get(doc.phone)) || {},
     serviceNames: doc.serviceNames,
     totalCents: doc.totalCents,
     date: doc.date,
@@ -49,6 +60,16 @@ function toDTO(doc: AppointmentLean): AppointmentDTO {
     status: doc.status,
     createdAt: (doc.createdAt ?? new Date(0)).toISOString(),
   };
+}
+
+/** Saved mold numbers for the clients behind these appointments. */
+async function moldsFor(docs: AppointmentLean[]): Promise<MoldsByPhone> {
+  const phones = [...new Set(docs.map((d) => d.phone).filter((p): p is string => Boolean(p)))];
+  if (phones.length === 0) return new Map();
+  const clients = await Client.find({ phone: { $in: phones } }, { phone: 1, handMold: 1, footMold: 1 }).lean();
+  return new Map(
+    clients.map((c) => [c.phone, { handMold: c.handMold ?? undefined, footMold: c.footMold ?? undefined }]),
+  );
 }
 
 /**
@@ -77,7 +98,12 @@ export async function getAppointmentsOverview() {
       .limit(100)
       .lean<AppointmentLean[]>(),
   ]);
-  return { today, pending: pending.map(toDTO), upcoming: upcoming.map(toDTO) };
+  const molds = await moldsFor([...pending, ...upcoming]);
+  return {
+    today,
+    pending: pending.map((doc) => toDTO(doc, molds)),
+    upcoming: upcoming.map((doc) => toDTO(doc, molds)),
+  };
 }
 
 /** One appointment, plus the confirmed ones it would clash with. */
@@ -97,8 +123,8 @@ export async function getAppointment(id: string) {
   const conflicts = sameDay.filter((other) => overlaps(range, { start: other.startMinutes, end: other.endMinutes }));
 
   return {
-    appointment: toDTO(doc),
-    conflicts: conflicts.map(toDTO),
+    appointment: toDTO(doc, await moldsFor([doc])),
+    conflicts: conflicts.map((other) => toDTO(other)),
     isPast: doc.date < lisbonDay(new Date()),
   };
 }

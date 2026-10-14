@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, WarningIcon } from "@phosphor-icons/react/ssr";
+import { ArrowLeftIcon, WarningIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import { AppointmentActions } from "@/components/admin/appointment-actions";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status";
+import { ClientMoldsForm } from "@/components/admin/client-molds-form";
 import { getAppointment } from "@/lib/data/appointments";
 import { formatDuration, formatLongDate, formatPrice } from "@/lib/format";
+import { formatPhone } from "@/lib/phone";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
 export const metadata: Metadata = { title: "Marcação" };
 
@@ -76,6 +79,33 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/marc
           </Detail>
         </dl>
       </article>
+
+      <section aria-labelledby="client-title" className="rounded-3xl bg-surface p-5 shadow-soft sm:p-8">
+        <h2 id="client-title" className="font-display text-2xl font-semibold">
+          Cliente
+        </h2>
+        {appointment.phone ? (
+          <>
+            <a
+              href={buildWhatsAppUrl(appointment.phone, `Olá, ${appointment.name}!`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex min-h-11 items-center gap-2 font-semibold text-accent tabular-nums hover:underline"
+            >
+              <WhatsappLogoIcon size={20} weight="fill" aria-hidden="true" />
+              {formatPhone(appointment.phone)}
+            </a>
+            <p className="mb-4 text-sm text-ink-muted">
+              Os moldes ficam guardados neste número e aparecem em todas as marcações desta cliente.
+            </p>
+            <ClientMoldsForm appointmentId={appointment.id} molds={appointment.molds} />
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-ink-muted">
+            Este pedido foi feito antes de o site pedir o WhatsApp, por isso não é possível guardar moldes.
+          </p>
+        )}
+      </section>
 
       {open && conflicts.length > 0 && (
         <div role="note" className="flex gap-3 rounded-2xl border border-danger/25 bg-danger-soft p-4 text-danger">

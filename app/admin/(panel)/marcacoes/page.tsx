@@ -96,6 +96,20 @@ function AppointmentCard({
           {!compact && <AppointmentStatusBadge status={appointment.status} />}
         </div>
         <p className="text-sm text-ink-muted wrap-anywhere">{appointment.serviceNames.join(", ")}</p>
+        {(appointment.molds.handMold || appointment.molds.footMold) && (
+          <p className="mt-1 flex flex-wrap gap-1.5 text-xs font-semibold">
+            {appointment.molds.handMold && (
+              <span className="rounded-full bg-peach-100 px-2.5 py-1 wrap-anywhere">
+                Mão: {appointment.molds.handMold}
+              </span>
+            )}
+            {appointment.molds.footMold && (
+              <span className="rounded-full bg-peach-100 px-2.5 py-1 wrap-anywhere">
+                Pé: {appointment.molds.footMold}
+              </span>
+            )}
+          </p>
+        )}
         {!compact && (
           <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink-muted first-letter:uppercase">
             <ClockIcon size={16} aria-hidden="true" />

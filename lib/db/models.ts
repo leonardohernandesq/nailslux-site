@@ -69,6 +69,8 @@ export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 const appointmentSchema = new Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 60 },
+    // WhatsApp, digits with country code (see lib/phone.ts). Older requests have none.
+    phone: { type: String, index: true },
     serviceIds: { type: [String], required: true },
     serviceNames: { type: [String], required: true },
     totalCents: { type: Number, required: true, min: 0 },
@@ -85,11 +87,25 @@ const appointmentSchema = new Schema(
 appointmentSchema.index({ date: 1, status: 1 });
 appointmentSchema.index({ status: 1, createdAt: -1 });
 
+/**
+ * What the studio keeps about a client, keyed by WhatsApp number so it shows up
+ * on every booking from that number.
+ */
+const clientSchema = new Schema(
+  {
+    phone: { type: String, required: true, unique: true },
+    handMold: { type: String, trim: true, maxlength: 40 },
+    footMold: { type: String, trim: true, maxlength: 40 },
+  },
+  { timestamps: true },
+);
+
 export type ServiceDoc = InferSchemaType<typeof serviceSchema>;
 export type PortfolioItemDoc = InferSchemaType<typeof portfolioItemSchema>;
 export type UserDoc = InferSchemaType<typeof userSchema>;
 export type AnalyticsEventDoc = InferSchemaType<typeof analyticsEventSchema>;
 export type AppointmentDoc = InferSchemaType<typeof appointmentSchema>;
+export type ClientDoc = InferSchemaType<typeof clientSchema>;
 
 // `models.X ??` keeps hot reload from redefining models.
 export const Service: Model<ServiceDoc> =
@@ -108,3 +124,6 @@ export const AnalyticsEvent: Model<AnalyticsEventDoc> =
 
 export const Appointment: Model<AppointmentDoc> =
   (mongoose.models.Appointment as Model<AppointmentDoc>) ?? mongoose.model("Appointment", appointmentSchema);
+
+export const Client: Model<ClientDoc> =
+  (mongoose.models.Client as Model<ClientDoc>) ?? mongoose.model("Client", clientSchema);

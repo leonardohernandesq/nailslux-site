@@ -70,6 +70,7 @@ describe("BookingForm", () => {
     expect(within(summary).getByText(/serviços: escolha pelo menos um serviço/i)).toBeTruthy();
     expect(within(summary).getByText(/data: escolha uma data/i)).toBeTruthy();
     expect(within(summary).getByText(/nome: indique o seu nome/i)).toBeTruthy();
+    expect(within(summary).getByText(/whatsapp: indique o seu número de whatsapp/i)).toBeTruthy();
     expect(document.activeElement).toBe(summary);
     expect(open).not.toHaveBeenCalled();
   });
@@ -87,12 +88,13 @@ describe("BookingForm", () => {
     fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
     await user.click(screen.getByRole("radio", { name: "10:30" }));
     await user.type(screen.getByLabelText(/o seu nome/i), "Ana");
+    await user.type(screen.getByLabelText(/o seu whatsapp/i), "912 345 678");
     await user.click(screen.getByRole("button", { name: /enviar pedido pelo whatsapp/i }));
 
     expect(open).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(popup.location.href).not.toBe(""));
     expect(requestAppointment).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Ana", date: "2026-10-16", time: "10:30" }),
+      expect.objectContaining({ name: "Ana", phone: "912 345 678", date: "2026-10-16", time: "10:30" }),
     );
     expect(popup.opener).toBeNull();
     const url = new URL(popup.location.href);
@@ -131,6 +133,7 @@ describe("BookingForm", () => {
     fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
     await user.click(await screen.findByRole("radio", { name: "10:30" }));
     await user.type(screen.getByLabelText(/o seu nome/i), "Ana");
+    await user.type(screen.getByLabelText(/o seu whatsapp/i), "912 345 678");
     await user.click(screen.getByRole("button", { name: /enviar pedido pelo whatsapp/i }));
 
     expect(await screen.findByText(/hora: esta hora acabou de ficar ocupada/i)).toBeTruthy();

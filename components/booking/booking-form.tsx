@@ -30,6 +30,7 @@ const FIELD_LABELS: Record<keyof Errors, string> = {
   date: "Data",
   time: "Hora",
   name: "Nome",
+  phone: "WhatsApp",
   notes: "Observações",
 };
 
@@ -48,12 +49,14 @@ export function BookingForm({
     date: `${uid}-date`,
     time: `${uid}-time`,
     name: `${uid}-name`,
+    phone: `${uid}-phone`,
     notes: `${uid}-notes`,
   };
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [attempted, setAttempted] = useState(false);
   const [sentUrl, setSentUrl] = useState<string | null>(null);
@@ -82,7 +85,7 @@ export function BookingForm({
     if (failedSubmits > 0) summaryRef.current?.focus();
   }, [failedSubmits]);
 
-  const values = { name, serviceIds: selectedIds, date, time, notes };
+  const values = { name, phone, serviceIds: selectedIds, date, time, notes };
 
   const chosen = services.filter((service) => selectedIds.includes(service.id));
   const total = chosen.reduce((sum, service) => sum + service.priceCents, 0);
@@ -270,7 +273,7 @@ export function BookingForm({
       </fieldset>
 
       <div className="flex flex-col gap-6">
-        <h3 className="font-display text-2xl font-semibold">2. Data, hora e nome</h3>
+        <h3 className="font-display text-2xl font-semibold">2. Data, hora e contacto</h3>
 
         <Field
           id={ids.date}
@@ -372,6 +375,31 @@ export function BookingForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             {...describedBy(ids.name, errors.name)}
+          />
+        </Field>
+
+        <Field
+          id={ids.phone}
+          label="O seu WhatsApp"
+          required
+          errors={errors.phone}
+          hint="Para confirmarmos a marcação. Se não for português, comece com o indicativo (ex.: +55)."
+        >
+          <Input
+            id={ids.phone}
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            required
+            maxLength={20}
+            placeholder="912 345 678"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              setServerError(null);
+            }}
+            {...describedBy(ids.phone, errors.phone, "hint")}
           />
         </Field>
 

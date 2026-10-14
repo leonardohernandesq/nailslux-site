@@ -32,6 +32,7 @@ test("the studio confirms a request in the admin and the time is blocked", async
   const form = await openForm(client.page);
   await form.getByText("15:00", { exact: true }).click();
   await form.getByLabel(/O seu nome/).fill("Joana Marcação");
+  await form.getByLabel(/O seu WhatsApp/).fill("912 345 678");
   const popupPromise = client.page.waitForEvent("popup");
   await form.getByRole("button", { name: "Enviar pedido pelo WhatsApp" }).click();
   const popup = await popupPromise;
@@ -54,6 +55,16 @@ test("the studio confirms a request in the admin and the time is blocked", async
   await owner.getByRole("button", { name: "Confirmar marcação" }).click();
   await expect(owner.getByRole("status").filter({ hasText: "Marcação confirmada" })).toBeVisible();
   await expect(owner.getByRole("article").getByText("Confirmada", { exact: true })).toBeVisible();
+
+  // The owner notes the client's molds; they show up in the bookings list.
+  await expect(owner.getByRole("link", { name: "+351 912 345 678" })).toHaveAttribute("href", /wa\.me\/351912345678/);
+  await owner.getByLabel(/Molde da mão/).fill("3-6-5-7-9");
+  await owner.getByLabel(/Molde do pé/).fill("2");
+  await owner.getByRole("button", { name: "Guardar moldes" }).click();
+  await expect(owner.getByText("Moldes guardados.")).toBeVisible();
+  await owner.goto("/admin/marcacoes");
+  await expect(owner.getByRole("link", { name: /Joana Marcação/ })).toContainText("Mão: 3-6-5-7-9");
+  await owner.goBack();
 
   // 3. Another client can't pick 15:00, nor 14:30 (1h would run into 15:00).
   const next = await visitor(browser);

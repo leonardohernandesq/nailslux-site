@@ -44,6 +44,7 @@ test("visits, WhatsApp clicks and booking requests show up in the statistics", a
   await form.getByLabel(/^Data/).fill(nextOpenDay());
   await form.getByText("10:30", { exact: true }).click();
   await form.getByLabel(/O seu nome/).fill("Maria Teste");
+  await form.getByLabel(/O seu WhatsApp/).fill("912 345 678");
   const booking = analyticsEvent(site, "booking");
   const bookingPopup = site.waitForEvent("popup");
   await form.getByRole("button", { name: "Enviar pedido pelo WhatsApp" }).click();

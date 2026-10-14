@@ -11,7 +11,7 @@ import { OPENING_HOURS } from "@/lib/site";
 import { createBookingSchema, type BookingInput } from "@/lib/validation/booking";
 import type { FormState } from "./form-state";
 
-export type BookingField = "name" | "serviceIds" | "date" | "time" | "notes";
+export type BookingField = "name" | "phone" | "serviceIds" | "date" | "time" | "notes";
 
 export type RequestAppointmentResult =
   | { ok: true; id: string }
@@ -44,7 +44,7 @@ export async function requestAppointment(input: BookingInput): Promise<RequestAp
     return { ok: false, field: issue.path[0] as BookingField, message: issue.message };
   }
 
-  const { name, date, time, notes } = parsed.data;
+  const { name, phone, date, time, notes } = parsed.data;
   const chosen = parsed.data.serviceIds
     .map((id) => services.find((s) => String(s._id) === id))
     .filter((s) => s !== undefined);
@@ -57,6 +57,7 @@ export async function requestAppointment(input: BookingInput): Promise<RequestAp
   const start = toMinutes(time);
   const appointment = await Appointment.create({
     name,
+    phone,
     serviceIds: chosen.map((s) => String(s._id)),
     serviceNames: chosen.map((s) => s.name),
     totalCents: chosen.reduce((sum, s) => sum + s.priceCents, 0),

@@ -12,7 +12,7 @@ const services: BookingService[] = [
 describe("buildBookingMessage", () => {
   it("lists services, total, duration, date and time", () => {
     const message = buildBookingMessage(
-      { name: "Ana Silva", serviceIds: ["gel", "pe"], date: "2026-10-17", time: "14:30", notes: "Cor nude" },
+      { name: "Ana Silva", phone: "351912345678", serviceIds: ["gel", "pe"], date: "2026-10-17", time: "14:30", notes: "Cor nude" },
       services,
     );
     expect(message).toContain("*Nome:* Ana Silva");
@@ -28,7 +28,7 @@ describe("buildBookingMessage", () => {
 
   it("uses the singular label and skips empty optional lines", () => {
     const message = buildBookingMessage(
-      { name: "Rita", serviceIds: ["art"], date: "2026-10-17", time: "09:00", notes: undefined },
+      { name: "Rita", phone: "351912345678", serviceIds: ["art"], date: "2026-10-17", time: "09:00", notes: undefined },
       services,
     );
     expect(message).toContain("*Serviço:*");

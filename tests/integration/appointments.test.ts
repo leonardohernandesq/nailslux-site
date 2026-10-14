@@ -13,9 +13,10 @@ vi.mock("next/cache", () => ({ refresh: vi.fn(), updateTag: vi.fn(), cacheTag: v
 vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
 
 const { connectDB, disconnectDB } = await import("@/lib/db/connect");
-const { Appointment, Service } = await import("@/lib/db/models");
+const { Appointment, Client, Service } = await import("@/lib/db/models");
 const { requestAppointment, decideAppointment } = await import("@/lib/actions/appointments");
-const { getBusyIntervals, getAppointment } = await import("@/lib/data/appointments");
+const { saveClientMolds } = await import("@/lib/actions/clients");
+const { getBusyIntervals, getAppointment, getAppointmentsOverview } = await import("@/lib/data/appointments");
 const { idleState } = await import("@/lib/actions/form-state");
 
 let mongo: MongoMemoryServer;
@@ -37,7 +38,7 @@ const intent = (value: string) => {
   return data;
 };
 const request = (serviceIds: string[], time: string, name = "Maria") =>
-  requestAppointment({ name, serviceIds, date: DAY, time, notes: "" });
+  requestAppointment({ name, phone: "912 345 678", serviceIds, date: DAY, time, notes: "" });
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create();
@@ -53,6 +54,7 @@ afterAll(async () => {
 beforeEach(async () => {
   session.admin = true;
   await Appointment.deleteMany({});
+  await Client.deleteMany({});
   await Service.deleteMany({});
   gel = String((await Service.create({ name: "Verniz gel", priceCents: 2500, durationMinutes: 60 }))._id);
   pedi = String((await Service.create({ name: "Pedicure", priceCents: 1800 }))._id);
@@ -68,6 +70,7 @@ describe("requestAppointment", () => {
     const saved = await Appointment.findById(result.id).lean();
     expect(saved).toMatchObject({
       status: "pending",
+      phone: "351912345678",
       serviceNames: ["Verniz gel", "Pedicure"],
       totalCents: 4300,
       startMinutes: 600,
@@ -78,7 +81,7 @@ describe("requestAppointment", () => {
   });
 
   it("rejects invalid input and unknown services", async () => {
-    expect(await requestAppointment({ name: "M", serviceIds: [gel], date: DAY, time: "10:00" })).toMatchObject({
+    expect(await requestAppointment({ name: "M", phone: "912345678", serviceIds: [gel], date: DAY, time: "10:00" })).toMatchObject({
       ok: false,
       field: "name",
     });
@@ -141,5 +144,65 @@ describe("decideAppointment", () => {
     expect(await decideAppointment(created.id, idleState, intent("decline"))).toMatchObject({ status: "success" });
     expect((await Appointment.findById(created.id).lean())?.status).toBe("declined");
     expect(await getBusyIntervals(DAY)).toEqual([]);
+  });
+});
+
+describe("client molds", () => {
+  const molds = (values: Record<string, string>) => {
+    const data = new FormData();
+    for (const [key, value] of Object.entries(values)) data.set(key, value);
+    return data;
+  };
+  const book = (time: string, phone: string) =>
+    requestAppointment({ name: "Maria", phone, serviceIds: [gel], date: DAY, time, notes: "" });
+
+  it("saves molds on the client's number and shows them on their next bookings", async () => {
+    const first = await book("10:00", "912 345 678");
+    if (!first.ok) throw new Error(first.message);
+    expect(await saveClientMolds(first.id, idleState, molds({ handMold: "3-6-5-7-9", footMold: "2" }))).toMatchObject({
+      status: "success",
+    });
+
+    // Same number typed differently on a later booking.
+    const next = await book("14:00", "+351 912345678");
+    const other = await book("16:00", "961111111");
+    if (!next.ok || !other.ok) throw new Error("setup");
+
+    expect((await getAppointment(next.id))?.appointment.molds).toEqual({ handMold: "3-6-5-7-9", footMold: "2" });
+    expect((await getAppointment(other.id))?.appointment.molds).toEqual({});
+    const { pending } = await getAppointmentsOverview();
+    expect(pending.find((a) => a.id === next.id)?.molds.handMold).toBe("3-6-5-7-9");
+  });
+
+  it("clears a mold left empty and keeps one client per number", async () => {
+    const created = await book("10:00", "912345678");
+    if (!created.ok) throw new Error(created.message);
+    await saveClientMolds(created.id, idleState, molds({ handMold: "4", footMold: "6" }));
+    await saveClientMolds(created.id, idleState, molds({ handMold: "5", footMold: "" }));
+
+    expect(await Client.countDocuments()).toBe(1);
+    expect((await getAppointment(created.id))?.appointment.molds).toEqual({ handMold: "5" });
+  });
+
+  it("refuses appointments without a number and non-admins", async () => {
+    const legacy = await Appointment.create({
+      name: "Antiga",
+      serviceIds: [gel],
+      serviceNames: ["Verniz gel"],
+      totalCents: 2500,
+      date: DAY,
+      time: "10:00",
+      startMinutes: 600,
+      endMinutes: 660,
+    });
+    expect(await saveClientMolds(String(legacy._id), idleState, molds({ handMold: "3" }))).toMatchObject({
+      status: "error",
+    });
+
+    session.admin = false;
+    await expect(saveClientMolds(String(legacy._id), idleState, molds({ handMold: "3" }))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+    expect(await Client.countDocuments()).toBe(0);
   });
 });

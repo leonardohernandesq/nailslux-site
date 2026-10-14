@@ -71,6 +71,7 @@ test("client books through WhatsApp", async ({ page }) => {
   await form.getByLabel(/^Data/).fill(date);
   await form.getByText("10:30", { exact: true }).click();
   await form.getByLabel(/O seu nome/).fill("Maria Teste");
+  await form.getByLabel(/O seu WhatsApp/).fill("912 345 678");
   await form.getByLabel(/Observações/).fill("Tons nude, por favor");
 
   const popupPromise = page.waitForEvent("popup");

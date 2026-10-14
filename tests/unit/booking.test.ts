@@ -35,7 +35,7 @@ describe("schedule", () => {
 
 describe("createBookingSchema", () => {
   const schema = createBookingSchema({ serviceIds: ["a", "b"], hours, now });
-  const valid = { name: "Ana", serviceIds: ["a"], date: "2026-10-15", time: "10:30", notes: "" };
+  const valid = { name: "Ana", phone: "351912345678", serviceIds: ["a"], date: "2026-10-15", time: "10:30", notes: "" };
 
   const errorsFor = (input: object) => {
     const result = schema.safeParse(input);
@@ -65,5 +65,11 @@ describe("createBookingSchema", () => {
 
   it("requires a name", () => {
     expect(errorsFor({ ...valid, name: " " })).toHaveProperty("name");
+  });
+
+  it("requires a valid WhatsApp number and stores it with the country code", () => {
+    expect(errorsFor({ ...valid, phone: "" }).phone).toMatch(/WhatsApp/);
+    expect(errorsFor({ ...valid, phone: "12345" })).toHaveProperty("phone");
+    expect(schema.parse({ ...valid, phone: "912 345 678" }).phone).toBe("351912345678");
   });
 });
