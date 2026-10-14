@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { requireAdmin } from "../auth/dal";
-import { CACHE_TAGS } from "../constants";
+import { CACHE_TAGS, PORTFOLIO_MAX_ITEMS } from "../constants";
 import { connectDB } from "../db/connect";
 import { PortfolioItem } from "../db/models";
 
@@ -43,7 +43,7 @@ export async function getPublicPortfolio(): Promise<PortfolioItemDTO[]> {
   cacheLife("days");
 
   await connectDB();
-  const docs = await PortfolioItem.find().sort(SORT).limit(60).lean<LeanItem[]>();
+  const docs = await PortfolioItem.find().sort(SORT).limit(PORTFOLIO_MAX_ITEMS).lean<LeanItem[]>();
   return docs.map(toPortfolioDTO);
 }
 

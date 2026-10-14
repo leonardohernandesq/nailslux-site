@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAdmin } from "../auth/dal";
-import { CACHE_TAGS } from "../constants";
+import { CACHE_TAGS, PORTFOLIO_MAX_ITEMS } from "../constants";
 import { connectDB } from "../db/connect";
 import { deleteImage, processImage, saveImage } from "../db/images";
 import { PortfolioItem } from "../db/models";
@@ -9,6 +9,8 @@ import { captionSchema, portfolioUploadSchema } from "../validation/portfolio";
 import { objectIdSchema } from "../validation/service";
 import type { FormState } from "./form-state";
 import { invalidate } from "./invalidate";
+
+const portfolioFullMessage = `Atingiu o limite de ${PORTFOLIO_MAX_ITEMS} fotografias. Remova uma para adicionar outra.`;
 
 /** Uploads one photo. The admin UI calls this once per selected file. */
 export async function uploadPortfolioPhoto(formData: FormData): Promise<FormState> {
@@ -21,6 +23,11 @@ export async function uploadPortfolioPhoto(formData: FormData): Promise<FormStat
     return { status: "error", message: parsed.error.issues[0]?.message ?? "Fotografia inválida." };
   }
 
+  await connectDB();
+  if ((await PortfolioItem.countDocuments()) >= PORTFOLIO_MAX_ITEMS) {
+    return { status: "error", message: portfolioFullMessage };
+  }
+
   let image;
   try {
     image = await processImage(Buffer.from(await parsed.data.file.arrayBuffer()));
@@ -28,7 +35,6 @@ export async function uploadPortfolioPhoto(formData: FormData): Promise<FormStat
     return { status: "error", message: "Não foi possível ler esta imagem. Tente outra fotografia." };
   }
 
-  await connectDB();
   const fileId = await saveImage(image.buffer, parsed.data.file.name);
   try {
     await PortfolioItem.create({

@@ -12,6 +12,9 @@ export const ACCEPTED_IMAGE_TYPES = [
 /** Longest edge, in pixels, of portfolio photos after processing. */
 export const PORTFOLIO_MAX_EDGE = 1600;
 
+/** Most photos the portfolio holds; the admin removes one to add another. */
+export const PORTFOLIO_MAX_ITEMS = 30;
+
 export const CACHE_TAGS = {
   services: "services",
   portfolio: "portfolio",

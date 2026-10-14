@@ -4,6 +4,7 @@ import { CaptionForm } from "@/components/admin/caption-form";
 import { ConfirmDelete } from "@/components/admin/confirm-delete";
 import { PortfolioUploader } from "@/components/admin/portfolio-uploader";
 import { deletePortfolioItem, updatePortfolioCaption } from "@/lib/actions/portfolio";
+import { PORTFOLIO_MAX_ITEMS } from "@/lib/constants";
 import { getAdminPortfolio } from "@/lib/data/portfolio";
 
 export const metadata: Metadata = { title: "Portfólio" };
@@ -19,11 +20,12 @@ export default async function PortfolioAdminPage() {
       <div>
         <h1 className="font-display text-4xl font-semibold">Portfólio</h1>
         <p className="text-ink-muted">
-          As fotografias mais recentes aparecem primeiro no site. São otimizadas automaticamente.
+          As fotografias mais recentes aparecem primeiro no site. São otimizadas automaticamente. Pode ter
+          até {PORTFOLIO_MAX_ITEMS}.
         </p>
       </div>
 
-      <PortfolioUploader />
+      <PortfolioUploader count={items.length} />
 
       {items.length === 0 ? (
         <p className="rounded-3xl bg-surface p-8 text-center text-ink-muted shadow-soft">
