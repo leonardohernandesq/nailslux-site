@@ -19,7 +19,8 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:3000"),
+  // Absolute base for social-share previews; falls back to the production domain.
+  metadataBase: new URL(process.env.SITE_URL ?? "https://nailslux.vercel.app"),
   title: {
     default: `${SITE.name} · ${SITE.tagline}`,
     template: `%s · ${SITE.name}`,
