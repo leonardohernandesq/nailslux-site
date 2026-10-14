@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   images: {
     formats: ["image/avif", "image/webp"],
+    // 75 is the default; 90 is for the hero photo, which is already compressed at the source.
+    qualities: [75, 90],
     localPatterns: [
       { pathname: "/brand/**", search: "" },
       { pathname: "/api/images/**", search: "" },

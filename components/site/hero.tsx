@@ -83,6 +83,7 @@ export function Hero({ whatsappNumber }: { whatsappNumber: string }) {
               src={heroImage}
               alt="Mão com unhas amendoadas em nude com brilho, feitas no studio"
               priority
+              quality={90}
               placeholder="blur"
               sizes="(min-width: 1024px) 416px, (min-width: 768px) 384px, (min-width: 640px) 256px, (min-width: 375px) 224px, 208px"
               className="aspect-square w-full object-cover object-[30%_55%] md:aspect-4/5 md:object-[30%_50%]"
