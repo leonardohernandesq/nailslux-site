@@ -159,7 +159,7 @@ describe("client molds", () => {
   it("saves molds on the client's number and shows them on their next bookings", async () => {
     const first = await book("10:00", "912 345 678");
     if (!first.ok) throw new Error(first.message);
-    expect(await saveClientMolds(first.id, idleState, molds({ handMold: "3-6-5-7-9", footMold: "2" }))).toMatchObject({
+    expect(await saveClientMolds(first.id, idleState, molds({ handMold: "3-10-5-7-9", footMold: "2-4-4-3-1" }))).toMatchObject({
       status: "success",
     });
 
@@ -168,20 +168,31 @@ describe("client molds", () => {
     const other = await book("16:00", "961111111");
     if (!next.ok || !other.ok) throw new Error("setup");
 
-    expect((await getAppointment(next.id))?.appointment.molds).toEqual({ handMold: "3-6-5-7-9", footMold: "2" });
+    expect((await getAppointment(next.id))?.appointment.molds).toEqual({ handMold: "3-10-5-7-9", footMold: "2-4-4-3-1" });
     expect((await getAppointment(other.id))?.appointment.molds).toEqual({});
     const { pending } = await getAppointmentsOverview();
-    expect(pending.find((a) => a.id === next.id)?.molds.handMold).toBe("3-6-5-7-9");
+    expect(pending.find((a) => a.id === next.id)?.molds.handMold).toBe("3-10-5-7-9");
   });
 
   it("clears a mold left empty and keeps one client per number", async () => {
     const created = await book("10:00", "912345678");
     if (!created.ok) throw new Error(created.message);
-    await saveClientMolds(created.id, idleState, molds({ handMold: "4", footMold: "6" }));
-    await saveClientMolds(created.id, idleState, molds({ handMold: "5", footMold: "" }));
+    await saveClientMolds(created.id, idleState, molds({ handMold: "4-4-4-4-4", footMold: "6-6-6-6-6" }));
+    await saveClientMolds(created.id, idleState, molds({ handMold: "5-5-5-5-5", footMold: "----" }));
 
     expect(await Client.countDocuments()).toBe(1);
-    expect((await getAppointment(created.id))?.appointment.molds).toEqual({ handMold: "5" });
+    expect((await getAppointment(created.id))?.appointment.molds).toEqual({ handMold: "5-5-5-5-5" });
+  });
+
+  it("refuses incomplete or out-of-range molds and keeps the typed values", async () => {
+    const created = await book("10:00", "912345678");
+    if (!created.ok) throw new Error(created.message);
+    const state = await saveClientMolds(created.id, idleState, molds({ handMold: "3--5--", footMold: "2-4-21-3-1" }));
+    expect(state.status).toBe("error");
+    expect(state.fieldErrors?.handMold?.[0]).toMatch(/Preencha os 5/);
+    expect(state.fieldErrors?.footMold?.[0]).toMatch(/de 0 a 20/);
+    expect(state.values).toMatchObject({ handMold: "3--5--" });
+    expect(await Client.countDocuments()).toBe(0);
   });
 
   it("refuses appointments without a number and non-admins", async () => {
@@ -195,12 +206,12 @@ describe("client molds", () => {
       startMinutes: 600,
       endMinutes: 660,
     });
-    expect(await saveClientMolds(String(legacy._id), idleState, molds({ handMold: "3" }))).toMatchObject({
+    expect(await saveClientMolds(String(legacy._id), idleState, molds({ handMold: "3-3-3-3-3" }))).toMatchObject({
       status: "error",
     });
 
     session.admin = false;
-    await expect(saveClientMolds(String(legacy._id), idleState, molds({ handMold: "3" }))).rejects.toThrow(
+    await expect(saveClientMolds(String(legacy._id), idleState, molds({ handMold: "3-3-3-3-3" }))).rejects.toThrow(
       "NEXT_REDIRECT",
     );
     expect(await Client.countDocuments()).toBe(0);

@@ -15,6 +15,10 @@ export const PORTFOLIO_MAX_EDGE = 1600;
 /** Most photos the portfolio holds; the admin removes one to add another. */
 export const PORTFOLIO_MAX_ITEMS = 30;
 
+/** A mold is one size per finger (or toe), stored as "3-6-5-7-9". */
+export const MOLD_DIGITS = 5;
+export const MOLD_MAX_SIZE = 20;
+
 export const CACHE_TAGS = {
   services: "services",
   portfolio: "portfolio",

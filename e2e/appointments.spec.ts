@@ -58,12 +58,16 @@ test("the studio confirms a request in the admin and the time is blocked", async
 
   // The owner notes the client's molds; they show up in the bookings list.
   await expect(owner.getByRole("link", { name: "+351 912 345 678" })).toHaveAttribute("href", /wa\.me\/351912345678/);
-  await owner.getByLabel(/Molde da mão/).fill("3-6-5-7-9");
-  await owner.getByLabel(/Molde do pé/).fill("2");
+  // One box per finger: it moves along as you type; 1 and 2 wait for a second digit.
+  await owner.getByRole("textbox", { name: "Polegar" }).click();
+  await owner.keyboard.type("310579");
+  await owner.getByRole("textbox", { name: "Dedão" }).click();
+  await owner.keyboard.type("24431");
   await owner.getByRole("button", { name: "Guardar moldes" }).click();
   await expect(owner.getByText("Moldes guardados.")).toBeVisible();
+  await expect(owner.getByRole("textbox", { name: "Indicador" })).toHaveValue("10");
   await owner.goto("/admin/marcacoes");
-  await expect(owner.getByRole("link", { name: /Joana Marcação/ })).toContainText("Mão: 3-6-5-7-9");
+  await expect(owner.getByRole("link", { name: /Joana Marcação/ })).toContainText("Mão: 3-10-5-7-9");
   await owner.goBack();
 
   // 3. Another client can't pick 15:00, nor 14:30 (1h would run into 15:00).
