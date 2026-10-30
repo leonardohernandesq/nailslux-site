@@ -5,6 +5,7 @@ import type Stripe from "stripe";
 import { CACHE_TAGS } from "../constants";
 import { connectDB } from "../db/connect";
 import { Tenant } from "../db/models";
+import { canSendMail } from "../mail";
 
 const PAYING: string[] = ["active", "trialing"];
 
@@ -22,10 +23,18 @@ function monthlyCents(subscription: Stripe.Subscription): number {
   return Math.round((unit_amount ?? 0) / (recurring?.interval === "year" ? 12 : 1));
 }
 
-/** A studio's site goes public once its email is confirmed and it's paying, in either order. */
+/**
+ * A studio's site goes public once it's paying and its email is confirmed, in either
+ * order. While no email can be sent the confirmation can't happen, so paying is enough.
+ */
 export async function publishIfReady(tenantId: Types.ObjectId | string) {
   return Tenant.findOneAndUpdate(
-    { _id: tenantId, status: "pending", emailConfirmedAt: { $ne: null }, subscriptionStatus: { $in: PAYING } },
+    {
+      _id: tenantId,
+      status: "pending",
+      subscriptionStatus: { $in: PAYING },
+      ...(canSendMail() && { emailConfirmedAt: { $ne: null } }),
+    },
     { status: "active" },
   ).lean();
 }

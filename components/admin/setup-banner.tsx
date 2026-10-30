@@ -18,23 +18,35 @@ function Step({ done, children }: { done: boolean; children: React.ReactNode }) 
 }
 
 /** What's left before a new studio's site goes public. */
-export function SetupBanner({ email, emailConfirmed, subscribed }: { email: string; emailConfirmed: boolean; subscribed: boolean }) {
+export function SetupBanner({
+  email,
+  emailConfirmed,
+  subscribed,
+  confirmsEmail,
+}: {
+  email: string;
+  emailConfirmed: boolean;
+  subscribed: boolean;
+  confirmsEmail: boolean;
+}) {
   const [state, formAction] = useActionState(resendConfirmation, idleState);
 
   return (
     <section aria-label="Publicar o site" className="mb-6 rounded-2xl bg-peach-50 p-4">
       <p className="font-bold">O seu site ainda não está público</p>
       <ul className="mt-3 flex flex-col gap-2 text-sm">
-        <Step done={emailConfirmed}>
-          <span>{emailConfirmed ? "Email confirmado" : `Confirme o email enviado para ${email}`}</span>
-          {!emailConfirmed && (
-            <form action={formAction}>
-              <SubmitButton size="sm" variant="secondary" pendingLabel="A enviar…">
-                Reenviar
-              </SubmitButton>
-            </form>
-          )}
-        </Step>
+        {confirmsEmail && (
+          <Step done={emailConfirmed}>
+            <span>{emailConfirmed ? "Email confirmado" : `Confirme o email enviado para ${email}`}</span>
+            {!emailConfirmed && (
+              <form action={formAction}>
+                <SubmitButton size="sm" variant="secondary" pendingLabel="A enviar…">
+                  Reenviar
+                </SubmitButton>
+              </form>
+            )}
+          </Step>
+        )}
         <Step done={subscribed}>
           {subscribed ? (
             <span>Subscrição ativa</span>

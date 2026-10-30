@@ -129,6 +129,29 @@ describe("publishing", () => {
     expect((await tenant())?.status).toBe("pending");
   });
 
+  it("doesn't wait for a confirmation that can't be sent, but still for the payment", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RESEND_API_KEY", "");
+    await seed({ status: "pending" });
+
+    await webhook(subscription("incomplete"));
+    expect((await tenant())?.status).toBe("pending");
+
+    await webhook(subscription("active"));
+    expect((await tenant())?.status).toBe("active");
+    vi.unstubAllEnvs();
+  });
+
+  it("asks for the confirmation again once email works", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RESEND_API_KEY", "re_x");
+    await seed({ status: "pending" });
+
+    await webhook(subscription("active"));
+    expect((await tenant())?.status).toBe("pending");
+    vi.unstubAllEnvs();
+  });
+
   it("stays private while the first payment is incomplete", async () => {
     await seed({ status: "pending", emailConfirmedAt: new Date() });
     await webhook(subscription("incomplete"));

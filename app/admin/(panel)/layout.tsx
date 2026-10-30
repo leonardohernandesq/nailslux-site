@@ -7,6 +7,7 @@ import { SetupBanner } from "@/components/admin/setup-banner";
 import { logout } from "@/lib/actions/auth";
 import { requireAdmin } from "@/lib/auth/dal";
 import { getTenantById } from "@/lib/data/tenants";
+import { canSendMail } from "@/lib/mail";
 
 // The panel reads the session on every request, so navigations into it are allowed
 // to wait on the server (opts these routes out of instant-navigation validation).
@@ -78,7 +79,7 @@ async function PendingNotice() {
 
   const subscribed = tenant.subscriptionStatus === "active" || tenant.subscriptionStatus === "trialing";
   if (tenant.status === "pending") {
-    return <SetupBanner email={email} emailConfirmed={tenant.emailConfirmed} subscribed={subscribed} />;
+    return <SetupBanner email={email} emailConfirmed={tenant.emailConfirmed} subscribed={subscribed} confirmsEmail={canSendMail()} />;
   }
   if (tenant.status === "suspended" || tenant.subscriptionStatus === "past_due") {
     return (

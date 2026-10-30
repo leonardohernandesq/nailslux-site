@@ -29,6 +29,17 @@ test("the menu leads to the plans, and a plan to sign-up with it chosen", async 
   await expect(page.getByRole("radio", { name: /Anual/ })).toBeChecked();
 });
 
+test("the footer leads to the terms and the privacy policy", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Termos" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Termos de utilização");
+  await expect(page.getByRole("main")).toContainText("99,99 € por ano");
+
+  await page.goto("/");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Privacidade" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Política de privacidade");
+});
+
 test("with reduced motion the hero shows one clean screen", async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: "reduce" });
   const page = await context.newPage();

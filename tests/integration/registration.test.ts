@@ -9,6 +9,7 @@ vi.mock("@/auth", () => ({ signIn: vi.fn(async () => {}) }));
 vi.mock("next/cache", () => ({ refresh: vi.fn(), updateTag: vi.fn(), revalidateTag: vi.fn(), cacheTag: vi.fn(), cacheLife: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/mail", () => ({
+  canSendMail: () => true,
   actionMail: (_intro: string, _label: string, url: string) => ({ text: url, html: url }),
   sendMail: vi.fn(async (message: { to: string; text: string }) => {
     mail.sent.push(message);

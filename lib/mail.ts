@@ -2,6 +2,11 @@ import "server-only";
 
 type Mail = { to: string; subject: string; text: string; html: string };
 
+/** False in production without a Resend key, when no email can reach anyone. */
+export function canSendMail(): boolean {
+  return Boolean(process.env.RESEND_API_KEY) || process.env.NODE_ENV !== "production";
+}
+
 /**
  * Sends an email through Resend. Returns false instead of throwing: a failed email
  * must never undo the sign-up or reveal anything to the visitor, and the panel
