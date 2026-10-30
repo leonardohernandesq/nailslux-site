@@ -85,6 +85,34 @@
     }
   }
 
+  /* Landing page: slow background drift and the feature ribbon. Both only move
+     transforms, and both stand still for visitors who prefer reduced motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    .landing-aurora {
+      animation: landing-drift 16s ease-in-out infinite alternate;
+    }
+    .landing-aurora-alt {
+      animation-duration: 21s;
+      animation-direction: alternate-reverse;
+    }
+    .landing-marquee {
+      animation: landing-marquee 36s linear infinite;
+    }
+  }
+
+  @keyframes landing-drift {
+    to {
+      translate: 12% 10%;
+      scale: 1.15;
+    }
+  }
+
+  @keyframes landing-marquee {
+    to {
+      translate: -50% 0;
+    }
+  }
+
   @keyframes hero-rise {
     from {
       opacity: 0;
