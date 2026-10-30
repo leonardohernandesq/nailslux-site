@@ -1,24 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ClockIcon, InstagramLogoIcon, MapPinIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
-import { OPENING_HOURS, formatOpeningDays, formatPhoneForDisplay } from "@/lib/site";
+import type { TenantDTO } from "@/lib/data/tenants";
+import { formatOpeningDays, formatPhoneForDisplay } from "@/lib/site";
 
-export function SiteFooter({
-  whatsappNumber,
-  instagramUrl,
-  address,
-}: {
-  whatsappNumber: string;
-  instagramUrl: string | null;
-  address: string | null;
-}) {
+export function SiteFooter({ tenant }: { tenant: TenantDTO }) {
+  const { name, tagline, whatsappNumber, instagramUrl, address, hours } = tenant;
   return (
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr]">
         <div>
           <Image
             src="/brand/logo-wordmark.png"
-            alt="NailsLux, studio de unhas"
+            alt={`${name}, ${tagline.toLowerCase()}`}
             width={1000}
             height={288}
             className="h-12 w-auto"
@@ -64,17 +58,17 @@ export function SiteFooter({
             <ClockIcon size={22} aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
             <span>
               <span className="first-letter:uppercase inline-block">
-                {formatOpeningDays(OPENING_HOURS.days)}
+                {formatOpeningDays(hours.days)}
               </span>
               {" · "}
-              {OPENING_HOURS.opens}–{OPENING_HOURS.lastStart}
+              {hours.opens}–{hours.lastStart}
             </span>
           </li>
         </ul>
       </div>
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-5 text-sm text-ink-muted sm:px-6">
-          <p>© NailsLux · Studio de unhas</p>
+          <p>© {name} · {tagline}</p>
           <Link href="/admin" className="inline-flex min-h-11 items-center hover:text-accent">
             Área reservada
           </Link>

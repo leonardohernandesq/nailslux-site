@@ -63,10 +63,10 @@ function toDTO(doc: AppointmentLean, molds: MoldsByPhone = new Map()): Appointme
 }
 
 /** Saved mold numbers for the clients behind these appointments. */
-async function moldsFor(docs: AppointmentLean[]): Promise<MoldsByPhone> {
+async function moldsFor(tenantId: string, docs: AppointmentLean[]): Promise<MoldsByPhone> {
   const phones = [...new Set(docs.map((d) => d.phone).filter((p): p is string => Boolean(p)))];
   if (phones.length === 0) return new Map();
-  const clients = await Client.find({ phone: { $in: phones } }, { phone: 1, handMold: 1, footMold: 1 }).lean();
+  const clients = await Client.find({ tenantId, phone: { $in: phones } }, { phone: 1, handMold: 1, footMold: 1 }).lean();
   return new Map(
     clients.map((c) => [c.phone, { handMold: c.handMold ?? undefined, footMold: c.footMold ?? undefined }]),
   );
@@ -76,9 +76,9 @@ async function moldsFor(docs: AppointmentLean[]): Promise<MoldsByPhone> {
  * Times already taken on a date (confirmed appointments only). Public: it returns
  * no names or details, just the blocked ranges.
  */
-export async function getBusyIntervals(date: string, excludeId?: string): Promise<BusyInterval[]> {
+export async function getBusyIntervals(tenantId: string, date: string, excludeId?: string): Promise<BusyInterval[]> {
   await connectDB();
-  const filter: Record<string, unknown> = { date, status: "confirmed" };
+  const filter: Record<string, unknown> = { tenantId, date, status: "confirmed" };
   if (excludeId && isValidObjectId(excludeId)) filter._id = { $ne: excludeId };
   const docs = await Appointment.find(filter, { startMinutes: 1, endMinutes: 1 }).sort({ startMinutes: 1 }).lean();
   return docs.map((d) => ({ start: d.startMinutes, end: d.endMinutes }));
@@ -86,19 +86,19 @@ export async function getBusyIntervals(date: string, excludeId?: string): Promis
 
 /** Requests waiting for an answer, and confirmed appointments from today on. */
 export async function getAppointmentsOverview() {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   await connection(); // "today" is per request
   const today = lisbonDay(new Date());
   await connectDB();
 
   const [pending, upcoming] = await Promise.all([
-    Appointment.find({ status: "pending" }).sort({ date: 1, startMinutes: 1 }).lean<AppointmentLean[]>(),
-    Appointment.find({ status: "confirmed", date: { $gte: today } })
+    Appointment.find({ tenantId, status: "pending" }).sort({ date: 1, startMinutes: 1 }).lean<AppointmentLean[]>(),
+    Appointment.find({ tenantId, status: "confirmed", date: { $gte: today } })
       .sort({ date: 1, startMinutes: 1 })
       .limit(100)
       .lean<AppointmentLean[]>(),
   ]);
-  const molds = await moldsFor([...pending, ...upcoming]);
+  const molds = await moldsFor(tenantId, [...pending, ...upcoming]);
   return {
     today,
     pending: pending.map((doc) => toDTO(doc, molds)),
@@ -108,22 +108,22 @@ export async function getAppointmentsOverview() {
 
 /** One appointment, plus the confirmed ones it would clash with. */
 export async function getAppointment(id: string) {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   await connection();
   if (!isValidObjectId(id)) return null;
   await connectDB();
 
-  const doc = await Appointment.findById(id).lean<AppointmentLean>();
+  const doc = await Appointment.findOne({ _id: id, tenantId }).lean<AppointmentLean>();
   if (!doc) return null;
 
-  const sameDay = await Appointment.find({ _id: { $ne: doc._id }, date: doc.date, status: "confirmed" })
+  const sameDay = await Appointment.find({ tenantId, _id: { $ne: doc._id }, date: doc.date, status: "confirmed" })
     .sort({ startMinutes: 1 })
     .lean<AppointmentLean[]>();
   const range = { start: doc.startMinutes, end: doc.endMinutes };
   const conflicts = sameDay.filter((other) => overlaps(range, { start: other.startMinutes, end: other.endMinutes }));
 
   return {
-    appointment: toDTO(doc, await moldsFor([doc])),
+    appointment: toDTO(doc, await moldsFor(tenantId, [doc])),
     conflicts: conflicts.map((other) => toDTO(other)),
     isPast: doc.date < lisbonDay(new Date()),
   };

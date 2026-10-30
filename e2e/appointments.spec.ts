@@ -18,7 +18,7 @@ async function visitor(browser: Browser) {
 }
 
 async function openForm(page: Page) {
-  await page.goto("/");
+  await page.goto("/nailslux");
   await page.getByRole("button", { name: "Escolher Verniz gel" }).click(); // 1 hour
   await page.getByRole("button", { name: "Agendar Agora" }).click();
   const form = page.getByRole("form", { name: "Pedido de marcação" });

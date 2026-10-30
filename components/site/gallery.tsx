@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon, XIcon } from "@phosphor-icons/react";
 import type { PortfolioItemDTO } from "@/lib/data/portfolio";
 
-const FALLBACK_ALT = "Trabalho de unhas feito no studio NailsLux";
+const FALLBACK_ALT = "Trabalho de unhas feito no studio";
 
 export function Gallery({ items }: { items: PortfolioItemDTO[] }) {
   const dialogRef = useRef<HTMLDialogElement>(null);

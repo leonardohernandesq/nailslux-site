@@ -5,7 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 // --- Next.js / auth boundaries -------------------------------------------------
 vi.mock("@/lib/auth/dal", () => ({
-  requireAdmin: vi.fn(async () => ({ id: "u1", name: "Admin", email: "admin@test.pt" })),
+  requireAdmin: vi.fn(async () => ({ id: "u1", name: "Admin", email: "admin@test.pt", tenantId: "64b000000000000000000001", tenantSlug: "studio" })),
 }));
 vi.mock("next/cache", () => ({
   updateTag: vi.fn(),
@@ -18,6 +18,8 @@ const { connectDB, disconnectDB } = await import("@/lib/db/connect");
 const { PortfolioItem } = await import("@/lib/db/models");
 const { PORTFOLIO_MAX_ITEMS } = await import("@/lib/constants");
 const actions = await import("@/lib/actions/portfolio");
+
+const TENANT_ID = "64b000000000000000000001";
 
 let mongo: MongoMemoryServer;
 let png: Buffer;
@@ -35,7 +37,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await PortfolioItem.deleteMany({});
+  await PortfolioItem.collection.deleteMany({});
 });
 
 function photoForm() {
@@ -47,6 +49,7 @@ function photoForm() {
 async function fillPortfolio(count: number) {
   await PortfolioItem.insertMany(
     Array.from({ length: count }, () => ({
+      tenantId: TENANT_ID,
       fileId: new mongoose.Types.ObjectId(),
       width: 40,
       height: 50,
@@ -60,13 +63,13 @@ describe("portfolio upload limit", () => {
     await fillPortfolio(PORTFOLIO_MAX_ITEMS - 1);
     const result = await actions.uploadPortfolioPhoto(photoForm());
     expect(result.status).toBe("success");
-    expect(await PortfolioItem.countDocuments()).toBe(PORTFOLIO_MAX_ITEMS);
+    expect(await PortfolioItem.countDocuments({ tenantId: TENANT_ID })).toBe(PORTFOLIO_MAX_ITEMS);
   });
 
   it("refuses a photo once the portfolio is full", async () => {
     await fillPortfolio(PORTFOLIO_MAX_ITEMS);
     const result = await actions.uploadPortfolioPhoto(photoForm());
     expect(result).toMatchObject({ status: "error", message: expect.stringContaining("Remova uma") });
-    expect(await PortfolioItem.countDocuments()).toBe(PORTFOLIO_MAX_ITEMS);
+    expect(await PortfolioItem.countDocuments({ tenantId: TENANT_ID })).toBe(PORTFOLIO_MAX_ITEMS);
   });
 });

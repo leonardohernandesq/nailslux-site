@@ -4,18 +4,21 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 const session = vi.hoisted(() => ({ user: null as null | { id: string } }));
 
 vi.mock("@/auth", () => ({ auth: vi.fn(async () => (session.user ? { user: session.user } : null)) }));
+vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
 vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
 vi.mock("@/lib/auth/dal", () => ({
-  requireAdmin: vi.fn(async () => ({ id: "u1", name: "Admin", email: "admin@test.pt" })),
+  requireAdmin: vi.fn(async () => ({ id: "u1", name: "Admin", email: "admin@test.pt", tenantId: "64b000000000000000000001", tenantSlug: "studio" })),
 }));
 
 const { connectDB, disconnectDB } = await import("@/lib/db/connect");
-const { AnalyticsEvent, Service } = await import("@/lib/db/models");
+const { AnalyticsEvent, Service, Tenant } = await import("@/lib/db/models");
 const { recordEvent } = await import("@/lib/analytics/server");
 const { getAnalytics } = await import("@/lib/data/analytics");
 const { POST } = await import("@/app/api/analytics/route");
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130 Safari/537.36";
+const TENANT_ID = "64b000000000000000000001";
+
 let mongo: MongoMemoryServer;
 
 beforeAll(async () => {
@@ -31,15 +34,17 @@ afterAll(async () => {
 
 beforeEach(async () => {
   session.user = null;
-  await AnalyticsEvent.deleteMany({});
-  await Service.deleteMany({});
+  await AnalyticsEvent.collection.deleteMany({});
+  await Tenant.collection.deleteMany({});
+  await Tenant.create({ _id: TENANT_ID, slug: "studio", name: "Studio", whatsappNumber: "351900000000" });
+  await Service.collection.deleteMany({});
 });
 
 function post(body: unknown, { userAgent = UA, ip = "10.0.0.1" } = {}) {
   return POST(
     new Request("http://localhost/api/analytics", {
       method: "POST",
-      body: typeof body === "string" ? body : JSON.stringify(body),
+      body: typeof body === "string" ? body : JSON.stringify({ tenant: "studio", event: body }),
       headers: { "user-agent": userAgent, "x-forwarded-for": `${ip}, 70.0.0.1` },
     }),
   );
@@ -48,7 +53,7 @@ function post(body: unknown, { userAgent = UA, ip = "10.0.0.1" } = {}) {
 describe("POST /api/analytics", () => {
   it("records a page view without storing the IP", async () => {
     expect((await post({ type: "pageview" })).status).toBe(204);
-    const events = await AnalyticsEvent.find().lean();
+    const events = await AnalyticsEvent.find({ tenantId: TENANT_ID }).lean();
     expect(events).toHaveLength(1);
     expect(JSON.stringify(events)).not.toContain("10.0.0.1");
   });
@@ -60,13 +65,13 @@ describe("POST /api/analytics", () => {
     session.user = null;
     expect((await post("not json")).status).toBe(400);
     expect((await post({ type: "booking", serviceIds: [] })).status).toBe(400);
-    expect(await AnalyticsEvent.countDocuments()).toBe(0);
+    expect(await AnalyticsEvent.countDocuments({ tenantId: TENANT_ID })).toBe(0);
   });
 
   it("stores bookings with names and prices from the database, not the browser", async () => {
-    const gel = await Service.create({ name: "Verniz gel", priceCents: 2500 });
+    const gel = await Service.create({ tenantId: TENANT_ID, name: "Verniz gel", priceCents: 2500 });
     await post({ type: "booking", serviceIds: [String(gel._id), "not-an-id"], date: "2026-10-16", time: "10:30" });
-    const booking = await AnalyticsEvent.findOne({ type: "booking" }).lean();
+    const booking = await AnalyticsEvent.findOne({ tenantId: TENANT_ID, type: "booking" }).lean();
     expect(booking).toMatchObject({
       serviceNames: ["Verniz gel"],
       totalCents: 2500,
@@ -79,23 +84,23 @@ describe("POST /api/analytics", () => {
 describe("getAnalytics", () => {
   it("summarises visitors, contacts, conversion, services and demand", async () => {
     const now = new Date();
-    const gel = await Service.create({ name: "Verniz gel", priceCents: 2500 });
-    const pedi = await Service.create({ name: "Pedicure", priceCents: 1800 });
+    const gel = await Service.create({ tenantId: TENANT_ID, name: "Verniz gel", priceCents: 2500 });
+    const pedi = await Service.create({ tenantId: TENANT_ID, name: "Pedicure", priceCents: 1800 });
     const at = now;
 
     // Four visitors; two contact (one books twice, one clicks WhatsApp).
     for (const ip of ["1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4"]) {
-      await recordEvent({ type: "pageview" }, { ip, userAgent: UA, at });
+      await recordEvent(TENANT_ID, { type: "pageview" }, { ip, userAgent: UA, at });
     }
     const booking = (serviceIds: string[], date: string, time: string) =>
-      recordEvent({ type: "booking", serviceIds, date, time }, { ip: "1.1.1.1", userAgent: UA, at });
+      recordEvent(TENANT_ID, { type: "booking", serviceIds, date, time }, { ip: "1.1.1.1", userAgent: UA, at });
     await booking([String(gel._id), String(pedi._id)], "2026-10-16", "10:30"); // Friday
     await booking([String(gel._id)], "2026-10-17", "15:00"); // Saturday
-    await recordEvent({ type: "whatsapp_click", source: "hero" }, { ip: "2.2.2.2", userAgent: UA, at });
+    await recordEvent(TENANT_ID, { type: "whatsapp_click", source: "hero" }, { ip: "2.2.2.2", userAgent: UA, at });
     // Instagram is interest, not a contact: it must not change the conversion rate.
-    await recordEvent({ type: "instagram_click", source: "portfolio" }, { ip: "3.3.3.3", userAgent: UA, at });
+    await recordEvent(TENANT_ID, { type: "instagram_click", source: "portfolio" }, { ip: "3.3.3.3", userAgent: UA, at });
     // Outside the period: ignored.
-    await AnalyticsEvent.create({ type: "pageview", visitorId: "old", createdAt: new Date(now.getTime() - 40 * 86_400_000) });
+    await AnalyticsEvent.create({ tenantId: TENANT_ID, type: "pageview", visitorId: "old", createdAt: new Date(now.getTime() - 40 * 86_400_000) });
 
     const stats = await getAnalytics(30, now);
 

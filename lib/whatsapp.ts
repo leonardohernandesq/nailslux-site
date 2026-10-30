@@ -8,7 +8,11 @@ export type BookingService = {
   durationMinutes?: number;
 };
 
-export function buildBookingMessage(booking: BookingRequest, services: readonly BookingService[]): string {
+export function buildBookingMessage(
+  booking: BookingRequest,
+  services: readonly BookingService[],
+  studioName: string,
+): string {
   const chosen = booking.serviceIds
     .map((id) => services.find((service) => service.id === id))
     .filter((service): service is BookingService => Boolean(service));
@@ -17,7 +21,7 @@ export function buildBookingMessage(booking: BookingRequest, services: readonly 
   const totalMinutes = chosen.reduce((sum, service) => sum + (service.durationMinutes ?? 0), 0);
 
   const lines = [
-    "Olá, NailsLux! Gostaria de fazer uma marcação.",
+    `Olá, ${studioName}! Gostaria de fazer uma marcação.`,
     "",
     `*Nome:* ${booking.name}`,
     chosen.length === 1 ? "*Serviço:*" : "*Serviços:*",

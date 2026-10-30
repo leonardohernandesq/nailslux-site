@@ -8,11 +8,11 @@ const NAV = [
   { href: "#como-funciona", label: "Como funciona" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ tenantSlug, studioName }: { tenantSlug: string; studioName: string }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-cream/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:h-20 sm:px-6">
-        <Link href="/" aria-label="NailsLux, início" className="shrink-0">
+        <Link href={`/${tenantSlug}`} aria-label={`${studioName}, início`} className="shrink-0">
           <Image
             src="/brand/logo-wordmark.png"
             alt=""

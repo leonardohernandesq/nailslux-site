@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { isBot, recordEvent } from "@/lib/analytics/server";
-import { trackEventSchema } from "@/lib/validation/analytics";
+import { getActiveTenant } from "@/lib/data/tenants";
+import { trackPayloadSchema } from "@/lib/validation/analytics";
 
 const noContent = () => new Response(null, { status: 204 });
 
@@ -15,8 +16,11 @@ export async function POST(request: Request) {
   } catch {
     return new Response("Invalid JSON", { status: 400 });
   }
-  const parsed = trackEventSchema.safeParse(body);
+  const parsed = trackPayloadSchema.safeParse(body);
   if (!parsed.success) return new Response("Invalid event", { status: 400 });
+
+  const tenant = await getActiveTenant(parsed.data.tenant);
+  if (!tenant) return noContent();
 
   // The studio owner browsing her own site shouldn't count as a visitor.
   if ((await auth())?.user) return noContent();
@@ -26,6 +30,6 @@ export async function POST(request: Request) {
     request.headers.get("x-real-ip") ||
     "unknown";
 
-  await recordEvent(parsed.data, { ip, userAgent, at: new Date() });
+  await recordEvent(tenant.id, parsed.data.event, { ip, userAgent, at: new Date() });
   return noContent();
 }

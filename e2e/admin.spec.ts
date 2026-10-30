@@ -44,7 +44,7 @@ test("admin creates, edits and deletes a service; changes show on the site", asy
   await expect(page.getByRole("status")).toContainText("Serviço guardado");
   await expect(page.getByRole("heading", { name: "Manicure russa" })).toBeVisible();
 
-  await page.goto("/");
+  await page.goto("/nailslux");
   const card = page.locator("#servicos li").filter({ hasText: "Manicure russa" });
   await expect(card).toContainText("32,50");
   await expect(card).toContainText("1h15");
@@ -55,7 +55,7 @@ test("admin creates, edits and deletes a service; changes show on the site", asy
   await page.locator("#price").fill("35");
   await page.getByRole("button", { name: "Guardar serviço" }).click();
   await expect(page.getByRole("status")).toContainText("Serviço guardado");
-  await page.goto("/");
+  await page.goto("/nailslux");
   await expect(page.locator("#servicos li").filter({ hasText: "Manicure russa" })).toContainText("35,00");
 
   // Delete (with confirmation)
@@ -64,7 +64,7 @@ test("admin creates, edits and deletes a service; changes show on the site", asy
   const dialog = page.getByRole("dialog", { name: "Apagar Manicure russa?" });
   await dialog.getByRole("button", { name: "Apagar" }).click();
   await expect(page.getByRole("heading", { name: "Manicure russa" })).toHaveCount(0);
-  await page.goto("/");
+  await page.goto("/nailslux");
   await expect(page.locator("#servicos")).not.toContainText("Manicure russa");
 });
 
@@ -81,7 +81,7 @@ test("admin uploads a portfolio photo and it shows on the site", async ({ page }
   await page.getByRole("button", { name: "Guardar legenda" }).click();
   await expect(page.getByText("Legenda guardada.")).toBeVisible();
 
-  await page.goto("/");
+  await page.goto("/nailslux");
   const gallery = page.locator("#portfolio");
   await expect(gallery.getByText("Gel laranja")).toBeVisible();
   const img = gallery.locator("img").first();

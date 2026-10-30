@@ -5,7 +5,7 @@
 import { spawn } from "node:child_process";
 import bcrypt from "bcryptjs";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { E2E_ADMIN, E2E_INSTAGRAM, E2E_WHATSAPP } from "../e2e/constants";
+import { E2E_ADMIN, E2E_INSTAGRAM, E2E_SLUG, E2E_WHATSAPP } from "../e2e/constants";
 
 const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
 
@@ -15,17 +15,25 @@ async function main() {
   process.env.MONGODB_URI = uri;
 
   const { connectDB, disconnectDB } = await import("../lib/db/connect");
-  const { Service, User } = await import("../lib/db/models");
+  const { Service, Tenant, User } = await import("../lib/db/models");
   await connectDB();
+  const tenant = await Tenant.create({
+    slug: E2E_SLUG,
+    name: "NailsLux",
+    whatsappNumber: E2E_WHATSAPP,
+    instagramUrl: E2E_INSTAGRAM,
+  });
+  const tenantId = tenant._id;
   await User.create({
+    tenantId,
     name: E2E_ADMIN.name,
     email: E2E_ADMIN.email,
     passwordHash: await bcrypt.hash(E2E_ADMIN.password, 4),
   });
   await Service.create([
-    { name: "Verniz gel", description: "Cor e brilho que duram semanas.", priceCents: 2500, durationMinutes: 60, order: 1 },
-    { name: "Pedicure", priceCents: 1800, durationMinutes: 45, order: 2 },
-    { name: "Serviço escondido", priceCents: 999, active: false, order: 3 },
+    { tenantId, name: "Verniz gel", description: "Cor e brilho que duram semanas.", priceCents: 2500, durationMinutes: 60, order: 1 },
+    { tenantId, name: "Pedicure", priceCents: 1800, durationMinutes: 45, order: 2 },
+    { tenantId, name: "Serviço escondido", priceCents: 999, active: false, order: 3 },
   ]);
   await disconnectDB();
 
@@ -38,8 +46,6 @@ async function main() {
         ...process.env,
         MONGODB_URI: uri,
         AUTH_SECRET: "e2e-only-secret-not-for-production-000000",
-        WHATSAPP_NUMBER: E2E_WHATSAPP,
-        INSTAGRAM_URL: E2E_INSTAGRAM,
         NEXT_DIST_DIR: ".next-e2e",
         NEXT_TELEMETRY_DISABLED: "1",
       },

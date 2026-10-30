@@ -14,6 +14,7 @@ describe("buildBookingMessage", () => {
     const message = buildBookingMessage(
       { name: "Ana Silva", phone: "351912345678", serviceIds: ["gel", "pe"], date: "2026-10-17", time: "14:30", notes: "Cor nude" },
       services,
+      "NailsLux",
     );
     expect(message).toContain("*Nome:* Ana Silva");
     expect(message).toContain("*Serviços:*");
@@ -30,6 +31,7 @@ describe("buildBookingMessage", () => {
     const message = buildBookingMessage(
       { name: "Rita", phone: "351912345678", serviceIds: ["art"], date: "2026-10-17", time: "09:00", notes: undefined },
       services,
+      "NailsLux",
     );
     expect(message).toContain("*Serviço:*");
     expect(message).not.toContain("Duração");

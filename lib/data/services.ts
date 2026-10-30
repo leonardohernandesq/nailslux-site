@@ -40,28 +40,28 @@ export function toServiceDTO(doc: LeanService): ServiceDTO {
 const SORT = { order: 1, createdAt: 1 } as const;
 
 /** Active services shown on the public site. Cached until a service changes. */
-export async function getPublicServices(): Promise<ServiceDTO[]> {
+export async function getPublicServices(tenantId: string): Promise<ServiceDTO[]> {
   "use cache";
-  cacheTag(CACHE_TAGS.services);
+  cacheTag(CACHE_TAGS.services(tenantId));
   cacheLife("days");
 
   await connectDB();
-  const docs = await Service.find({ active: true }).sort(SORT).lean<LeanService[]>();
+  const docs = await Service.find({ tenantId, active: true }).sort(SORT).lean<LeanService[]>();
   return docs.map(toServiceDTO);
 }
 
 /** All services, including hidden ones. Admin only. */
 export async function getAllServices(): Promise<ServiceDTO[]> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   await connectDB();
-  const docs = await Service.find().sort(SORT).lean<LeanService[]>();
+  const docs = await Service.find({ tenantId }).sort(SORT).lean<LeanService[]>();
   return docs.map(toServiceDTO);
 }
 
 export async function getServiceById(id: string): Promise<ServiceDTO | null> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   await connectDB();
   if (!/^[a-f\d]{24}$/i.test(id)) return null;
-  const doc = await Service.findById(id).lean<LeanService>();
+  const doc = await Service.findOne({ _id: id, tenantId }).lean<LeanService>();
   return doc ? toServiceDTO(doc) : null;
 }

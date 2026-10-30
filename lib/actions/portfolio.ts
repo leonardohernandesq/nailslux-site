@@ -14,7 +14,7 @@ const portfolioFullMessage = `Atingiu o limite de ${PORTFOLIO_MAX_ITEMS} fotogra
 
 /** Uploads one photo. The admin UI calls this once per selected file. */
 export async function uploadPortfolioPhoto(formData: FormData): Promise<FormState> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   const parsed = portfolioUploadSchema.safeParse({
     file: formData.get("file"),
     caption: formData.get("caption") ?? undefined,
@@ -24,7 +24,7 @@ export async function uploadPortfolioPhoto(formData: FormData): Promise<FormStat
   }
 
   await connectDB();
-  if ((await PortfolioItem.countDocuments()) >= PORTFOLIO_MAX_ITEMS) {
+  if ((await PortfolioItem.countDocuments({ tenantId })) >= PORTFOLIO_MAX_ITEMS) {
     return { status: "error", message: portfolioFullMessage };
   }
 
@@ -38,6 +38,7 @@ export async function uploadPortfolioPhoto(formData: FormData): Promise<FormStat
   const fileId = await saveImage(image.buffer, parsed.data.file.name);
   try {
     await PortfolioItem.create({
+      tenantId,
       fileId,
       width: image.width,
       height: image.height,
@@ -49,7 +50,7 @@ export async function uploadPortfolioPhoto(formData: FormData): Promise<FormStat
     throw error;
   }
 
-  invalidate(CACHE_TAGS.portfolio);
+  invalidate(CACHE_TAGS.portfolio(tenantId));
   return { status: "success", message: "Fotografia adicionada." };
 }
 
@@ -58,7 +59,7 @@ export async function updatePortfolioCaption(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   const itemId = objectIdSchema.safeParse(id);
   const caption = captionSchema.safeParse(formData.get("caption") ?? undefined);
   if (!itemId.success) return { status: "error", message: "Fotografia não encontrada." };
@@ -67,19 +68,19 @@ export async function updatePortfolioCaption(
   }
 
   await connectDB();
-  await PortfolioItem.findByIdAndUpdate(
-    itemId.data,
+  await PortfolioItem.findOneAndUpdate(
+    { _id: itemId.data, tenantId },
     caption.data ? { caption: caption.data } : { $unset: { caption: 1 } },
   );
-  invalidate(CACHE_TAGS.portfolio);
+  invalidate(CACHE_TAGS.portfolio(tenantId));
   return { status: "success", message: "Legenda guardada." };
 }
 
 export async function deletePortfolioItem(id: string): Promise<void> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   const itemId = objectIdSchema.parse(id);
   await connectDB();
-  const item = await PortfolioItem.findByIdAndDelete(itemId);
+  const item = await PortfolioItem.findOneAndDelete({ _id: itemId, tenantId });
   if (item) await deleteImage(item.fileId);
-  invalidate(CACHE_TAGS.portfolio);
+  invalidate(CACHE_TAGS.portfolio(tenantId));
 }

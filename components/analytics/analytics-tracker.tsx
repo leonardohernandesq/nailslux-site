@@ -7,13 +7,13 @@ import { track } from "@/lib/analytics/client";
  * Counts one page view per load, and clicks on links marked with
  * `data-track-whatsapp="<source>"` or `data-track-instagram="<source>"`.
  */
-export function AnalyticsTracker() {
+export function AnalyticsTracker({ tenantSlug }: { tenantSlug: string }) {
   const counted = useRef(false);
 
   useEffect(() => {
     if (!counted.current) {
       counted.current = true; // Strict Mode runs effects twice in development.
-      track({ type: "pageview" });
+      track(tenantSlug, { type: "pageview" });
     }
 
     function onClick(event: MouseEvent) {
@@ -22,12 +22,12 @@ export function AnalyticsTracker() {
       );
       if (!link) return;
       const { trackWhatsapp, trackInstagram } = link.dataset;
-      if (trackWhatsapp) track({ type: "whatsapp_click", source: trackWhatsapp });
-      else if (trackInstagram) track({ type: "instagram_click", source: trackInstagram });
+      if (trackWhatsapp) track(tenantSlug, { type: "whatsapp_click", source: trackWhatsapp });
+      else if (trackInstagram) track(tenantSlug, { type: "instagram_click", source: trackInstagram });
     }
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, []);
+  }, [tenantSlug]);
 
   return null;
 }

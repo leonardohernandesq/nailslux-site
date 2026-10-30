@@ -1,8 +1,8 @@
-import { SITE } from "./site";
+import { PLATFORM } from "./site";
 
-const currency = new Intl.NumberFormat(SITE.locale, {
+const currency = new Intl.NumberFormat(PLATFORM.locale, {
   style: "currency",
-  currency: SITE.currency,
+  currency: PLATFORM.currency,
 });
 
 export function formatPrice(cents: number): string {
@@ -32,7 +32,7 @@ export function toISODate(date: Date): string {
 
 /** "2026-10-18" -> "sábado, 18 de outubro de 2026" */
 export function formatLongDate(isoDate: string): string {
-  return new Intl.DateTimeFormat(SITE.locale, {
+  return new Intl.DateTimeFormat(PLATFORM.locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
