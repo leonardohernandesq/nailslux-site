@@ -1,8 +1,9 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { connection } from "next/server";
 import { CACHE_TAGS, TENANT_SLUG_PATTERN } from "../constants";
 import { connectDB } from "../db/connect";
-import { Tenant } from "../db/models";
+import { Tenant, type TenantStatus } from "../db/models";
 import type { OpeningHours, Weekday } from "../site";
 
 export type TenantDTO = {
@@ -15,6 +16,11 @@ export type TenantDTO = {
   instagramUrl: string | null;
   address: string | null;
   hours: OpeningHours;
+  status: TenantStatus;
+  emailConfirmed: boolean;
+  /** Stripe's status for the subscription, null if there has never been one. */
+  subscriptionStatus: string | null;
+  hasBillingAccount: boolean;
 };
 
 type LeanTenant = {
@@ -26,6 +32,10 @@ type LeanTenant = {
   whatsappNumber: string;
   instagramUrl?: string | null;
   address?: string | null;
+  status: TenantStatus;
+  emailConfirmedAt?: Date | null;
+  stripeCustomerId?: string | null;
+  subscriptionStatus?: string | null;
   hours: Omit<OpeningHours, "days"> & { days: number[] };
 };
 
@@ -42,6 +52,10 @@ function toTenantDTO(doc: LeanTenant): TenantDTO {
     whatsappNumber: doc.whatsappNumber,
     instagramUrl: doc.instagramUrl ?? null,
     address: doc.address ?? null,
+    status: doc.status,
+    emailConfirmed: Boolean(doc.emailConfirmedAt),
+    subscriptionStatus: doc.subscriptionStatus ?? null,
+    hasBillingAccount: Boolean(doc.stripeCustomerId),
     hours: {
       days: doc.hours.days as Weekday[],
       opens: doc.hours.opens,
@@ -71,6 +85,7 @@ async function loadActiveTenant(slug: string): Promise<TenantDTO | null> {
 }
 
 export async function getTenantById(id: string): Promise<TenantDTO | null> {
+  await connection(); // per request: the panel must never show a stale status
   await connectDB();
   const doc = await Tenant.findById(id).lean<LeanTenant>();
   return doc ? toTenantDTO(doc) : null;

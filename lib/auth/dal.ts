@@ -1,5 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { auth } from "@/auth";
 
 export type AdminUser = { id: string; name: string; email: string; tenantId: string; tenantSlug: string };
@@ -10,6 +11,7 @@ export type AdminUser = { id: string; name: string; email: string; tenantId: str
  * the request.
  */
 export async function requireAdmin(): Promise<AdminUser> {
+  await connection(); // sessions are per request, so never part of a prerender
   const session = await auth();
   const user = session?.user;
   if (!user?.id || !user.email || !user.tenantId || !user.tenantSlug) redirect("/admin/login");

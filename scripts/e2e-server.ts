@@ -46,6 +46,7 @@ async function main() {
         ...process.env,
         MONGODB_URI: uri,
         AUTH_SECRET: "e2e-only-secret-not-for-production-000000",
+        REGISTRATION_OPEN: "true",
         NEXT_DIST_DIR: ".next-e2e",
         NEXT_TELEMETRY_DISABLED: "1",
       },

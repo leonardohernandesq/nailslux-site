@@ -216,6 +216,34 @@
   }
 }
 
+/* Nailo App, the platform's own brand. Everything inside .nailo is drawn from the
+   same tokens, so overriding them here rebrands the landing page without touching
+   studio sites. Decorative coral is the brand's exact #e5533d; text and buttons use
+   a deeper cut because the exact coral only reaches 3.7:1 on white. */
+.nailo {
+  --color-cream: #f4f5f9;
+  --color-peach-50: #eceef6;
+  --color-peach-100: #dfe2ef;
+  --color-peach-200: #c9cfe6;
+  --color-ink: #16213e;
+  --color-ink-muted: #4a5270;
+  --color-line: #e1e4ef;
+  --color-line-strong: #c5cadf;
+  --color-brand-amber: #ff9c8a;
+  --color-brand-flame: #e5533d;
+  --color-brand-coral: #e5533d;
+  --color-brand-rose: #4a5fb5;
+  --color-accent: #c93f2a;
+  --color-accent-hover: #a93320;
+  --shadow-soft: 0 1px 2px rgb(22 33 62 / 0.05), 0 10px 30px -12px rgb(22 33 62 / 0.16);
+  --shadow-lift: 0 2px 4px rgb(22 33 62 / 0.06), 0 22px 44px -18px rgb(22 33 62 / 0.3);
+  --font-quicksand: var(--font-sora);
+  --font-cormorant: var(--font-sora);
+  font-family: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+
 @utility text-gradient-brand {
   /* Darker cut of the logo gradient so large headings keep 3:1 contrast. */
   background-image: linear-gradient(90deg, #d2600a, #c2410c 55%, #b93a2e);

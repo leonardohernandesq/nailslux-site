@@ -2,21 +2,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { ClockIcon, InstagramLogoIcon, MapPinIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import type { TenantDTO } from "@/lib/data/tenants";
-import { formatOpeningDays, formatPhoneForDisplay } from "@/lib/site";
+import { formatOpeningDays, formatPhoneForDisplay, hasBrandAssets } from "@/lib/site";
 
 export function SiteFooter({ tenant }: { tenant: TenantDTO }) {
-  const { name, tagline, whatsappNumber, instagramUrl, address, hours } = tenant;
+  const { slug, name, tagline, whatsappNumber, instagramUrl, address, hours } = tenant;
   return (
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr]">
         <div>
-          <Image
-            src="/brand/logo-wordmark.png"
-            alt={`${name}, ${tagline.toLowerCase()}`}
-            width={1000}
-            height={288}
-            className="h-12 w-auto"
-          />
+          {hasBrandAssets(slug) ? (
+            <Image
+              src="/brand/logo-wordmark.png"
+              alt={`${name}, ${tagline.toLowerCase()}`}
+              width={1000}
+              height={288}
+              className="h-12 w-auto"
+            />
+          ) : (
+            <p className="font-display text-3xl font-semibold">{name}</p>
+          )}
           <p className="mt-4 max-w-sm text-ink-muted">
             Marque o seu horário pelo site ou fale connosco diretamente pelo WhatsApp.
           </p>

@@ -17,6 +17,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { getPublicPortfolio } from "@/lib/data/portfolio";
 import { getPublicServices } from "@/lib/data/services";
 import { getActiveTenant, getActiveTenantSlugs } from "@/lib/data/tenants";
+import { hasBrandAssets } from "@/lib/site";
 
 // Cache Components needs at least one param to validate the route at build time;
 // this is the fallback for a database with no studios yet. Studios that join later
@@ -36,13 +37,17 @@ export async function generateMetadata({ params }: PageProps<"/[slug]">): Promis
   return {
     title: { absolute: title },
     description: tenant.description,
+    // Studio sites keep their own icon; the platform's is set in the root layout.
+    icons: { icon: "/brand/studio-icon.png", apple: "/brand/studio-apple-icon.png" },
     openGraph: {
       type: "website",
       locale: "pt_PT",
       siteName: tenant.name,
       title,
       description: tenant.description,
-      images: [{ url: "/brand/logo-full.png", width: 900, height: 587, alt: tenant.name }],
+      ...(hasBrandAssets(tenant.slug) && {
+        images: [{ url: "/brand/logo-full.png", width: 900, height: 587, alt: tenant.name }],
+      }),
     },
   };
 }
@@ -63,6 +68,7 @@ async function StudioSite({ params }: Pick<PageProps<"/[slug]">, "params">) {
 
   const [services, portfolio] = await Promise.all([getPublicServices(tenant.id), getPublicPortfolio(tenant.id)]);
   const { whatsappNumber, instagramUrl } = tenant;
+  const brandAssets = hasBrandAssets(tenant.slug);
 
   return (
     <>
@@ -75,7 +81,7 @@ async function StudioSite({ params }: Pick<PageProps<"/[slug]">, "params">) {
       <SiteHeader tenantSlug={tenant.slug} studioName={tenant.name} />
       <BookingProvider services={services}>
         <main id="conteudo">
-          <Hero whatsappNumber={whatsappNumber} />
+          <Hero whatsappNumber={whatsappNumber} brandAssets={brandAssets} />
           <ServicesSection services={services} />
           <HowItWorks />
           <PortfolioSection items={portfolio} instagramUrl={instagramUrl} />
@@ -96,7 +102,7 @@ async function StudioSite({ params }: Pick<PageProps<"/[slug]">, "params">) {
           </section>
         </main>
         <SelectionBar />
-        <BookNowDialog targetId="marcar" headingId="marcar-title" />
+        <BookNowDialog targetId="marcar" headingId="marcar-title" brandAssets={brandAssets} />
       </BookingProvider>
       <SiteFooter tenant={tenant} />
       <PageMotion />

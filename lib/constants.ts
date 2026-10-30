@@ -29,4 +29,4 @@ export const CACHE_TAGS = {
 export const TENANT_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
 /** Slugs a studio can't take because platform pages live at those URLs. */
-export const RESERVED_SLUGS = ["admin", "api", "brand", "login", "planos", "registo", "termos", "privacidade"];
+export const RESERVED_SLUGS = ["admin", "api", "brand", "login", "planos", "recuperar", "registo", "termos", "privacidade"];

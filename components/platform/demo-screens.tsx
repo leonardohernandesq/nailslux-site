@@ -49,7 +49,7 @@ function ScreenHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div className="px-4 pt-8 pb-3">
       <p className="text-[0.7rem] font-bold tracking-wide text-accent uppercase">{eyebrow}</p>
-      <p className="font-display text-2xl leading-tight font-semibold">{title}</p>
+      <p className="font-display text-xl leading-tight font-bold">{title}</p>
     </div>
   );
 }
@@ -118,7 +118,7 @@ export function SentScreen() {
         <span data-demo="sent-check" className="mx-auto grid size-16 place-items-center rounded-full bg-success-soft text-success">
           <CheckIcon size={32} weight="bold" />
         </span>
-        <p className="font-display mt-4 text-2xl font-semibold">Pedido enviado</p>
+        <p className="font-display mt-4 text-xl font-bold">Pedido enviado</p>
         <p className="mt-1 text-sm text-ink-muted">Sábado às 10:30. Falta só a confirmação do studio.</p>
       </div>
     </div>
