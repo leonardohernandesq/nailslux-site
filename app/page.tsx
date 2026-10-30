@@ -9,7 +9,8 @@ import { LandingMotion } from "@/components/platform/landing-motion";
 import { PanelTour } from "@/components/platform/panel-tour";
 import { SectionHeading } from "@/components/site/section-heading";
 import { buttonClasses } from "@/components/ui/button";
-import { PLATFORM } from "@/lib/site";
+import { sora } from "@/lib/fonts";
+import { isRegistrationOpen, PLATFORM } from "@/lib/site";
 import heroImage from "@/public/brand/hero-hands.webp";
 
 export const metadata: Metadata = {
@@ -18,8 +19,7 @@ export const metadata: Metadata = {
 
 const EXAMPLE_STUDIO = "/nailslux";
 
-/** The brand gradient is too dark on ink, so dark sections use a lighter cut. */
-const GRADIENT_ON_DARK = "bg-gradient-to-r from-[#ffb057] to-[#ff7a59] bg-clip-text font-bold text-transparent";
+const CORAL_ON_DARK = "bg-gradient-to-r from-[#ffb3a5] to-[#ff7a64] bg-clip-text font-bold text-transparent not-italic";
 
 const FEATURES = [
   "Marcações online",
@@ -39,12 +39,14 @@ const NAV = [
 export default function PlatformHome() {
   // The contact link is set per deployment, so no number is baked into the code.
   const contactUrl = process.env.PLATFORM_CONTACT_URL;
-  const primaryCta = contactUrl
-    ? { href: contactUrl, label: "Quero para o meu studio" }
-    : { href: EXAMPLE_STUDIO, label: "Ver um studio real" };
+  const primaryCta = isRegistrationOpen()
+    ? { href: "/registo", label: "Criar o meu site" }
+    : contactUrl
+      ? { href: contactUrl, label: "Quero para o meu studio" }
+      : { href: EXAMPLE_STUDIO, label: "Ver um studio real" };
 
   return (
-    <>
+    <div className={`nailo ${sora.variable}`}>
       <a
         href="#conteudo"
         className="sr-only z-50 rounded-full bg-ink px-4 py-2 text-cream focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -57,8 +59,16 @@ export default function PlatformHome() {
         <span className="landing-aurora landing-aurora-alt absolute -right-32 bottom-0 size-[30rem] rounded-full bg-brand-amber/20 blur-3xl" />
 
         <header className="relative z-10 mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/" className="font-display text-2xl font-semibold">
-            {PLATFORM.name}
+          <Link href="/" aria-label={`${PLATFORM.name}, início`} className="-ml-4">
+            <Image
+              src="/brand/nailo/nailo-logo-horizontal-negativo.svg"
+              alt=""
+              width={463}
+              height={146}
+              priority
+              unoptimized
+              className="h-14 w-auto"
+            />
           </Link>
           <nav aria-label="Principal" className="hidden md:block">
             <ul className="flex items-center gap-1">
@@ -90,9 +100,9 @@ export default function PlatformHome() {
             <h1
               id="hero-title"
               data-hero="item"
-              className="font-display text-5xl leading-[1.03] font-semibold tracking-tight sm:text-6xl lg:text-7xl"
+              className="font-display text-4xl leading-[1.1] font-bold tracking-tight sm:text-5xl lg:text-6xl"
             >
-              A sua agenda a encher <em className={`${GRADIENT_ON_DARK} pr-1`}>enquanto trabalha.</em>
+              A sua agenda a encher <em className={CORAL_ON_DARK}>enquanto trabalha.</em>
             </h1>
             <p data-hero="item" className="max-w-[48ch] text-cream/75 sm:text-lg">
               Um site só seu, onde as clientes veem os serviços e pedem uma hora livre. Os pedidos chegam ao WhatsApp e
@@ -117,8 +127,8 @@ export default function PlatformHome() {
         <div aria-hidden="true" className="relative overflow-hidden border-t border-cream/10 py-4">
           <div className="landing-marquee flex w-max">
             {[...FEATURES, ...FEATURES].map((feature, index) => (
-              <span key={index} className="font-display px-6 text-2xl whitespace-nowrap text-cream/60 italic">
-                {feature} <span className="pl-10 text-brand-amber not-italic">✦</span>
+              <span key={index} className="px-6 text-lg font-semibold whitespace-nowrap text-cream/60">
+                {feature} <span className="pl-10 text-brand-amber">✦</span>
               </span>
             ))}
           </div>
@@ -139,7 +149,7 @@ export default function PlatformHome() {
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <div data-reveal className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
               <p className="text-sm font-bold tracking-[0.18em] text-peach-200 uppercase">O painel</p>
-              <h2 id="painel-title" className="font-display mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">
+              <h2 id="painel-title" className="font-display mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
                 Tudo o que precisa, nada do que não usa
               </h2>
               <p className="mt-4 text-lg text-cream/70">Experimente: carregue em cada área.</p>
@@ -169,7 +179,7 @@ export default function PlatformHome() {
               />
               <span className="absolute inset-0 bg-gradient-to-t from-ink/70 to-transparent" />
               <span className="absolute right-5 bottom-5 left-5 flex items-center justify-between gap-3 text-cream">
-                <span className="font-display text-3xl font-semibold sm:text-4xl">NailsLux</span>
+                <span className="text-2xl font-bold sm:text-3xl">NailsLux</span>
                 <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-cream px-4 font-semibold text-ink">
                   Abrir site
                   <ArrowSquareOutIcon size={18} aria-hidden="true" />
@@ -182,8 +192,8 @@ export default function PlatformHome() {
         <section aria-labelledby="final-title" className="px-4 pb-16 sm:px-6 sm:pb-24">
           <div data-reveal className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-ink px-6 py-16 text-center text-cream sm:py-20">
             <span className="landing-aurora absolute -top-24 left-1/4 size-80 rounded-full bg-brand-flame/30 blur-3xl" />
-            <h2 id="final-title" className="font-display relative text-4xl font-semibold sm:text-6xl">
-              Menos mensagens, <em className={GRADIENT_ON_DARK}>mais unhas.</em>
+            <h2 id="final-title" className="font-display relative text-3xl font-bold tracking-tight sm:text-5xl">
+              Menos mensagens, <em className={CORAL_ON_DARK}>mais unhas.</em>
             </h2>
             <p className="relative mx-auto mt-4 max-w-md text-cream/75 sm:text-lg">
               Deixe as clientes marcarem sozinhas e fique com o tempo para o que faz melhor.
@@ -207,6 +217,6 @@ export default function PlatformHome() {
 
       <PageMotion />
       <LandingMotion />
-    </>
+    </div>
   );
 }

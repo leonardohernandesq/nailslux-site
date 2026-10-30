@@ -4,13 +4,15 @@ import { buttonClasses } from "@/components/ui/button";
 import { formatPhoneForDisplay } from "@/lib/site";
 import heroImage from "@/public/brand/hero-hands.webp";
 
-export function Hero({ whatsappNumber }: { whatsappNumber: string }) {
+export function Hero({ whatsappNumber, brandAssets }: { whatsappNumber: string; brandAssets: boolean }) {
   return (
     <section
       aria-labelledby="hero-title"
       className="bg-glow relative overflow-hidden"
     >
-      <div className="mx-auto grid max-w-6xl items-center gap-7 px-4 pt-6 pb-12 sm:px-6 md:grid-cols-[1.1fr_1fr] md:gap-10 md:py-20 lg:gap-16">
+      <div className={`mx-auto grid max-w-6xl items-center gap-7 px-4 pt-6 pb-12 sm:px-6 md:gap-10 md:py-20 lg:gap-16 ${
+          brandAssets ? "md:grid-cols-[1.1fr_1fr]" : ""
+        }`}>
         <div className="flex flex-col items-start gap-5 md:gap-6">
           <p
             data-hero="item"
@@ -70,6 +72,7 @@ export function Hero({ whatsappNumber }: { whatsappNumber: string }) {
 
         {/* On phones the photo leads (order-first), smaller and squarer so the title and
             main button still fit on the first screen. Side by side from md up. */}
+        {brandAssets && (
         <div
           data-hero="image"
           className="relative order-first mx-auto w-full max-w-52 min-[375px]:max-w-56 sm:max-w-64 md:order-none md:max-w-sm lg:max-w-[26rem]"
@@ -98,6 +101,7 @@ export function Hero({ whatsappNumber }: { whatsappNumber: string }) {
             className="absolute -bottom-4 -left-5 h-16 w-auto drop-shadow-md md:-bottom-6 md:-left-6 md:h-28"
           />
         </div>
+        )}
       </div>
     </section>
   );

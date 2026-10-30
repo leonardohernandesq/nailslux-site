@@ -3,8 +3,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowSquareOutIcon, SignOutIcon } from "@phosphor-icons/react/ssr";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { SetupBanner } from "@/components/admin/setup-banner";
 import { logout } from "@/lib/actions/auth";
 import { requireAdmin } from "@/lib/auth/dal";
+import { getTenantById } from "@/lib/data/tenants";
 
 // The panel reads the session on every request, so navigations into it are allowed
 // to wait on the server (opts these routes out of instant-navigation validation).
@@ -16,7 +18,7 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
       <header className="sticky top-0 z-30 border-b border-line bg-cream/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
           <Link href="/admin/marcacoes" className="flex items-center gap-2" aria-label="Painel">
-            <Image src="/brand/fox.png" alt="" width={279} height={339} className="h-9 w-auto" />
+            <Image src="/brand/nailo/nailo-simbolo.svg" alt="" width={36} height={36} unoptimized className="size-9" />
             <span className="font-display text-2xl font-semibold">Painel</span>
           </Link>
           <div className="order-2 flex items-center gap-1 sm:order-3">
@@ -45,6 +47,9 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
         <Suspense fallback={<p className="mb-2 h-6" />}>
           <Greeting />
         </Suspense>
+        <Suspense>
+          <PendingNotice />
+        </Suspense>
         {/* Each page streams in behind its own loading.tsx boundary. */}
         {children}
       </main>
@@ -64,6 +69,28 @@ async function ViewSiteLink() {
       Ver site
     </Link>
   );
+}
+
+async function PendingNotice() {
+  const { tenantId, email } = await requireAdmin();
+  const tenant = await getTenantById(tenantId);
+  if (!tenant) return null;
+
+  const subscribed = tenant.subscriptionStatus === "active" || tenant.subscriptionStatus === "trialing";
+  if (tenant.status === "pending") {
+    return <SetupBanner email={email} emailConfirmed={tenant.emailConfirmed} subscribed={subscribed} />;
+  }
+  if (tenant.status === "suspended" || tenant.subscriptionStatus === "past_due") {
+    return (
+      <p role="status" className="mb-6 rounded-2xl border border-danger/25 bg-danger-soft p-4 text-sm font-semibold text-danger">
+        {tenant.status === "suspended" ? "O seu site está suspenso. " : "Não conseguimos cobrar a mensalidade. "}
+        <Link href="/admin/subscricao" className="underline">
+          Ver subscrição
+        </Link>
+      </p>
+    );
+  }
+  return null;
 }
 
 async function Greeting() {

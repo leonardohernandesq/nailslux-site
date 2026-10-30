@@ -57,8 +57,20 @@ export function formatOpeningDays(days: readonly Weekday[]): string {
     : (names[0] ?? "");
 }
 
+/** Sign-up stays closed until payments exist; see REGISTRATION_OPEN in .env.example. */
+export function isRegistrationOpen(): boolean {
+  return process.env.REGISTRATION_OPEN === "true";
+}
+
+/** Studios with their own logo and photos in the code, until studios can upload them. */
+const STUDIOS_WITH_BRAND_ASSETS = ["nailslux"];
+
+export function hasBrandAssets(slug: string): boolean {
+  return STUDIOS_WITH_BRAND_ASSETS.includes(slug);
+}
+
 export const PLATFORM = {
-  name: "Meu Sistema",
+  name: "Nailo App",
   description: "Site, marcações e gestão para studios de unhas.",
   locale: "pt-PT",
   currency: "EUR",

@@ -2,6 +2,9 @@ import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 import { DEFAULT_OPENING_HOURS } from "../site";
 import { tenantScoped } from "./tenant-scope";
 
+export const TENANT_STATUSES = ["pending", "active", "suspended"] as const;
+export type TenantStatus = (typeof TENANT_STATUSES)[number];
+
 /**
  * One studio on the platform, served at /<slug>. Everything else belongs to a
  * tenant through `tenantId`, and `tenantScoped` refuses queries that omit it.
@@ -16,7 +19,15 @@ const tenantSchema = new Schema(
     whatsappNumber: { type: String, required: true },
     instagramUrl: { type: String, trim: true },
     address: { type: String, trim: true, maxlength: 200 },
-    status: { type: String, required: true, enum: ["active", "suspended"], default: "active" },
+    // "pending" until the owner confirms their email: set up, but not public yet.
+    status: { type: String, required: true, enum: TENANT_STATUSES, default: "active" },
+    // Who suspended it: only "billing" is lifted automatically when payment returns.
+    suspendedFor: { type: String, enum: ["billing", "manual"] },
+    emailConfirmedAt: { type: Date },
+    // Set by Stripe's webhook; studios billed outside Stripe have none of these.
+    stripeCustomerId: { type: String },
+    stripeSubscriptionId: { type: String },
+    subscriptionStatus: { type: String },
     hours: {
       days: { type: [Number], default: () => [...DEFAULT_OPENING_HOURS.days] },
       opens: { type: String, default: DEFAULT_OPENING_HOURS.opens },
@@ -146,7 +157,24 @@ const clientSchema = new Schema(
 clientSchema.index({ tenantId: 1, phone: 1 }, { unique: true });
 clientSchema.plugin(tenantScoped);
 
+/** Single-use links sent by email. Only the hash is kept (see lib/auth/tokens.ts). */
+const AUTH_TOKEN_TYPES = ["confirm-email", "reset-password"] as const;
+export type AuthTokenType = (typeof AUTH_TOKEN_TYPES)[number];
+
+const authTokenSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    type: { type: String, required: true, enum: AUTH_TOKEN_TYPES },
+    tokenHash: { type: String, required: true, unique: true },
+    expiresAt: { type: Date, required: true },
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+authTokenSchema.index({ userId: 1, type: 1 });
+authTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 export type TenantDoc = InferSchemaType<typeof tenantSchema>;
+export type AuthTokenDoc = InferSchemaType<typeof authTokenSchema>;
 export type ServiceDoc = InferSchemaType<typeof serviceSchema>;
 export type PortfolioItemDoc = InferSchemaType<typeof portfolioItemSchema>;
 export type UserDoc = InferSchemaType<typeof userSchema>;
@@ -157,6 +185,9 @@ export type ClientDoc = InferSchemaType<typeof clientSchema>;
 // `models.X ??` keeps hot reload from redefining models.
 export const Tenant: Model<TenantDoc> =
   (mongoose.models.Tenant as Model<TenantDoc>) ?? mongoose.model("Tenant", tenantSchema);
+
+export const AuthToken: Model<AuthTokenDoc> =
+  (mongoose.models.AuthToken as Model<AuthTokenDoc>) ?? mongoose.model("AuthToken", authTokenSchema);
 
 export const Service: Model<ServiceDoc> =
   (mongoose.models.Service as Model<ServiceDoc>) ?? mongoose.model("Service", serviceSchema);

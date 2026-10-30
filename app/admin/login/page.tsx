@@ -8,10 +8,10 @@ export const metadata: Metadata = { title: "Entrar" };
 
 export default function LoginPage() {
   return (
-    <main className="bg-glow flex min-h-dvh items-center justify-center px-4 py-12">
+    <main className="flex min-h-dvh items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Image src="/brand/fox.png" alt="" width={279} height={339} priority className="h-20 w-auto" />
+          <Image src="/brand/nailo/nailo-logo-horizontal.svg" alt="Nailo App" width={463} height={146} priority unoptimized className="h-20 w-auto" />
           <h1 className="font-display mt-4 text-4xl font-semibold">Área reservada</h1>
           <p className="mt-1 text-ink-muted">Entre para gerir marcações, serviços e portfólio.</p>
         </div>
@@ -21,7 +21,10 @@ export default function LoginPage() {
             <LoginForm />
           </Suspense>
         </div>
-        <p className="mt-6 text-center">
+        <p className="mt-6 flex flex-wrap items-center justify-center gap-x-6 text-center">
+          <Link href="/recuperar" className="inline-flex min-h-11 items-center font-semibold text-accent hover:underline">
+            Esqueci-me da palavra-passe
+          </Link>
           <Link href="/" className="inline-flex min-h-11 items-center font-semibold text-accent hover:underline">
             Voltar ao site
           </Link>

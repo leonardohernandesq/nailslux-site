@@ -22,15 +22,15 @@ type TooltipProps = {
 };
 
 // Recharts writes colours as SVG attributes, so the theme tokens are repeated here
-// (keep in sync with app/globals.css).
+// (keep in sync with .nailo in app/globals.css).
 const COLORS = {
-  accent: "#c2410c",
-  peach: "#f9cdb2",
-  peach50: "#fff1e8",
-  peach100: "#fde4d4",
-  ink: "#1f1611",
-  muted: "#6a564b",
-  line: "#f0dccf",
+  accent: "#c93f2a",
+  peach: "#c9cfe6",
+  peach50: "#eceef6",
+  peach100: "#dfe2ef",
+  ink: "#16213e",
+  muted: "#4a5270",
+  line: "#e1e4ef",
 } as const;
 
 const AXIS_TICK = { fill: COLORS.muted, fontSize: 12 };

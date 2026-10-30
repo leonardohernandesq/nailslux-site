@@ -26,6 +26,10 @@ export const metadata: Metadata = {
     template: `%s · ${PLATFORM.name}`,
   },
   description: PLATFORM.description,
+  icons: {
+    icon: [{ url: "/brand/nailo/favicon.svg", type: "image/svg+xml" }],
+    apple: "/brand/nailo/app-icon-180.png",
+  },
 };
 
 export const viewport: Viewport = {

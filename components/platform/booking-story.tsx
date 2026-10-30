@@ -77,7 +77,7 @@ export function BookingStory() {
             </span>
             <div className="max-w-md">
               <p className="text-sm font-bold text-accent lg:hidden">Passo {index + 1}</p>
-              <h3 className="font-display text-3xl leading-tight font-semibold sm:text-4xl">{title}</h3>
+              <h3 className="font-display text-2xl leading-tight font-bold sm:text-3xl">{title}</h3>
               <p className="mt-3 text-ink-muted sm:text-lg">{text}</p>
             </div>
             <PhoneFrame label={title} className="mx-auto lg:hidden">

@@ -185,7 +185,7 @@ export function PanelTour() {
           ))}
         </div>
         <div id="tour-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="min-h-[24rem] p-4 sm:p-6">
-          <p className="font-display text-2xl font-semibold">{current.label}</p>
+          <p className="font-display text-xl font-bold">{current.label}</p>
           <p className="mt-1 mb-5 text-sm text-ink-muted">{current.caption}</p>
           <TabPanel id={tab} />
         </div>
