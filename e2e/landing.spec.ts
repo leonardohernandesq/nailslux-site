@@ -13,6 +13,19 @@ test("the landing page presents the platform and leads to a real studio", async 
   await expect(page).toHaveURL(new RegExp(`/${E2E_SLUG}$`));
 });
 
+test("the menu leads to the plans, and a plan to sign-up with it chosen", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('header a[href="#preco"]:visible').click();
+
+  const pricing = page.locator("#preco");
+  await expect(pricing).toContainText("9,99");
+  await expect(pricing).toContainText("99,99");
+
+  await pricing.getByRole("link", { name: /plano Anual/ }).click();
+  await expect(page).toHaveURL(/\/registo\?plano=anual$/);
+  await expect(page.getByRole("radio", { name: /Anual/ })).toBeChecked();
+});
+
 test("with reduced motion the hero shows one clean screen", async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: "reduce" });
   const page = await context.newPage();

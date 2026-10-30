@@ -2,7 +2,6 @@ import "server-only";
 import { requirePlatformAdmin } from "../auth/dal";
 import { connectDB } from "../db/connect";
 import { Appointment, Service, Tenant, User, type TenantStatus } from "../db/models";
-import { getStripe, isBillingConfigured } from "../stripe";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PAYING = ["active", "trialing"];
@@ -15,6 +14,7 @@ export type StudioRow = {
   status: TenantStatus;
   suspendedFor: "billing" | "manual" | null;
   subscriptionStatus: string | null;
+  monthlyCents: number;
   billedByStripe: boolean;
   services: number;
   bookingsLast30Days: number;
@@ -24,8 +24,8 @@ export type StudioRow = {
 export type PlatformOverview = {
   studios: StudioRow[];
   totals: { all: number; online: number; pending: number; suspended: number; paying: number; paymentIssues: number };
-  /** Paying studios x the monthly price; null if Stripe can't tell us the price. */
-  monthlyRevenueCents: number | null;
+  /** What paying studios add up to per month, with yearly plans divided by 12. */
+  monthlyRevenueCents: number;
 };
 
 type Count = { _id: unknown; count: number };
@@ -33,17 +33,6 @@ type Count = { _id: unknown; count: number };
 /** `.collection` on purpose: these are the only reads that span every studio. */
 async function countsByTenant(run: () => Promise<Count[]>): Promise<Map<string, number>> {
   return new Map((await run()).map(({ _id, count }) => [String(_id), count]));
-}
-
-async function monthlyPriceCents(): Promise<number | null> {
-  if (!isBillingConfigured()) return null;
-  try {
-    const price = await getStripe().prices.retrieve(process.env.STRIPE_PRICE_ID!);
-    return price.unit_amount;
-  } catch (error) {
-    console.error("Could not read the Stripe price.", error);
-    return null;
-  }
 }
 
 export async function getPlatformOverview(at?: Date): Promise<PlatformOverview> {
@@ -54,14 +43,13 @@ export async function getPlatformOverview(at?: Date): Promise<PlatformOverview> 
 
   const group = { $group: { _id: "$tenantId", count: { $sum: 1 } } };
   const since = new Date(now.getTime() - 30 * DAY_MS);
-  const [tenants, owners, services, bookings, priceCents] = await Promise.all([
+  const [tenants, owners, services, bookings] = await Promise.all([
     Tenant.find().sort({ createdAt: -1 }).lean(),
     User.find({ role: { $ne: "platform" } }, { tenantId: 1, email: 1 }).sort({ createdAt: -1 }).lean(),
     countsByTenant(() => Service.collection.aggregate<Count>([group]).toArray()),
     countsByTenant(() =>
       Appointment.collection.aggregate<Count>([{ $match: { createdAt: { $gte: since } } }, group]).toArray(),
     ),
-    monthlyPriceCents(),
   ]);
 
   const ownerByTenant = new Map(owners.map((owner) => [String(owner.tenantId), owner.email]));
@@ -75,6 +63,7 @@ export async function getPlatformOverview(at?: Date): Promise<PlatformOverview> 
       status: tenant.status,
       suspendedFor: tenant.suspendedFor ?? null,
       subscriptionStatus: tenant.subscriptionStatus ?? null,
+      monthlyCents: tenant.subscriptionMonthlyCents ?? 0,
       billedByStripe: Boolean(tenant.stripeSubscriptionId),
       services: services.get(id) ?? 0,
       bookingsLast30Days: bookings.get(id) ?? 0,
@@ -83,7 +72,7 @@ export async function getPlatformOverview(at?: Date): Promise<PlatformOverview> 
   });
 
   const countBy = (test: (studio: StudioRow) => boolean) => studios.filter(test).length;
-  const paying = countBy((s) => PAYING.includes(s.subscriptionStatus ?? ""));
+  const paying = studios.filter((s) => PAYING.includes(s.subscriptionStatus ?? ""));
 
   return {
     studios,
@@ -92,9 +81,9 @@ export async function getPlatformOverview(at?: Date): Promise<PlatformOverview> 
       online: countBy((s) => s.status === "active"),
       pending: countBy((s) => s.status === "pending"),
       suspended: countBy((s) => s.status === "suspended"),
-      paying,
+      paying: paying.length,
       paymentIssues: countBy((s) => s.subscriptionStatus === "past_due"),
     },
-    monthlyRevenueCents: priceCents === null ? null : paying * priceCents,
+    monthlyRevenueCents: paying.reduce((sum, studio) => sum + studio.monthlyCents, 0),
   };
 }

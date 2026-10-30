@@ -50,11 +50,7 @@ export default async function BackofficePage() {
         <Stat label="Studios online" value={totals.online} note={`${totals.all} no total`} />
         <Stat label="A pagar pela Stripe" value={totals.paying} note={totals.paymentIssues ? `${totals.paymentIssues} com pagamento em falta` : undefined} />
         <Stat label="Por concluir" value={totals.pending} note={totals.suspended ? `${totals.suspended} suspensos` : undefined} />
-        <Stat
-          label="Receita mensal"
-          value={monthlyRevenueCents === null ? "—" : formatPrice(monthlyRevenueCents)}
-          note={monthlyRevenueCents === null ? "Stripe indisponível" : "Estimativa, sem impostos nem taxas"}
-        />
+        <Stat label="Receita mensal" value={formatPrice(monthlyRevenueCents)} note="Estimativa, anuais a dividir por 12" />
       </section>
 
       <section aria-labelledby="studios-title" className="mt-10">

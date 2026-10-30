@@ -25,8 +25,8 @@ const { connectDB, disconnectDB } = await import("@/lib/db/connect");
 const { Appointment, Service, Tenant, User } = await import("@/lib/db/models");
 const { reactivateStudio, suspendStudio } = await import("@/lib/actions/platform");
 const { getPlatformOverview } = await import("@/lib/data/platform");
+const { isTenantSuspended } = await import("@/lib/data/tenants");
 const { applySubscription } = await import("@/lib/billing/subscription");
-const { getStripe } = await import("@/lib/stripe");
 const { authConfig } = await import("@/auth.config");
 
 let mongo: MongoMemoryServer;
@@ -54,7 +54,6 @@ beforeEach(async () => {
   session.platform = true;
   vi.mocked(updateTag).mockClear();
   for (const model of [Appointment, Service, Tenant, User]) await model.collection.deleteMany({});
-  vi.spyOn(getStripe().prices, "retrieve").mockResolvedValue({ unit_amount: 2500 } as never);
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -100,8 +99,8 @@ describe("access", () => {
 
 describe("overview", () => {
   it("sums up every studio and doesn't list the platform login", async () => {
-    await studio(TENANT_A, "studio-a", { subscriptionStatus: "active", stripeSubscriptionId: "sub_1" });
-    await studio(TENANT_B, "studio-b", { status: "pending" });
+    await studio(TENANT_A, "studio-a", { subscriptionStatus: "active", stripeSubscriptionId: "sub_1", subscriptionMonthlyCents: 833 });
+    await studio(TENANT_B, "studio-b", { status: "pending", subscriptionStatus: "canceled", subscriptionMonthlyCents: 999 });
     await User.create({ tenantId: TENANT_A, name: "Ana", email: "ana@test.pt", passwordHash: "x" });
     await User.create({ role: "platform", name: "Leo", email: "leo@test.pt", passwordHash: "x" });
     await Service.create({ tenantId: TENANT_A, name: "Gel", priceCents: 1000 });
@@ -112,22 +111,13 @@ describe("overview", () => {
 
     const { studios, totals, monthlyRevenueCents } = await getPlatformOverview(at);
     expect(totals).toMatchObject({ all: 2, online: 1, pending: 1, paying: 1 });
-    expect(monthlyRevenueCents).toBe(2500);
+    expect(monthlyRevenueCents).toBe(833);
 
     const row = studios.find((s) => s.slug === "studio-a");
     expect(row).toMatchObject({ ownerEmail: "ana@test.pt", services: 1, bookingsLast30Days: 1 });
     expect(JSON.stringify(studios)).not.toContain("leo@test.pt");
   });
 
-  it("still works when Stripe can't answer", async () => {
-    vi.mocked(getStripe().prices.retrieve).mockRejectedValue(new Error("offline"));
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    await studio(TENANT_A, "studio-a");
-
-    const { totals, monthlyRevenueCents } = await getPlatformOverview();
-    expect(totals.all).toBe(1);
-    expect(monthlyRevenueCents).toBeNull();
-  });
 });
 
 describe("suspending by hand", () => {
@@ -142,6 +132,16 @@ describe("suspending by hand", () => {
     const after = await Tenant.findById(TENANT_A).lean();
     expect(after?.status).toBe("active");
     expect(after?.suspendedFor).toBeUndefined();
+  });
+
+  it("tells a suspended site from one that isn't public or doesn't exist", async () => {
+    await studio(TENANT_A, "studio-a", { status: "suspended", suspendedFor: "billing" });
+    await studio(TENANT_B, "studio-b", { status: "pending" });
+
+    expect(await isTenantSuspended("studio-a")).toBe(true);
+    expect(await isTenantSuspended("studio-b")).toBe(false);
+    expect(await isTenantSuspended("no-such-studio")).toBe(false);
+    expect(await isTenantSuspended("../nope")).toBe(false);
   });
 
   it("can't publish a studio that hasn't finished signing up", async () => {
@@ -170,7 +170,13 @@ describe("suspending by hand", () => {
     await studio(TENANT_A, "studio-a", { stripeSubscriptionId: "sub_1", subscriptionStatus: "active" });
     await suspendStudio(TENANT_A);
 
-    await applySubscription({ id: "sub_1", status: "active", metadata: { tenantId: TENANT_A }, customer: "cus_1" } as unknown as Stripe.Subscription);
+    await applySubscription({
+      id: "sub_1",
+      status: "active",
+      metadata: { tenantId: TENANT_A },
+      customer: "cus_1",
+      items: { data: [{ price: { unit_amount: 999, recurring: { interval: "month" } } }] },
+    } as unknown as Stripe.Subscription);
     expect(await statusOf(TENANT_A)).toBe("suspended");
   });
 

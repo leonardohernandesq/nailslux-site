@@ -30,7 +30,9 @@ test("the platform admin sees the studios and can suspend and reactivate one", a
 
   const visitor = await context.newPage();
   await visitor.goto(`/${E2E_SLUG}`);
-  await expect(visitor.getByRole("heading", { level: 1 })).not.toContainText("Unhas impecáveis");
+  await expect(visitor.getByRole("heading", { level: 1 })).toHaveText("Site suspenso");
+  await expect(visitor.getByText("Por favor, entre em contacto com o administrador.")).toBeVisible();
+  await expect(visitor.getByRole("img", { name: "Nailo App" })).toBeVisible();
   await visitor.close();
 
   await row.getByRole("button", { name: "Reativar" }).click();

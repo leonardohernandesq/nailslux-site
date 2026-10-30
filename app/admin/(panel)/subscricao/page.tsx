@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BillingButton } from "@/components/admin/billing-button";
 import { requireAdmin } from "@/lib/auth/dal";
+import { MANAGED_IN_PORTAL } from "@/lib/billing/subscription";
 import { getTenantById } from "@/lib/data/tenants";
 
 export const metadata: Metadata = { title: "Subscrição" };
@@ -12,7 +13,7 @@ export const instant = false;
 const STATUS: Record<string, { label: string; text: string }> = {
   active: { label: "Ativa", text: "A sua subscrição está em dia." },
   trialing: { label: "Ativa", text: "A sua subscrição está em dia." },
-  past_due: { label: "Pagamento em falta", text: "Não conseguimos cobrar a mensalidade. O site continua online enquanto tentamos de novo: atualize o método de pagamento." },
+  past_due: { label: "Pagamento em falta", text: "Não conseguimos cobrar a subscrição. O site continua online enquanto tentamos de novo: atualize o método de pagamento." },
   unpaid: { label: "Por pagar", text: "O seu site foi suspenso. Regularize o pagamento para voltar a ficar online." },
   canceled: { label: "Cancelada", text: "A subscrição terminou. Subscreva de novo para voltar a ficar online." },
 };
@@ -27,6 +28,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/admin/su
   const billedDirectly = tenant.status === "active" && !tenant.hasBillingAccount;
   const status = tenant.subscriptionStatus ? STATUS[tenant.subscriptionStatus] : undefined;
   const paying = tenant.subscriptionStatus === "active" || tenant.subscriptionStatus === "trialing";
+  const canSubscribe = !MANAGED_IN_PORTAL.includes(tenant.subscriptionStatus ?? "");
 
   return (
     <>
@@ -41,7 +43,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/admin/su
             <p className="text-sm font-bold text-ink-muted">Estado: {status?.label ?? "Por ativar"}</p>
             <p>{status?.text ?? "Ative a subscrição para publicar o seu site."}</p>
             <p className="text-sm text-ink-muted">O pagamento é feito na Stripe. Os dados do cartão nunca passam pelos nossos servidores.</p>
-            <BillingButton label={tenant.subscriptionStatus && tenant.subscriptionStatus !== "canceled" ? "Gerir subscrição" : "Ativar subscrição"} />
+            <BillingButton label={canSubscribe ? "Ativar subscrição" : "Gerir subscrição"} choosePlan={canSubscribe} />
           </>
         )}
       </div>

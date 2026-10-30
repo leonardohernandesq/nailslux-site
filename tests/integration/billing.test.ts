@@ -23,20 +23,28 @@ vi.mock("@/lib/auth/dal", () => ({
 
 process.env.STRIPE_SECRET_KEY = "sk_test_x";
 process.env.STRIPE_PRICE_ID = "price_x";
+process.env.STRIPE_PRICE_ID_YEARLY = "price_y";
 process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
 
 const { revalidateTag } = await import("next/cache");
 const { connectDB, disconnectDB } = await import("@/lib/db/connect");
 const { Tenant } = await import("@/lib/db/models");
 const { openBilling } = await import("@/lib/actions/billing");
+const { idleState } = await import("@/lib/actions/form-state");
 const { getStripe } = await import("@/lib/stripe");
 const { POST } = await import("@/app/api/stripe/webhook/route");
 
 const stripe = getStripe();
 let mongo: MongoMemoryServer;
 
-const subscription = (status: string, id = "sub_1", metadata: Record<string, string> = { tenantId: TENANT_ID }) =>
-  ({ id, status, metadata, customer: "cus_1" }) as unknown as Stripe.Subscription;
+const subscription = (status: string, id = "sub_1", metadata: Record<string, string> = { tenantId: TENANT_ID }, unit_amount = 999, interval = "month") =>
+  ({ id, status, metadata, customer: "cus_1", items: { data: [{ price: { unit_amount, recurring: { interval } } }] } }) as unknown as Stripe.Subscription;
+
+const billing = (plan?: string) => {
+  const data = new FormData();
+  if (plan) data.set("plan", plan);
+  return openBilling(idleState, data);
+};
 
 /** Stripe's current state of a subscription, then a correctly signed event about it. */
 function webhook(current: Stripe.Subscription, type = "customer.subscription.updated", signature?: string) {
@@ -102,6 +110,16 @@ describe("publishing", () => {
 
     expect(await tenant()).toMatchObject({ status: "active", subscriptionStatus: "active", stripeCustomerId: "cus_1" });
     expect(revalidateTag).toHaveBeenCalledWith("tenant:studio-d", { expire: 0 });
+  });
+
+  it("records what each plan is worth per month", async () => {
+    await seed({ status: "pending", emailConfirmedAt: new Date() });
+
+    await webhook(subscription("active"));
+    expect((await tenant())?.subscriptionMonthlyCents).toBe(999);
+
+    await webhook(subscription("active", "sub_1", { tenantId: TENANT_ID }, 9999, "year"));
+    expect((await tenant())?.subscriptionMonthlyCents).toBe(833);
   });
 
   it("stays private when paid before the email is confirmed", async () => {
@@ -170,7 +188,7 @@ describe("openBilling", () => {
     vi.spyOn(stripe.customers, "create").mockResolvedValue({ id: "cus_new" } as never);
     const create = checkout();
 
-    await expect(openBilling()).rejects.toThrow("NEXT_REDIRECT:https://stripe.test/checkout");
+    await expect(billing()).rejects.toThrow("NEXT_REDIRECT:https://stripe.test/checkout");
 
     expect((await tenant())?.stripeCustomerId).toBe("cus_new");
     expect(create).toHaveBeenCalledWith(
@@ -183,12 +201,24 @@ describe("openBilling", () => {
     );
   });
 
+  it("charges the yearly price for the yearly plan, and refuses it if it isn't set up", async () => {
+    await seed({ status: "pending", stripeCustomerId: "cus_1" });
+    const create = checkout();
+
+    await expect(billing("anual")).rejects.toThrow("NEXT_REDIRECT");
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ line_items: [{ price: "price_y", quantity: 1 }] }));
+
+    delete process.env.STRIPE_PRICE_ID_YEARLY;
+    expect((await billing("anual")).status).toBe("error");
+    process.env.STRIPE_PRICE_ID_YEARLY = "price_y";
+  });
+
   it("sends a subscribed studio to the portal, so it can't pay twice", async () => {
     await seed({ status: "active", stripeCustomerId: "cus_1", subscriptionStatus: "past_due" });
     const create = checkout();
     portal();
 
-    await expect(openBilling()).rejects.toThrow("NEXT_REDIRECT:https://stripe.test/portal");
+    await expect(billing()).rejects.toThrow("NEXT_REDIRECT:https://stripe.test/portal");
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -197,7 +227,7 @@ describe("openBilling", () => {
     const customers = vi.spyOn(stripe.customers, "create");
     checkout();
 
-    await expect(openBilling()).rejects.toThrow("NEXT_REDIRECT:https://stripe.test/checkout");
+    await expect(billing()).rejects.toThrow("NEXT_REDIRECT:https://stripe.test/checkout");
     expect(customers).not.toHaveBeenCalled();
   });
 
@@ -206,7 +236,7 @@ describe("openBilling", () => {
     const price = process.env.STRIPE_PRICE_ID;
     delete process.env.STRIPE_PRICE_ID;
 
-    expect((await openBilling()).status).toBe("error");
+    expect((await billing()).status).toBe("error");
     process.env.STRIPE_PRICE_ID = price;
   });
 });

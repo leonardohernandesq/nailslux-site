@@ -84,6 +84,20 @@ async function loadActiveTenant(slug: string): Promise<TenantDTO | null> {
   return doc ? toTenantDTO(doc) : null;
 }
 
+/** Tells a suspended site, which gets a notice, from an unknown slug, which gets a 404. */
+export async function isTenantSuspended(slug: string): Promise<boolean> {
+  return TENANT_SLUG_PATTERN.test(slug) ? loadTenantSuspended(slug) : false;
+}
+
+async function loadTenantSuspended(slug: string): Promise<boolean> {
+  "use cache";
+  cacheTag(CACHE_TAGS.tenant(slug));
+  cacheLife("days");
+
+  await connectDB();
+  return (await Tenant.exists({ slug, status: "suspended" })) !== null;
+}
+
 export async function getTenantById(id: string): Promise<TenantDTO | null> {
   await connection(); // per request: the panel must never show a stale status
   await connectDB();

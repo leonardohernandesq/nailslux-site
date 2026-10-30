@@ -7,6 +7,7 @@ import { BookingStory } from "@/components/platform/booking-story";
 import { HeroDemo } from "@/components/platform/hero-demo";
 import { LandingMotion } from "@/components/platform/landing-motion";
 import { PanelTour } from "@/components/platform/panel-tour";
+import { Pricing } from "@/components/platform/pricing";
 import { SectionHeading } from "@/components/site/section-heading";
 import { buttonClasses } from "@/components/ui/button";
 import { sora } from "@/lib/fonts";
@@ -34,6 +35,7 @@ const NAV = [
   { href: "#como-funciona", label: "Como funciona" },
   { href: "#painel", label: "O painel" },
   { href: "#exemplo", label: "Exemplo real" },
+  { href: "#preco", label: "Preço" },
 ];
 
 export default function PlatformHome() {
@@ -81,12 +83,17 @@ export default function PlatformHome() {
               ))}
             </ul>
           </nav>
-          <Link
-            href="/admin"
-            className="inline-flex min-h-11 items-center rounded-full px-4 font-semibold ring-1 ring-cream/25 transition-colors hover:bg-cream hover:text-ink"
-          >
-            Entrar
-          </Link>
+          <div className="flex items-center gap-1">
+            <a href="#preco" className="inline-flex min-h-11 items-center rounded-full px-3 font-semibold text-cream/70 hover:text-cream md:hidden">
+              Preço
+            </a>
+            <Link
+              href="/admin"
+              className="inline-flex min-h-11 items-center rounded-full px-4 font-semibold ring-1 ring-cream/25 transition-colors hover:bg-cream hover:text-ink"
+            >
+              Entrar
+            </Link>
+          </div>
         </header>
 
         <section
@@ -189,7 +196,16 @@ export default function PlatformHome() {
           </div>
         </section>
 
-        <section aria-labelledby="final-title" className="px-4 pb-16 sm:px-6 sm:pb-24">
+        <section id="preco" aria-labelledby="preco-title" className="bg-glow py-16 sm:py-24">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6">
+            <SectionHeading id="preco-title" eyebrow="Preço" title="Um preço simples, tudo incluído">
+              Escolha pagar ao mês ou ao ano.
+            </SectionHeading>
+            <Pricing ctaFor={(plan) => (isRegistrationOpen() ? { href: `/registo?plano=${plan.id}`, label: "Escolher plano" } : primaryCta)} />
+          </div>
+        </section>
+
+        <section aria-labelledby="final-title" className="px-4 pt-16 pb-16 sm:px-6 sm:pt-24 sm:pb-24">
           <div data-reveal className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-ink px-6 py-16 text-center text-cream sm:py-20">
             <span className="landing-aurora absolute -top-24 left-1/4 size-80 rounded-full bg-brand-flame/30 blur-3xl" />
             <h2 id="final-title" className="font-display relative text-3xl font-bold tracking-tight sm:text-5xl">

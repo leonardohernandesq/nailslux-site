@@ -16,7 +16,8 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { getPublicPortfolio } from "@/lib/data/portfolio";
 import { getPublicServices } from "@/lib/data/services";
-import { getActiveTenant, getActiveTenantSlugs } from "@/lib/data/tenants";
+import { SuspendedSite } from "@/components/platform/suspended-site";
+import { getActiveTenant, getActiveTenantSlugs, isTenantSuspended } from "@/lib/data/tenants";
 import { hasBrandAssets } from "@/lib/site";
 
 // Cache Components needs at least one param to validate the route at build time;
@@ -30,8 +31,11 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps<"/[slug]">): Promise<Metadata> {
-  const tenant = await getActiveTenant((await params).slug);
-  if (!tenant) return {};
+  const { slug } = await params;
+  const tenant = await getActiveTenant(slug);
+  if (!tenant) {
+    return (await isTenantSuspended(slug)) ? { title: { absolute: "Site suspenso" }, robots: { index: false } } : {};
+  }
 
   const title = `${tenant.name} · ${tenant.tagline}`;
   return {
@@ -63,8 +67,12 @@ export default function StudioPage({ params }: PageProps<"/[slug]">) {
 // Services and photos are cached (`use cache` + tags) and refreshed whenever the
 // studio changes them, so this page is served from the cache.
 async function StudioSite({ params }: Pick<PageProps<"/[slug]">, "params">) {
-  const tenant = await getActiveTenant((await params).slug);
-  if (!tenant) notFound();
+  const { slug } = await params;
+  const tenant = await getActiveTenant(slug);
+  if (!tenant) {
+    if (await isTenantSuspended(slug)) return <SuspendedSite />;
+    notFound();
+  }
 
   const [services, portfolio] = await Promise.all([getPublicServices(tenant.id), getPublicPortfolio(tenant.id)]);
   const { whatsappNumber, instagramUrl } = tenant;

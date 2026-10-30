@@ -28,6 +28,7 @@ const tenantSchema = new Schema(
     stripeCustomerId: { type: String },
     stripeSubscriptionId: { type: String },
     subscriptionStatus: { type: String },
+    subscriptionMonthlyCents: { type: Number },
     hours: {
       days: { type: [Number], default: () => [...DEFAULT_OPENING_HOURS.days] },
       opens: { type: String, default: DEFAULT_OPENING_HOURS.opens },

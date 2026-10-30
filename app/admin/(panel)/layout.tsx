@@ -83,7 +83,7 @@ async function PendingNotice() {
   if (tenant.status === "suspended" || tenant.subscriptionStatus === "past_due") {
     return (
       <p role="status" className="mb-6 rounded-2xl border border-danger/25 bg-danger-soft p-4 text-sm font-semibold text-danger">
-        {tenant.status === "suspended" ? "O seu site está suspenso. " : "Não conseguimos cobrar a mensalidade. "}
+        {tenant.status === "suspended" ? "O seu site está suspenso. " : "Não conseguimos cobrar a subscrição. "}
         <Link href="/admin/subscricao" className="underline">
           Ver subscrição
         </Link>

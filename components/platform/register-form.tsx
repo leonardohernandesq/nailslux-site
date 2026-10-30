@@ -6,10 +6,12 @@ import { SubmitButton } from "@/components/admin/submit-button";
 import { Field, Input, describedBy } from "@/components/ui/field";
 import { register } from "@/lib/actions/registration";
 import { idleState } from "@/lib/actions/form-state";
+import { toPlan, type PlanId } from "@/lib/plans";
 import { slugify } from "@/lib/validation/registration";
 import { FormMessage } from "./auth-shell";
+import { PlanPicker } from "./plan-picker";
 
-export function RegisterForm({ siteHost }: { siteHost: string }) {
+export function RegisterForm({ siteHost, plan }: { siteHost: string; plan: PlanId }) {
   const [state, formAction] = useActionState(register, idleState);
   const errors = state.fieldErrors ?? {};
   const v = state.values;
@@ -21,6 +23,9 @@ export function RegisterForm({ siteHost }: { siteHost: string }) {
   return (
     <form action={formAction} noValidate className="flex flex-col gap-5">
       {state.status === "error" && state.message && !state.fieldErrors && <FormMessage tone="error">{state.message}</FormMessage>}
+
+      {/* React resets the form after an action, so the key restores the choice. */}
+      <PlanPicker key={v?.plan} defaultPlan={v?.plan ? toPlan(v.plan).id : plan} />
 
       <Field id="studioName" label="Nome do studio" required errors={errors.studioName}>
         <Input
@@ -94,8 +99,9 @@ export function RegisterForm({ siteHost }: { siteHost: string }) {
       </div>
 
       <SubmitButton size="lg" pendingLabel="A criar…" className="mt-1 w-full">
-        Criar o meu site
+        Continuar para o pagamento
       </SubmitButton>
+      <p className="text-center text-sm text-ink-muted">O pagamento é feito na Stripe, em segurança.</p>
     </form>
   );
 }

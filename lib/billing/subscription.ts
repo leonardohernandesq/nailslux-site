@@ -13,6 +13,15 @@ const PAYING: string[] = ["active", "trialing"];
 // "Subscriptions and emails" setting in the Stripe dashboard) and lands here.
 export const ENDED_SUBSCRIPTIONS: string[] = ["canceled", "unpaid", "paused", "incomplete_expired"];
 
+// Still has a subscription to manage, so a new one would mean paying twice.
+export const MANAGED_IN_PORTAL: string[] = ["active", "trialing", "past_due", "unpaid", "paused"];
+
+/** What the subscription is worth per month, so yearly plans add up with monthly ones. */
+function monthlyCents(subscription: Stripe.Subscription): number {
+  const { unit_amount, recurring } = subscription.items.data[0].price;
+  return Math.round((unit_amount ?? 0) / (recurring?.interval === "year" ? 12 : 1));
+}
+
 /** A studio's site goes public once its email is confirmed and it's paying, in either order. */
 export async function publishIfReady(tenantId: Types.ObjectId | string) {
   return Tenant.findOneAndUpdate(
@@ -43,7 +52,12 @@ export async function applySubscription(subscription: Stripe.Subscription): Prom
   const customer = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
   await Tenant.updateOne(
     { _id: tenantId },
-    { stripeCustomerId: customer, stripeSubscriptionId: subscription.id, subscriptionStatus: subscription.status },
+    {
+      stripeCustomerId: customer,
+      stripeSubscriptionId: subscription.id,
+      subscriptionStatus: subscription.status,
+      subscriptionMonthlyCents: monthlyCents(subscription),
+    },
   );
 
   if (paying) {

@@ -3,15 +3,19 @@
 import bcrypt from "bcryptjs";
 import type { Types } from "mongoose";
 import { refresh, updateTag } from "next/cache";
+import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { requireAdmin } from "../auth/dal";
 import { consumeAuthToken, createAuthToken, lastTokenAt } from "../auth/tokens";
+import { createCheckoutUrl } from "../billing/checkout";
 import { publishIfReady } from "../billing/subscription";
 import { CACHE_TAGS } from "../constants";
 import { connectDB } from "../db/connect";
 import { Tenant, User } from "../db/models";
 import { actionMail, sendMail } from "../mail";
+import { toPlan } from "../plans";
 import { isRegistrationOpen, PLATFORM } from "../site";
+import { isBillingConfigured } from "../stripe";
 import { loginSchema } from "../validation/auth";
 import { passwordSchema, registerSchema } from "../validation/registration";
 import { formValues, validationError, type FormState } from "./form-state";
@@ -38,9 +42,9 @@ async function sendConfirmation(user: { _id: Types.ObjectId; email: string }): P
 }
 
 /**
- * Creates a studio and its owner, then logs them in. The studio starts "pending":
- * the owner can set it up, but its site stays private until the email is confirmed
- * and the subscription is active.
+ * Creates a studio and its owner, logs them in and sends them to pay for the plan
+ * they chose. The studio starts "pending": the owner can set it up, but its site
+ * stays private until the email is confirmed and the subscription is active.
  */
 export async function register(_prev: FormState, formData: FormData): Promise<FormState> {
   if (!isRegistrationOpen()) return { status: "error", message: "Os registos ainda não estão abertos." };
@@ -75,8 +79,21 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   }
 
   await sendConfirmation(user);
-  await signIn("credentials", { email, password, redirectTo: "/admin/definicoes?novo=1" });
-  return { status: "success" };
+  // No redirectTo: Auth.js only redirects within the site, and Stripe is elsewhere.
+  await signIn("credentials", { email, password, redirect: false });
+
+  // The account exists by now, so a Stripe failure must not look like a failed sign-up:
+  // the panel can open the payment page again.
+  const plan = toPlan(formData.get("plan"));
+  let checkoutUrl: string | null = null;
+  if (isBillingConfigured(plan.id)) {
+    try {
+      checkoutUrl = await createCheckoutUrl({ tenantId: String(tenant._id), email, name: studioName, plan: plan.id });
+    } catch (error) {
+      console.error("Could not open checkout after sign-up.", error);
+    }
+  }
+  redirect(checkoutUrl ?? "/admin/definicoes?novo=1");
 }
 
 /** Publishes the studio if it's paying. Only a pending one: this can't undo a suspension. */

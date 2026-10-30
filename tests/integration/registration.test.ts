@@ -1,5 +1,5 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const TENANT_ID = "64b00000000000000000000c";
 const session = vi.hoisted(() => ({ user: { id: "", email: "" } }));
@@ -7,6 +7,7 @@ const mail = vi.hoisted(() => ({ sent: [] as { to: string; text: string }[] }));
 
 vi.mock("@/auth", () => ({ signIn: vi.fn(async () => {}) }));
 vi.mock("next/cache", () => ({ refresh: vi.fn(), updateTag: vi.fn(), revalidateTag: vi.fn(), cacheTag: vi.fn(), cacheLife: vi.fn() }));
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/mail", () => ({
   actionMail: (_intro: string, _label: string, url: string) => ({ text: url, html: url }),
   sendMail: vi.fn(async (message: { to: string; text: string }) => {
@@ -26,7 +27,9 @@ vi.mock("@/lib/auth/dal", () => ({
 
 const bcrypt = (await import("bcryptjs")).default;
 const { updateTag } = await import("next/cache");
+const { redirect } = await import("next/navigation");
 const { signIn } = await import("@/auth");
+const { getStripe } = await import("@/lib/stripe");
 const { connectDB, disconnectDB } = await import("@/lib/db/connect");
 const { AuthToken, Tenant, User } = await import("@/lib/db/models");
 const actions = await import("@/lib/actions/registration");
@@ -75,6 +78,7 @@ beforeEach(async () => {
   process.env.REGISTRATION_OPEN = "true";
   mail.sent = [];
   vi.mocked(signIn).mockClear();
+  vi.mocked(redirect).mockClear();
   vi.mocked(updateTag).mockClear();
   for (const model of [AuthToken, Tenant, User]) await model.collection.deleteMany({});
 });
@@ -107,6 +111,39 @@ describe("register", () => {
     expect(mail.sent).toHaveLength(1);
     expect(signIn).toHaveBeenCalledWith("credentials", expect.objectContaining({ email: "ines@test.pt" }));
     expect(await getActiveTenant("unhas-da-ines")).toBeNull();
+  });
+
+  describe("with Stripe configured", () => {
+    beforeEach(() => {
+      process.env.STRIPE_SECRET_KEY = "sk_test_x";
+      process.env.STRIPE_PRICE_ID = "price_month";
+      process.env.STRIPE_PRICE_ID_YEARLY = "price_year";
+      vi.spyOn(getStripe().customers, "create").mockResolvedValue({ id: "cus_new" } as never);
+    });
+    afterEach(() => {
+      for (const key of ["STRIPE_SECRET_KEY", "STRIPE_PRICE_ID", "STRIPE_PRICE_ID_YEARLY"]) delete process.env[key];
+      vi.restoreAllMocks();
+    });
+
+    it("goes straight to paying for the chosen plan", async () => {
+      const create = vi.spyOn(getStripe().checkout.sessions, "create").mockResolvedValue({ url: "https://stripe.test/pay" } as never);
+
+      await actions.register(idleState, signup({ plan: "anual" }));
+
+      expect(create).toHaveBeenCalledWith(expect.objectContaining({ line_items: [{ price: "price_year", quantity: 1 }] }));
+      expect(redirect).toHaveBeenCalledWith("https://stripe.test/pay");
+      expect((await Tenant.findOne({ slug: "unhas-da-ines" }).lean())?.stripeCustomerId).toBe("cus_new");
+    });
+
+    it("keeps the account when Stripe fails, and falls back to the panel", async () => {
+      vi.spyOn(getStripe().checkout.sessions, "create").mockRejectedValue(new Error("offline"));
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      await actions.register(idleState, signup());
+
+      expect(await Tenant.countDocuments({ slug: "unhas-da-ines" })).toBe(1);
+      expect(redirect).toHaveBeenCalledWith("/admin/definicoes?novo=1");
+    });
   });
 
   it("never echoes the password back", async () => {
