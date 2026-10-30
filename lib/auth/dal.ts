@@ -10,6 +10,15 @@ export type AdminUser = { id: string; name: string; email: string; tenantId: str
  * here is the only source of "which studio" for admin code: never take it from
  * the request.
  */
+/** Returns the signed-in platform admin, or redirects to the backoffice login. */
+export async function requirePlatformAdmin(): Promise<{ id: string; name: string; email: string }> {
+  await connection();
+  const session = await auth();
+  const user = session?.user;
+  if (!user?.id || !user.email || !user.platformAdmin) redirect("/backoffice/login");
+  return { id: user.id, name: user.name ?? "Admin", email: user.email };
+}
+
 export async function requireAdmin(): Promise<AdminUser> {
   await connection(); // sessions are per request, so never part of a prerender
   const session = await auth();

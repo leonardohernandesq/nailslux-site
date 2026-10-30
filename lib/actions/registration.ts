@@ -84,7 +84,7 @@ export async function confirmEmail(_prev: FormState, formData: FormData): Promis
   await connectDB();
   const userId = await consumeAuthToken(String(formData.get("token") ?? ""), "confirm-email");
   const user = userId && (await User.findById(userId, { tenantId: 1 }).lean());
-  if (!user) return { status: "error", message: "Este link já foi usado ou expirou. Peça outro no painel." };
+  if (!user?.tenantId) return { status: "error", message: "Este link já foi usado ou expirou. Peça outro no painel." };
 
   await Tenant.updateOne({ _id: user.tenantId }, { emailConfirmedAt: new Date() });
   const tenant = await publishIfReady(user.tenantId);

@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "admin:create": "tsx scripts/create-admin.ts",
     "tenants:migrate": "tsx scripts/migrate-tenants.ts",
+    "platform:create": "tsx scripts/create-platform-admin.ts",
     "prepare": "husky"
   },
   "dependencies": {

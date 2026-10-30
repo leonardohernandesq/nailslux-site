@@ -5,7 +5,7 @@
 import { spawn } from "node:child_process";
 import bcrypt from "bcryptjs";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { E2E_ADMIN, E2E_INSTAGRAM, E2E_SLUG, E2E_WHATSAPP } from "../e2e/constants";
+import { E2E_ADMIN, E2E_INSTAGRAM, E2E_PLATFORM, E2E_SLUG, E2E_WHATSAPP } from "../e2e/constants";
 
 const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
 
@@ -29,6 +29,12 @@ async function main() {
     name: E2E_ADMIN.name,
     email: E2E_ADMIN.email,
     passwordHash: await bcrypt.hash(E2E_ADMIN.password, 4),
+  });
+  await User.create({
+    role: "platform",
+    name: E2E_PLATFORM.name,
+    email: E2E_PLATFORM.email,
+    passwordHash: await bcrypt.hash(E2E_PLATFORM.password, 4),
   });
   await Service.create([
     { tenantId, name: "Verniz gel", description: "Cor e brilho que duram semanas.", priceCents: 2500, durationMinutes: 60, order: 1 },

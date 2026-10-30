@@ -6,6 +6,9 @@ import { getTenantById } from "@/lib/data/tenants";
 
 export const metadata: Metadata = { title: "Subscrição" };
 
+// Auth-gated and per-request: allowed to block (see app/admin/(panel)/layout.tsx).
+export const instant = false;
+
 const STATUS: Record<string, { label: string; text: string }> = {
   active: { label: "Ativa", text: "A sua subscrição está em dia." },
   trialing: { label: "Ativa", text: "A sua subscrição está em dia." },

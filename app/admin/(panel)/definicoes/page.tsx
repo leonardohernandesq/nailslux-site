@@ -7,6 +7,9 @@ import { getTenantById } from "@/lib/data/tenants";
 
 export const metadata: Metadata = { title: "Definições" };
 
+// Auth-gated and per-request: allowed to block (see app/admin/(panel)/layout.tsx).
+export const instant = false;
+
 export default async function SettingsPage({ searchParams }: PageProps<"/admin/definicoes">) {
   const { tenantId } = await requireAdmin();
   const tenant = await getTenantById(tenantId);

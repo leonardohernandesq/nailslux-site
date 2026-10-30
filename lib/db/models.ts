@@ -71,10 +71,21 @@ const portfolioItemSchema = new Schema(
 portfolioItemSchema.index({ tenantId: 1, order: -1, createdAt: -1 });
 portfolioItemSchema.plugin(tenantScoped);
 
-/** A studio owner. Email is unique across the platform: there is one login page. */
+/**
+ * A studio owner, or with role "platform" someone who runs the platform: those use
+ * the /backoffice, belong to no studio and can never open a studio's panel.
+ * Email is unique across both.
+ */
 const userSchema = new Schema(
   {
-    tenantId: tenantRef,
+    role: { type: String, required: true, enum: ["owner", "platform"], default: "owner" },
+    tenantId: {
+      type: Schema.Types.ObjectId,
+      ref: "Tenant",
+      required(this: { role?: string }) {
+        return this.role !== "platform";
+      },
+    },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true, select: false },

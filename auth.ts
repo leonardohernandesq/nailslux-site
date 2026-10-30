@@ -16,6 +16,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: {
+        scope: {},
         email: { label: "Email", type: "email" },
         password: { label: "Palavra-passe", type: "password" },
       },
@@ -27,6 +28,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await User.findOne({ email: parsed.data.email }).select("+passwordHash").lean();
         const valid = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
         if (!user || !valid) return null;
+
+        // Each login page accepts only its own kind of account.
+        const platformAdmin = user.role === "platform";
+        if (platformAdmin !== (raw.scope === "platform")) return null;
+        if (platformAdmin) return { id: String(user._id), name: user.name, email: user.email, platformAdmin };
 
         const tenant = await Tenant.findById(user.tenantId, { slug: 1 }).lean();
         if (!tenant) return null;

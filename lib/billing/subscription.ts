@@ -11,7 +11,7 @@ const PAYING: string[] = ["active", "trialing"];
 // past_due is left out on purpose: Stripe is still retrying the card, and that is
 // the grace period. Once its retries run out it ends the subscription (see the
 // "Subscriptions and emails" setting in the Stripe dashboard) and lands here.
-const ENDED: string[] = ["canceled", "unpaid", "paused", "incomplete_expired"];
+export const ENDED_SUBSCRIPTIONS: string[] = ["canceled", "unpaid", "paused", "incomplete_expired"];
 
 /** A studio's site goes public once its email is confirmed and it's paying, in either order. */
 export async function publishIfReady(tenantId: Types.ObjectId | string) {
@@ -53,7 +53,7 @@ export async function applySubscription(subscription: Stripe.Subscription): Prom
       { _id: tenantId, status: "suspended", suspendedFor: "billing" },
       { $set: { status: "active" }, $unset: { suspendedFor: 1 } },
     );
-  } else if (ENDED.includes(subscription.status)) {
+  } else if (ENDED_SUBSCRIPTIONS.includes(subscription.status)) {
     await Tenant.updateOne({ _id: tenantId, status: "active" }, { status: "suspended", suspendedFor: "billing" });
   }
 

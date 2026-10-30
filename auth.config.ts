@@ -10,10 +10,18 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
+      const redirectTo = (path: string) => Response.redirect(new URL(path, request.nextUrl));
+      const platformAdmin = Boolean(auth?.user?.platformAdmin);
+
+      if (pathname === "/backoffice/login") return platformAdmin ? redirectTo("/backoffice") : true;
+      if (pathname.startsWith("/backoffice")) return platformAdmin || redirectTo("/backoffice/login");
+      // The platform login has no studio, so no studio panel to open.
+      if (platformAdmin && pathname.startsWith("/admin")) return redirectTo("/backoffice");
+
       // Sessions from before the platform have no tenant: they log in again.
       const loggedIn = Boolean(auth?.user?.tenantId);
       if (pathname === "/admin/login") {
-        return loggedIn ? Response.redirect(new URL("/admin", request.nextUrl)) : true;
+        return loggedIn ? redirectTo("/admin") : true;
       }
       if (pathname.startsWith("/admin")) return loggedIn;
       return true;
@@ -23,6 +31,7 @@ export const authConfig = {
         token.sub = user.id;
         token.tenantId = user.tenantId;
         token.tenantSlug = user.tenantSlug;
+        token.platformAdmin = user.platformAdmin;
       }
       return token;
     },
@@ -30,6 +39,7 @@ export const authConfig = {
       if (token.sub) session.user.id = token.sub;
       session.user.tenantId = token.tenantId;
       session.user.tenantSlug = token.tenantSlug;
+      session.user.platformAdmin = token.platformAdmin;
       return session;
     },
   },
