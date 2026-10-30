@@ -7,7 +7,9 @@ export const PLANS = [
 export type Plan = (typeof PLANS)[number];
 export type PlanId = Plan["id"];
 
-export const YEARLY_SAVING_CENTS = PLANS[0].priceCents * 12 - PLANS[1].priceCents;
+/** A year of the monthly plan, to compare with the yearly one. */
+export const TWELVE_MONTHS_CENTS = PLANS[0].priceCents * 12;
+export const YEARLY_SAVING_CENTS = TWELVE_MONTHS_CENTS - PLANS[1].priceCents;
 
 /** `value` comes from the browser; anything unknown falls back to the monthly plan. */
 export function toPlan(value: unknown): Plan {

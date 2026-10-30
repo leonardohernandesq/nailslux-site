@@ -1,7 +1,7 @@
 import { ArrowRightIcon, CheckIcon } from "@phosphor-icons/react/ssr";
 import { buttonClasses } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
-import { PLANS, YEARLY_SAVING_CENTS, type Plan } from "@/lib/plans";
+import { PLANS, TWELVE_MONTHS_CENTS } from "@/lib/plans";
 
 const INCLUDED = [
   "Site com a marca do seu studio",
@@ -11,12 +11,10 @@ const INCLUDED = [
   "Estatísticas do site",
 ];
 
-/** `ctaFor` decides where each plan leads: sign-up with it chosen, or contact while closed. */
-export function Pricing({ ctaFor }: { ctaFor: (plan: Plan) => { href: string; label: string } }) {
+export function Pricing() {
   return (
     <div className="mx-auto grid max-w-3xl gap-5 md:grid-cols-2">
       {PLANS.map((plan) => {
-        const cta = ctaFor(plan);
         const yearly = plan.id === "anual";
         return (
           <article
@@ -24,14 +22,22 @@ export function Pricing({ ctaFor }: { ctaFor: (plan: Plan) => { href: string; la
             data-reveal
             className={`relative flex flex-col rounded-3xl p-6 shadow-soft sm:p-8 ${yearly ? "bg-ink text-cream" : "bg-surface"}`}
           >
-            <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
+              {yearly && <span className="rounded-full bg-peach-200 px-3 py-1 text-sm font-bold text-ink">Económico</span>}
+            </div>
             <p className="mt-3">
               <span className="font-display text-4xl font-bold tabular-nums">{formatPrice(plan.priceCents)}</span>
               <span className={yearly ? "text-cream/70" : "text-ink-muted"}> por {plan.period}</span>
             </p>
-            <p className={`mt-1 min-h-6 text-sm font-semibold ${yearly ? "text-peach-200" : "text-ink-muted"}`}>
-              {yearly ? `Poupa ${formatPrice(YEARLY_SAVING_CENTS)} por ano` : "Cancele quando quiser"}
-            </p>
+            {yearly ? (
+              <p className="mt-1 text-sm font-semibold text-cream/70">
+                <span className="sr-only">12 meses do plano mensal: </span>
+                <s>{formatPrice(TWELVE_MONTHS_CENTS)}</s>
+              </p>
+            ) : (
+              <p className="mt-1 text-sm font-semibold text-ink-muted">{formatPrice(TWELVE_MONTHS_CENTS)} por ano</p>
+            )}
             <ul className="mt-6 flex flex-1 flex-col gap-3">
               {INCLUDED.map((item) => (
                 <li key={item} className="flex items-start gap-2">
@@ -40,8 +46,8 @@ export function Pricing({ ctaFor }: { ctaFor: (plan: Plan) => { href: string; la
                 </li>
               ))}
             </ul>
-            <a href={cta.href} aria-label={`${cta.label}: plano ${plan.name}`} className={buttonClasses({ className: "mt-8 w-full" })}>
-              {cta.label}
+            <a href={`/registo?plano=${plan.id}`} aria-label={`Quero fazer parte: plano ${plan.name}`} className={buttonClasses({ className: "mt-8 w-full" })}>
+              Quero fazer parte
               <ArrowRightIcon size={18} aria-hidden="true" />
             </a>
           </article>

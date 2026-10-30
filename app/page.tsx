@@ -201,7 +201,7 @@ export default function PlatformHome() {
             <SectionHeading id="preco-title" eyebrow="Preço" title="Um preço simples, tudo incluído">
               Escolha pagar ao mês ou ao ano.
             </SectionHeading>
-            <Pricing ctaFor={(plan) => (isRegistrationOpen() ? { href: `/registo?plano=${plan.id}`, label: "Escolher plano" } : primaryCta)} />
+            <Pricing />
           </div>
         </section>
 

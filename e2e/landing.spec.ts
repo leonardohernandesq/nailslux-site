@@ -20,6 +20,9 @@ test("the menu leads to the plans, and a plan to sign-up with it chosen", async 
   const pricing = page.locator("#preco");
   await expect(pricing).toContainText("9,99");
   await expect(pricing).toContainText("99,99");
+  await expect(pricing).toContainText("119,88 € por ano");
+  await expect(pricing.locator("s")).toHaveText("119,88 €");
+  await expect(pricing).toContainText("Económico");
 
   await pricing.getByRole("link", { name: /plano Anual/ }).click();
   await expect(page).toHaveURL(/\/registo\?plano=anual$/);
