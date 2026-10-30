@@ -6,18 +6,20 @@ const session = vi.hoisted(() => ({ admin: true }));
 vi.mock("@/lib/auth/dal", () => ({
   requireAdmin: vi.fn(async () => {
     if (!session.admin) throw new Error("NEXT_REDIRECT:/admin/login");
-    return { id: "u1", name: "Admin", email: "admin@test.pt" };
+    return { id: "u1", name: "Admin", email: "admin@test.pt", tenantId: "64b000000000000000000001", tenantSlug: "studio" };
   }),
 }));
 vi.mock("next/cache", () => ({ refresh: vi.fn(), updateTag: vi.fn(), cacheTag: vi.fn(), cacheLife: vi.fn() }));
 vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
 
 const { connectDB, disconnectDB } = await import("@/lib/db/connect");
-const { Appointment, Client, Service } = await import("@/lib/db/models");
+const { Appointment, Client, Service, Tenant } = await import("@/lib/db/models");
 const { requestAppointment, decideAppointment } = await import("@/lib/actions/appointments");
 const { saveClientMolds } = await import("@/lib/actions/clients");
 const { getBusyIntervals, getAppointment, getAppointmentsOverview } = await import("@/lib/data/appointments");
 const { idleState } = await import("@/lib/actions/form-state");
+
+const TENANT_ID = "64b000000000000000000001";
 
 let mongo: MongoMemoryServer;
 let gel: string; // 60 min
@@ -38,7 +40,7 @@ const intent = (value: string) => {
   return data;
 };
 const request = (serviceIds: string[], time: string, name = "Maria") =>
-  requestAppointment({ name, phone: "912 345 678", serviceIds, date: DAY, time, notes: "" });
+  requestAppointment("studio", { name, phone: "912 345 678", serviceIds, date: DAY, time, notes: "" });
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create();
@@ -53,12 +55,14 @@ afterAll(async () => {
 
 beforeEach(async () => {
   session.admin = true;
-  await Appointment.deleteMany({});
-  await Client.deleteMany({});
-  await Service.deleteMany({});
-  gel = String((await Service.create({ name: "Verniz gel", priceCents: 2500, durationMinutes: 60 }))._id);
-  pedi = String((await Service.create({ name: "Pedicure", priceCents: 1800 }))._id);
-  longService = String((await Service.create({ name: "Pé completo", priceCents: 4000, durationMinutes: 180 }))._id);
+  await Appointment.collection.deleteMany({});
+  await Tenant.collection.deleteMany({});
+  await Tenant.create({ _id: TENANT_ID, slug: "studio", name: "Studio", whatsappNumber: "351900000000" });
+  await Client.collection.deleteMany({});
+  await Service.collection.deleteMany({});
+  gel = String((await Service.create({ tenantId: TENANT_ID, name: "Verniz gel", priceCents: 2500, durationMinutes: 60 }))._id);
+  pedi = String((await Service.create({ tenantId: TENANT_ID, name: "Pedicure", priceCents: 1800 }))._id);
+  longService = String((await Service.create({ tenantId: TENANT_ID, name: "Pé completo", priceCents: 4000, durationMinutes: 180 }))._id);
 });
 
 describe("requestAppointment", () => {
@@ -67,7 +71,7 @@ describe("requestAppointment", () => {
     expect(result).toMatchObject({ ok: true });
     if (!result.ok) return;
 
-    const saved = await Appointment.findById(result.id).lean();
+    const saved = await Appointment.findOne({ _id: result.id, tenantId: TENANT_ID }).lean();
     expect(saved).toMatchObject({
       status: "pending",
       phone: "351912345678",
@@ -77,16 +81,16 @@ describe("requestAppointment", () => {
       endMinutes: 600 + 60 + 60, // pedicure has no duration: counts as 1h
     });
     // Pending requests don't block anything yet.
-    expect(await getBusyIntervals(DAY)).toEqual([]);
+    expect(await getBusyIntervals(TENANT_ID, DAY)).toEqual([]);
   });
 
   it("rejects invalid input and unknown services", async () => {
-    expect(await requestAppointment({ name: "M", phone: "912345678", serviceIds: [gel], date: DAY, time: "10:00" })).toMatchObject({
+    expect(await requestAppointment("studio", { name: "M", phone: "912345678", serviceIds: [gel], date: DAY, time: "10:00" })).toMatchObject({
       ok: false,
       field: "name",
     });
     expect(await request(["000000000000000000000000"], "10:00")).toMatchObject({ ok: false, field: "serviceIds" });
-    expect(await Appointment.countDocuments()).toBe(0);
+    expect(await Appointment.countDocuments({ tenantId: TENANT_ID })).toBe(0);
   });
 
   it("refuses a time that clashes with a confirmed appointment, for the whole duration", async () => {
@@ -95,7 +99,7 @@ describe("requestAppointment", () => {
     if (!first.ok) throw new Error(first.message);
     await decideAppointment(first.id, idleState, intent("confirm"));
 
-    expect(await getBusyIntervals(DAY)).toEqual([{ start: 17 * 60, end: 20 * 60 }]);
+    expect(await getBusyIntervals(TENANT_ID, DAY)).toEqual([{ start: 17 * 60, end: 20 * 60 }]);
     expect(await request([gel], "18:00")).toMatchObject({ ok: false, field: "time" });
     expect(await request([gel], "16:30")).toMatchObject({ ok: false, field: "time" }); // runs into 17:00
     expect(await request([gel], "16:00")).toMatchObject({ ok: true }); // ends at 17:00
@@ -116,12 +120,12 @@ describe("decideAppointment", () => {
     if (!created.ok) throw new Error(created.message);
 
     expect(await decideAppointment(created.id, idleState, intent("confirm"))).toMatchObject({ status: "success" });
-    expect(await getBusyIntervals(DAY)).toEqual([{ start: 600, end: 660 }]);
+    expect(await getBusyIntervals(TENANT_ID, DAY)).toEqual([{ start: 600, end: 660 }]);
     // Can't confirm twice.
     expect(await decideAppointment(created.id, idleState, intent("confirm"))).toMatchObject({ status: "error" });
 
     expect(await decideAppointment(created.id, idleState, intent("cancel"))).toMatchObject({ status: "success" });
-    expect(await getBusyIntervals(DAY)).toEqual([]);
+    expect(await getBusyIntervals(TENANT_ID, DAY)).toEqual([]);
   });
 
   it("won't confirm two overlapping requests", async () => {
@@ -142,8 +146,8 @@ describe("decideAppointment", () => {
     const created = await request([gel], "10:00");
     if (!created.ok) throw new Error(created.message);
     expect(await decideAppointment(created.id, idleState, intent("decline"))).toMatchObject({ status: "success" });
-    expect((await Appointment.findById(created.id).lean())?.status).toBe("declined");
-    expect(await getBusyIntervals(DAY)).toEqual([]);
+    expect((await Appointment.findOne({ _id: created.id, tenantId: TENANT_ID }).lean())?.status).toBe("declined");
+    expect(await getBusyIntervals(TENANT_ID, DAY)).toEqual([]);
   });
 });
 
@@ -154,7 +158,7 @@ describe("client molds", () => {
     return data;
   };
   const book = (time: string, phone: string) =>
-    requestAppointment({ name: "Maria", phone, serviceIds: [gel], date: DAY, time, notes: "" });
+    requestAppointment("studio", { name: "Maria", phone, serviceIds: [gel], date: DAY, time, notes: "" });
 
   it("saves molds on the client's number and shows them on their next bookings", async () => {
     const first = await book("10:00", "912 345 678");
@@ -180,7 +184,7 @@ describe("client molds", () => {
     await saveClientMolds(created.id, idleState, molds({ handMold: "4-4-4-4-4", footMold: "6-6-6-6-6" }));
     await saveClientMolds(created.id, idleState, molds({ handMold: "5-5-5-5-5", footMold: "----" }));
 
-    expect(await Client.countDocuments()).toBe(1);
+    expect(await Client.countDocuments({ tenantId: TENANT_ID })).toBe(1);
     expect((await getAppointment(created.id))?.appointment.molds).toEqual({ handMold: "5-5-5-5-5" });
   });
 
@@ -192,11 +196,12 @@ describe("client molds", () => {
     expect(state.fieldErrors?.handMold?.[0]).toMatch(/Preencha os 5/);
     expect(state.fieldErrors?.footMold?.[0]).toMatch(/de 0 a 20/);
     expect(state.values).toMatchObject({ handMold: "3--5--" });
-    expect(await Client.countDocuments()).toBe(0);
+    expect(await Client.countDocuments({ tenantId: TENANT_ID })).toBe(0);
   });
 
   it("refuses appointments without a number and non-admins", async () => {
     const legacy = await Appointment.create({
+      tenantId: TENANT_ID,
       name: "Antiga",
       serviceIds: [gel],
       serviceNames: ["Verniz gel"],
@@ -214,6 +219,6 @@ describe("client molds", () => {
     await expect(saveClientMolds(String(legacy._id), idleState, molds({ handMold: "3-3-3-3-3" }))).rejects.toThrow(
       "NEXT_REDIRECT",
     );
-    expect(await Client.countDocuments()).toBe(0);
+    expect(await Client.countDocuments({ tenantId: TENANT_ID })).toBe(0);
   });
 });

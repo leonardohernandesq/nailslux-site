@@ -1,10 +1,12 @@
 import "server-only";
+import { Types } from "mongoose";
 import { connection } from "next/server";
 import { ANALYTICS_TIMEZONE, lisbonDay } from "@/lib/analytics/server";
 import { requireAdmin } from "@/lib/auth/dal";
 import { connectDB } from "@/lib/db/connect";
 import { AnalyticsEvent } from "@/lib/db/models";
-import { OPENING_HOURS } from "@/lib/site";
+import { getTenantById } from "@/lib/data/tenants";
+import { DEFAULT_OPENING_HOURS, type OpeningHours } from "@/lib/site";
 
 export const ANALYTICS_PERIODS = [7, 30, 90] as const;
 export type AnalyticsPeriod = (typeof ANALYTICS_PERIODS)[number];
@@ -63,11 +65,12 @@ type Facets = {
 };
 
 export async function getAnalytics(days: AnalyticsPeriod, at?: Date): Promise<AnalyticsSummary> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   // "Now" must be read per request, never baked into a prerender.
   await connection();
   const now = at ?? new Date();
   await connectDB();
+  const tenant = await getTenantById(tenantId);
 
   const dayList = lastDays(days, now);
   // From midnight-ish of the first day; a few hours of slack are filtered out by day below.
@@ -75,7 +78,8 @@ export async function getAnalytics(days: AnalyticsPeriod, at?: Date): Promise<An
   const isContact = { $in: ["$type", CONTACT_TYPES] };
 
   const [facets] = await AnalyticsEvent.aggregate<Facets>([
-    { $match: { createdAt: { $gte: since } } },
+    // Aggregations aren't cast by Mongoose, so the id must already be an ObjectId.
+    { $match: { tenantId: new Types.ObjectId(tenantId), createdAt: { $gte: since } } },
     {
       $addFields: {
         day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: ANALYTICS_TIMEZONE } },
@@ -154,7 +158,7 @@ export async function getAnalytics(days: AnalyticsPeriod, at?: Date): Promise<An
     // Monday first, as in a Portuguese week.
     weekdays: [1, 2, 3, 4, 5, 6, 0].map((weekday) => ({ weekday, count: byWeekday.get(weekday) ?? 0 })),
     // Every hour the studio takes bookings, plus any requested outside them.
-    hours: hourRange(hourValues).map((hour) => ({ hour, count: byHour.get(hour) ?? 0 })),
+    hours: hourRange(tenant?.hours ?? DEFAULT_OPENING_HOURS, hourValues).map((hour) => ({ hour, count: byHour.get(hour) ?? 0 })),
     linkClicks: facets.sources.map((s) => ({
       channel: s._id.type === "instagram_click" ? "instagram" : "whatsapp",
       source: s._id.source,
@@ -163,8 +167,8 @@ export async function getAnalytics(days: AnalyticsPeriod, at?: Date): Promise<An
   };
 }
 
-function hourRange(requested: number[]): number[] {
-  const from = Math.min(Number(OPENING_HOURS.opens.slice(0, 2)), ...requested);
-  const to = Math.max(Number(OPENING_HOURS.lastStart.slice(0, 2)), ...requested);
+function hourRange(opening: OpeningHours, requested: number[]): number[] {
+  const from = Math.min(Number(opening.opens.slice(0, 2)), ...requested);
+  const to = Math.max(Number(opening.lastStart.slice(0, 2)), ...requested);
   return Array.from({ length: to - from + 1 }, (_, i) => from + i);
 }

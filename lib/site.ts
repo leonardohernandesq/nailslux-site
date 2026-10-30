@@ -1,5 +1,5 @@
-// Studio information and opening hours. Contact details come from env vars so they
-// can change without a code change; opening hours live here.
+// Platform identity and opening-hours helpers. Each studio's own details live on
+// its Tenant document (see lib/data/tenants.ts).
 
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 0; // 1 = Monday
 
@@ -16,7 +16,8 @@ export type OpeningHours = {
   maxDaysAhead: number;
 };
 
-export const OPENING_HOURS: OpeningHours = {
+/** What a new studio starts with until it sets its own hours. */
+export const DEFAULT_OPENING_HOURS: OpeningHours = {
   days: [1, 2, 3, 4, 5, 6, 0], // Monday to Sunday
   opens: "09:00",
   lastStart: "20:00",
@@ -56,27 +57,12 @@ export function formatOpeningDays(days: readonly Weekday[]): string {
     : (names[0] ?? "");
 }
 
-export const SITE = {
-  name: "NailsLux",
-  tagline: "Studio de unhas",
-  description:
-    "Studio de unhas NailsLux: manicure, pedicure, gel e nail art. Escolha o serviço, a data e a hora e marque pelo WhatsApp.",
+export const PLATFORM = {
+  name: "Meu Sistema",
+  description: "Site, marcações e gestão para studios de unhas.",
   locale: "pt-PT",
   currency: "EUR",
 } as const;
-
-/** WhatsApp number in international format, digits only (e.g. 351922269283). */
-export function getWhatsAppNumber(): string {
-  return (process.env.WHATSAPP_NUMBER ?? "351922269283").replace(/\D/g, "");
-}
-
-export function getInstagramUrl(): string | null {
-  return process.env.INSTAGRAM_URL || null;
-}
-
-export function getStudioAddress(): string | null {
-  return process.env.STUDIO_ADDRESS || null;
-}
 
 /** "351922269283" -> "+351 922 269 283" for display. */
 export function formatPhoneForDisplay(digits: string): string {

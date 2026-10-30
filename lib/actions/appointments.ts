@@ -6,8 +6,8 @@ import { requireAdmin } from "@/lib/auth/dal";
 import { connectDB } from "@/lib/db/connect";
 import { Appointment, Service, type AppointmentStatus } from "@/lib/db/models";
 import { getBusyIntervals } from "@/lib/data/appointments";
+import { getActiveTenant } from "@/lib/data/tenants";
 import { bookingDuration, fromMinutes, isSlotFree, overlaps, toMinutes } from "@/lib/schedule";
-import { OPENING_HOURS } from "@/lib/site";
 import { createBookingSchema, type BookingInput } from "@/lib/validation/booking";
 import type { FormState } from "./form-state";
 
@@ -29,13 +29,16 @@ function lisbonNow(): Date {
  * Everything is re-checked here: services, date, time and that the slot is still
  * free for the full duration of the chosen services.
  */
-export async function requestAppointment(input: BookingInput): Promise<RequestAppointmentResult> {
+export async function requestAppointment(tenantSlug: string, input: BookingInput): Promise<RequestAppointmentResult> {
+  const tenant = await getActiveTenant(tenantSlug);
+  if (!tenant) return { ok: false, message: "Este studio não está disponível de momento." };
+
   await connectDB();
-  const services = await Service.find({ active: true }, { name: 1, priceCents: 1, durationMinutes: 1 }).lean();
+  const services = await Service.find({ tenantId: tenant.id, active: true }, { name: 1, priceCents: 1, durationMinutes: 1 }).lean();
 
   const schema = createBookingSchema({
     serviceIds: services.map((s) => String(s._id)),
-    hours: OPENING_HOURS,
+    hours: tenant.hours,
     now: lisbonNow(),
   });
   const parsed = schema.safeParse(input);
@@ -50,12 +53,13 @@ export async function requestAppointment(input: BookingInput): Promise<RequestAp
     .filter((s) => s !== undefined);
   const duration = bookingDuration(chosen);
 
-  if (!isSlotFree(time, duration, await getBusyIntervals(date))) {
+  if (!isSlotFree(time, duration, await getBusyIntervals(tenant.id, date))) {
     return { ok: false, field: "time", message: TAKEN_MESSAGE };
   }
 
   const start = toMinutes(time);
   const appointment = await Appointment.create({
+    tenantId: tenant.id,
     name,
     phone,
     serviceIds: chosen.map((s) => String(s._id)),
@@ -77,11 +81,11 @@ async function decide(
   to: AppointmentStatus,
   success: string,
 ): Promise<FormState> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   if (!isValidObjectId(id)) return { status: "error", message: "Marcação não encontrada." };
   await connectDB();
 
-  const doc = await Appointment.findById(id).lean();
+  const doc = await Appointment.findOne({ _id: id, tenantId }).lean();
   if (!doc) return { status: "error", message: "Marcação não encontrada." };
   if (!from.includes(doc.status)) {
     return { status: "error", message: "Esta marcação já foi tratada. Atualize a página." };
@@ -90,6 +94,7 @@ async function decide(
   if (to === "confirmed") {
     const range = { start: doc.startMinutes, end: doc.endMinutes };
     const clash = await Appointment.findOne({
+      tenantId,
       _id: { $ne: doc._id },
       date: doc.date,
       status: "confirmed",
@@ -106,7 +111,7 @@ async function decide(
 
   // Only move on if nobody changed it in the meantime.
   const updated = await Appointment.updateOne(
-    { _id: doc._id, status: doc.status },
+    { _id: doc._id, tenantId, status: doc.status },
     { $set: { status: to, decidedAt: new Date() } },
   );
   if (updated.modifiedCount === 0) {

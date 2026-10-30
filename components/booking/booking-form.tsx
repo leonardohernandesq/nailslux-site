@@ -35,9 +35,13 @@ const FIELD_LABELS: Record<keyof Errors, string> = {
 };
 
 export function BookingForm({
+  tenantSlug,
+  studioName,
   whatsappNumber,
   hours,
 }: {
+  tenantSlug: string;
+  studioName: string;
   whatsappNumber: string;
   hours: OpeningHours;
 }) {
@@ -71,7 +75,7 @@ export function BookingForm({
   useEffect(() => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
     const controller = new AbortController();
-    fetch(`/api/availability?date=${date}`, { signal: controller.signal, cache: "no-store" })
+    fetch(`/api/availability?tenant=${tenantSlug}&date=${date}`, { signal: controller.signal, cache: "no-store" })
       .then((response) => (response.ok ? response.json() : { busy: [] }))
       .then((data: { busy?: BusyInterval[] }) => setBusyByDate((all) => ({ ...all, [date]: data.busy ?? [] })))
       .catch(() => {
@@ -80,7 +84,7 @@ export function BookingForm({
         if (!controller.signal.aborted) setBusyByDate((all) => ({ ...all, [date]: all[date] ?? [] }));
       });
     return () => controller.abort();
-  }, [date, availabilityVersion]);
+  }, [tenantSlug, date, availabilityVersion]);
 
   // Move focus to the error summary after each failed submit.
   useEffect(() => {
@@ -150,7 +154,7 @@ export function BookingForm({
     // point it at WhatsApp once the request is saved.
     const popup = window.open("", "_blank");
     setSubmitting(true);
-    const saved = await requestAppointment(values).catch(() => ({
+    const saved = await requestAppointment(tenantSlug, values).catch(() => ({
       ok: false as const,
       field: undefined,
       message: "Não foi possível enviar o pedido. Verifique a ligação e tente novamente.",
@@ -165,7 +169,7 @@ export function BookingForm({
       return;
     }
 
-    const url = buildWhatsAppUrl(whatsappNumber, buildBookingMessage(result.data, services));
+    const url = buildWhatsAppUrl(whatsappNumber, buildBookingMessage(result.data, services, studioName));
     if (popup) {
       popup.opener = null;
       popup.location.href = url;
@@ -173,7 +177,7 @@ export function BookingForm({
       window.location.href = url; // popup blocked: open in the same tab
     }
     setSentUrl(url);
-    track({
+    track(tenantSlug, {
       type: "booking",
       serviceIds: result.data.serviceIds,
       date: result.data.date,
@@ -188,7 +192,7 @@ export function BookingForm({
         <p className="mt-2 text-ink-muted">Entretanto, fale connosco diretamente:</p>
         <a
           data-track-whatsapp="no-services"
-          href={buildWhatsAppUrl(whatsappNumber, "Olá, NailsLux! Gostaria de fazer uma marcação.")}
+          href={buildWhatsAppUrl(whatsappNumber, `Olá, ${studioName}! Gostaria de fazer uma marcação.`)}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-full bg-accent px-6 font-semibold text-on-accent hover:bg-accent-hover"

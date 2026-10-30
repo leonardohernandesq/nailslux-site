@@ -1,3 +1,6 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { AnalyticsTracker } from "@/components/analytics/analytics-tracker";
 import { BookNowDialog } from "@/components/booking/book-now-dialog";
 import { BookingForm } from "@/components/booking/booking-form";
@@ -13,14 +16,53 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { getPublicPortfolio } from "@/lib/data/portfolio";
 import { getPublicServices } from "@/lib/data/services";
-import { OPENING_HOURS, getInstagramUrl, getStudioAddress, getWhatsAppNumber } from "@/lib/site";
+import { getActiveTenant, getActiveTenantSlugs } from "@/lib/data/tenants";
+
+// Cache Components needs at least one param to validate the route at build time;
+// this is the fallback for a database with no studios yet. Studios that join later
+// render on their first visit, with no new deploy.
+const SAMPLE_SLUG = "nailslux";
+
+export async function generateStaticParams() {
+  const slugs = await getActiveTenantSlugs();
+  return (slugs.length > 0 ? slugs : [SAMPLE_SLUG]).map((slug) => ({ slug }));
+}
+
+export async function generateMetadata({ params }: PageProps<"/[slug]">): Promise<Metadata> {
+  const tenant = await getActiveTenant((await params).slug);
+  if (!tenant) return {};
+
+  const title = `${tenant.name} · ${tenant.tagline}`;
+  return {
+    title: { absolute: title },
+    description: tenant.description,
+    openGraph: {
+      type: "website",
+      locale: "pt_PT",
+      siteName: tenant.name,
+      title,
+      description: tenant.description,
+      images: [{ url: "/brand/logo-full.png", width: 900, height: 587, alt: tenant.name }],
+    },
+  };
+}
+
+export default function StudioPage({ params }: PageProps<"/[slug]">) {
+  return (
+    <Suspense fallback={<div className="min-h-dvh" />}>
+      <StudioSite params={params} />
+    </Suspense>
+  );
+}
 
 // Services and photos are cached (`use cache` + tags) and refreshed whenever the
-// admin changes them, so this page is served from the static shell.
-export default async function HomePage() {
-  const [services, portfolio] = await Promise.all([getPublicServices(), getPublicPortfolio()]);
-  const whatsappNumber = getWhatsAppNumber();
-  const instagramUrl = getInstagramUrl();
+// studio changes them, so this page is served from the cache.
+async function StudioSite({ params }: Pick<PageProps<"/[slug]">, "params">) {
+  const tenant = await getActiveTenant((await params).slug);
+  if (!tenant) notFound();
+
+  const [services, portfolio] = await Promise.all([getPublicServices(tenant.id), getPublicPortfolio(tenant.id)]);
+  const { whatsappNumber, instagramUrl } = tenant;
 
   return (
     <>
@@ -30,7 +72,7 @@ export default async function HomePage() {
       >
         Saltar para o conteúdo
       </a>
-      <SiteHeader />
+      <SiteHeader tenantSlug={tenant.slug} studioName={tenant.name} />
       <BookingProvider services={services}>
         <main id="conteudo">
           <Hero whatsappNumber={whatsappNumber} />
@@ -43,7 +85,12 @@ export default async function HomePage() {
                 Preencha os dados e a mensagem abre no WhatsApp, pronta a enviar.
               </SectionHeading>
               <div data-reveal>
-                <BookingForm whatsappNumber={whatsappNumber} hours={OPENING_HOURS} />
+                <BookingForm
+                  tenantSlug={tenant.slug}
+                  studioName={tenant.name}
+                  whatsappNumber={whatsappNumber}
+                  hours={tenant.hours}
+                />
               </div>
             </div>
           </section>
@@ -51,13 +98,9 @@ export default async function HomePage() {
         <SelectionBar />
         <BookNowDialog targetId="marcar" headingId="marcar-title" />
       </BookingProvider>
-      <SiteFooter
-        whatsappNumber={whatsappNumber}
-        instagramUrl={instagramUrl}
-        address={getStudioAddress()}
-      />
+      <SiteFooter tenant={tenant} />
       <PageMotion />
-      <AnalyticsTracker />
+      <AnalyticsTracker tenantSlug={tenant.slug} />
     </>
   );
 }

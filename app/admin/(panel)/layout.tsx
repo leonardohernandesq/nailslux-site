@@ -15,19 +15,14 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-line bg-cream/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
-          <Link href="/admin/marcacoes" className="flex items-center gap-2" aria-label="Painel NailsLux">
+          <Link href="/admin/marcacoes" className="flex items-center gap-2" aria-label="Painel">
             <Image src="/brand/fox.png" alt="" width={279} height={339} className="h-9 w-auto" />
             <span className="font-display text-2xl font-semibold">Painel</span>
           </Link>
           <div className="order-2 flex items-center gap-1 sm:order-3">
-            <Link
-              href="/"
-              target="_blank"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-ink-muted hover:bg-peach-50 hover:text-ink"
-            >
-              <ArrowSquareOutIcon size={18} aria-hidden="true" />
-              Ver site
-            </Link>
+            <Suspense fallback={<div className="h-11 w-24" />}>
+              <ViewSiteLink />
+            </Suspense>
             <form action={logout}>
               <button
                 type="submit"
@@ -54,6 +49,20 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
         {children}
       </main>
     </div>
+  );
+}
+
+async function ViewSiteLink() {
+  const { tenantSlug } = await requireAdmin();
+  return (
+    <Link
+      href={`/${tenantSlug}`}
+      target="_blank"
+      className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-ink-muted hover:bg-peach-50 hover:text-ink"
+    >
+      <ArrowSquareOutIcon size={18} aria-hidden="true" />
+      Ver site
+    </Link>
   );
 }
 

@@ -37,19 +37,19 @@ export function toPortfolioDTO(doc: LeanItem): PortfolioItemDTO {
 // Newest first by default; `order` lets the admin pin photos to the top.
 const SORT = { order: -1, createdAt: -1 } as const;
 
-export async function getPublicPortfolio(): Promise<PortfolioItemDTO[]> {
+export async function getPublicPortfolio(tenantId: string): Promise<PortfolioItemDTO[]> {
   "use cache";
-  cacheTag(CACHE_TAGS.portfolio);
+  cacheTag(CACHE_TAGS.portfolio(tenantId));
   cacheLife("days");
 
   await connectDB();
-  const docs = await PortfolioItem.find().sort(SORT).limit(PORTFOLIO_MAX_ITEMS).lean<LeanItem[]>();
+  const docs = await PortfolioItem.find({ tenantId }).sort(SORT).limit(PORTFOLIO_MAX_ITEMS).lean<LeanItem[]>();
   return docs.map(toPortfolioDTO);
 }
 
 export async function getAdminPortfolio(): Promise<PortfolioItemDTO[]> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   await connectDB();
-  const docs = await PortfolioItem.find().sort(SORT).lean<LeanItem[]>();
+  const docs = await PortfolioItem.find({ tenantId }).sort(SORT).lean<LeanItem[]>();
   return docs.map(toPortfolioDTO);
 }

@@ -19,7 +19,14 @@ export const PORTFOLIO_MAX_ITEMS = 30;
 export const MOLD_DIGITS = 5;
 export const MOLD_MAX_SIZE = 20;
 
+/** Per tenant, so a change in one studio never touches another's cached pages. */
 export const CACHE_TAGS = {
-  services: "services",
-  portfolio: "portfolio",
-} as const;
+  tenant: (slug: string) => `tenant:${slug}`,
+  services: (tenantId: string) => `services:${tenantId}`,
+  portfolio: (tenantId: string) => `portfolio:${tenantId}`,
+};
+
+export const TENANT_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+
+/** Slugs a studio can't take because platform pages live at those URLs. */
+export const RESERVED_SLUGS = ["admin", "api", "brand", "login", "planos", "registo", "termos", "privacidade"];

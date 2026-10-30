@@ -10,7 +10,8 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
-      const loggedIn = Boolean(auth?.user);
+      // Sessions from before the platform have no tenant: they log in again.
+      const loggedIn = Boolean(auth?.user?.tenantId);
       if (pathname === "/admin/login") {
         return loggedIn ? Response.redirect(new URL("/admin", request.nextUrl)) : true;
       }
@@ -18,11 +19,17 @@ export const authConfig = {
       return true;
     },
     jwt({ token, user }) {
-      if (user?.id) token.sub = user.id;
+      if (user?.id) {
+        token.sub = user.id;
+        token.tenantId = user.tenantId;
+        token.tenantSlug = user.tenantSlug;
+      }
       return token;
     },
     session({ session, token }) {
       if (token.sub) session.user.id = token.sub;
+      session.user.tenantId = token.tenantId;
+      session.user.tenantSlug = token.tenantSlug;
       return session;
     },
   },

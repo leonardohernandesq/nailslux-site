@@ -23,7 +23,7 @@ test("visits, WhatsApp clicks and booking requests show up in the statistics", a
   const site = await visitor.newPage();
 
   const pageview = analyticsEvent(site, "pageview");
-  await site.goto("/");
+  await site.goto("/nailslux");
   expect((await pageview).status()).toBe(204);
 
   const click = analyticsEvent(site, "whatsapp_click");

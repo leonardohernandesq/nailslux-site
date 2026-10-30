@@ -15,4 +15,8 @@ export const trackEventSchema = z.discriminatedUnion("type", [
   }),
 ]);
 
+/** `tenant` is the studio's public slug: which site the event happened on. */
+export const trackPayloadSchema = z.object({ tenant: z.string().max(40), event: trackEventSchema });
+
 export type TrackEvent = z.infer<typeof trackEventSchema>;
+export type TrackPayload = z.infer<typeof trackPayloadSchema>;

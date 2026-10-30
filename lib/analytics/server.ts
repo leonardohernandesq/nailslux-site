@@ -33,6 +33,7 @@ export function visitorHash(ip: string, userAgent: string, at: Date): string {
 }
 
 export async function recordEvent(
+  tenantId: string,
   event: TrackEvent,
   { ip, userAgent, at }: { ip: string; userAgent: string; at: Date },
 ): Promise<void> {
@@ -40,22 +41,23 @@ export async function recordEvent(
   const visitorId = visitorHash(ip, userAgent, at);
 
   if (event.type === "pageview") {
-    await AnalyticsEvent.create({ type: "pageview", visitorId, createdAt: at });
+    await AnalyticsEvent.create({ tenantId, type: "pageview", visitorId, createdAt: at });
     return;
   }
 
   if (event.type === "whatsapp_click" || event.type === "instagram_click") {
-    await AnalyticsEvent.create({ type: event.type, visitorId, source: event.source, createdAt: at });
+    await AnalyticsEvent.create({ tenantId, type: event.type, visitorId, source: event.source, createdAt: at });
     return;
   }
 
   // Booking: trust only ids of services that exist, and take names/prices from
   // the database (names are kept, so stats survive a service being deleted).
   const ids = [...new Set(event.serviceIds)].filter((id) => isValidObjectId(id));
-  const services = await Service.find({ _id: { $in: ids } }, { name: 1, priceCents: 1 }).lean();
+  const services = await Service.find({ tenantId, _id: { $in: ids } }, { name: 1, priceCents: 1 }).lean();
   if (services.length === 0) return;
 
   await AnalyticsEvent.create({
+    tenantId,
     type: "booking",
     visitorId,
     serviceIds: services.map((s) => String(s._id)),

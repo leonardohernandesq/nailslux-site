@@ -17,7 +17,7 @@ test.beforeEach(async ({ context }) => {
 });
 
 test("home page lists only visible services", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/nailslux");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Unhas impecáveis");
 
   const services = page.locator("#servicos");
@@ -27,7 +27,7 @@ test("home page lists only visible services", async ({ page }) => {
 });
 
 test("picking a service asks to book; continuing keeps the visitor on the services", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/nailslux");
 
   const pick = page.getByRole("button", { name: "Escolher Verniz gel" });
   await pick.click();
@@ -52,7 +52,7 @@ test("picking a service asks to book; continuing keeps the visitor on the servic
 });
 
 test("client books through WhatsApp", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/nailslux");
 
   await page.getByRole("button", { name: "Escolher Verniz gel" }).click();
   const dialog = page.getByRole("dialog", { name: "Deseja agendar o seu horário agora?" });
@@ -93,7 +93,7 @@ test("client books through WhatsApp", async ({ page }) => {
 });
 
 test("empty booking shows a focused error summary", async ({ page }) => {
-  await page.goto("/#marcar");
+  await page.goto("/nailslux#marcar");
   await page.getByRole("button", { name: "Enviar pedido pelo WhatsApp" }).click();
 
   const summary = page.getByRole("alert").filter({ hasText: "Reveja estes campos" });

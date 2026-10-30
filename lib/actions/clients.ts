@@ -13,21 +13,21 @@ import { formValues, validationError, type FormState } from "./form-state";
  * on the client's WhatsApp number, so every later booking from it shows them.
  */
 export async function saveClientMolds(appointmentId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
   const values = formValues(formData);
   const parsed = moldsSchema.safeParse(values);
   if (!parsed.success) return validationError(parsed.error, values);
   if (!isValidObjectId(appointmentId)) return { status: "error", message: "Marcação não encontrada." };
 
   await connectDB();
-  const appointment = await Appointment.findById(appointmentId, { phone: 1 }).lean();
+  const appointment = await Appointment.findOne({ _id: appointmentId, tenantId }, { phone: 1 }).lean();
   if (!appointment?.phone) {
     return { status: "error", message: "Esta marcação não tem número de WhatsApp associado." };
   }
 
   const { handMold, footMold } = parsed.data;
   await Client.updateOne(
-    { phone: appointment.phone },
+    { tenantId, phone: appointment.phone },
     {
       $set: { ...(handMold && { handMold }), ...(footMold && { footMold }) },
       $unset: { ...(!handMold && { handMold: 1 }), ...(!footMold && { footMold: 1 }) },

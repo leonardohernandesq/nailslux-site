@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 import { connectDB } from "./lib/db/connect";
-import { User } from "./lib/db/models";
+import { Tenant, User } from "./lib/db/models";
 import { loginSchema } from "./lib/validation/auth";
 
 // Compared against when the email doesn't exist, so response time doesn't reveal
@@ -28,7 +28,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
         if (!user || !valid) return null;
 
-        return { id: String(user._id), name: user.name, email: user.email };
+        const tenant = await Tenant.findById(user.tenantId, { slug: 1 }).lean();
+        if (!tenant) return null;
+
+        return {
+          id: String(user._id),
+          name: user.name,
+          email: user.email,
+          tenantId: String(tenant._id),
+          tenantSlug: tenant.slug,
+        };
       },
     }),
   ],

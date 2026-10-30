@@ -1,31 +1,69 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
+import { DEFAULT_OPENING_HOURS } from "../site";
+import { tenantScoped } from "./tenant-scope";
+
+/**
+ * One studio on the platform, served at /<slug>. Everything else belongs to a
+ * tenant through `tenantId`, and `tenantScoped` refuses queries that omit it.
+ */
+const tenantSchema = new Schema(
+  {
+    slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    name: { type: String, required: true, trim: true, maxlength: 80 },
+    tagline: { type: String, trim: true, maxlength: 80, default: "Studio de unhas" },
+    description: { type: String, trim: true, maxlength: 300 },
+    // International format, digits only (e.g. 351922269283).
+    whatsappNumber: { type: String, required: true },
+    instagramUrl: { type: String, trim: true },
+    address: { type: String, trim: true, maxlength: 200 },
+    status: { type: String, required: true, enum: ["active", "suspended"], default: "active" },
+    hours: {
+      days: { type: [Number], default: () => [...DEFAULT_OPENING_HOURS.days] },
+      opens: { type: String, default: DEFAULT_OPENING_HOURS.opens },
+      lastStart: { type: String, default: DEFAULT_OPENING_HOURS.lastStart },
+      slotMinutes: { type: Number, default: DEFAULT_OPENING_HOURS.slotMinutes },
+      maxDaysAhead: { type: Number, default: DEFAULT_OPENING_HOURS.maxDaysAhead },
+    },
+  },
+  { timestamps: true },
+);
+
+const tenantRef = { type: Schema.Types.ObjectId, ref: "Tenant", required: true } as const;
 
 const serviceSchema = new Schema(
   {
+    tenantId: tenantRef,
     name: { type: String, required: true, trim: true, maxlength: 80 },
     description: { type: String, trim: true, maxlength: 300 },
     priceCents: { type: Number, required: true, min: 0 },
     durationMinutes: { type: Number, min: 5, max: 480 },
     active: { type: Boolean, default: true },
-    order: { type: Number, default: 0, index: true },
+    order: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
+serviceSchema.index({ tenantId: 1, order: 1 });
+serviceSchema.plugin(tenantScoped);
 
 const portfolioItemSchema = new Schema(
   {
+    tenantId: tenantRef,
     fileId: { type: Schema.Types.ObjectId, required: true },
     width: { type: Number, required: true },
     height: { type: Number, required: true },
     blurDataUrl: { type: String, required: true },
     caption: { type: String, trim: true, maxlength: 120 },
-    order: { type: Number, default: 0, index: true },
+    order: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
+portfolioItemSchema.index({ tenantId: 1, order: -1, createdAt: -1 });
+portfolioItemSchema.plugin(tenantScoped);
 
+/** A studio owner. Email is unique across the platform: there is one login page. */
 const userSchema = new Schema(
   {
+    tenantId: tenantRef,
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true, select: false },
@@ -40,6 +78,7 @@ const userSchema = new Schema(
  */
 const analyticsEventSchema = new Schema(
   {
+    tenantId: tenantRef,
     type: { type: String, required: true, enum: ["pageview", "booking", "whatsapp_click", "instagram_click"] },
     visitorId: { type: String, required: true },
     // Booking request details (type "booking" only).
@@ -56,7 +95,8 @@ const analyticsEventSchema = new Schema(
   { versionKey: false },
 );
 analyticsEventSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 400 });
-analyticsEventSchema.index({ type: 1, createdAt: 1 });
+analyticsEventSchema.index({ tenantId: 1, type: 1, createdAt: 1 });
+analyticsEventSchema.plugin(tenantScoped);
 
 export const APPOINTMENT_STATUSES = ["pending", "confirmed", "declined", "cancelled"] as const;
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
@@ -68,9 +108,10 @@ export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
  */
 const appointmentSchema = new Schema(
   {
+    tenantId: tenantRef,
     name: { type: String, required: true, trim: true, maxlength: 60 },
     // WhatsApp, digits with country code (see lib/phone.ts). Older requests have none.
-    phone: { type: String, index: true },
+    phone: { type: String },
     serviceIds: { type: [String], required: true },
     serviceNames: { type: [String], required: true },
     totalCents: { type: Number, required: true, min: 0 },
@@ -84,22 +125,28 @@ const appointmentSchema = new Schema(
   },
   { timestamps: true },
 );
-appointmentSchema.index({ date: 1, status: 1 });
-appointmentSchema.index({ status: 1, createdAt: -1 });
+appointmentSchema.index({ tenantId: 1, date: 1, status: 1 });
+appointmentSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
+appointmentSchema.index({ tenantId: 1, phone: 1 });
+appointmentSchema.plugin(tenantScoped);
 
 /**
  * What the studio keeps about a client, keyed by WhatsApp number so it shows up
- * on every booking from that number.
+ * on every booking from that number. The same person can be a client of two studios.
  */
 const clientSchema = new Schema(
   {
-    phone: { type: String, required: true, unique: true },
+    tenantId: tenantRef,
+    phone: { type: String, required: true },
     handMold: { type: String, trim: true, maxlength: 40 },
     footMold: { type: String, trim: true, maxlength: 40 },
   },
   { timestamps: true },
 );
+clientSchema.index({ tenantId: 1, phone: 1 }, { unique: true });
+clientSchema.plugin(tenantScoped);
 
+export type TenantDoc = InferSchemaType<typeof tenantSchema>;
 export type ServiceDoc = InferSchemaType<typeof serviceSchema>;
 export type PortfolioItemDoc = InferSchemaType<typeof portfolioItemSchema>;
 export type UserDoc = InferSchemaType<typeof userSchema>;
@@ -108,6 +155,9 @@ export type AppointmentDoc = InferSchemaType<typeof appointmentSchema>;
 export type ClientDoc = InferSchemaType<typeof clientSchema>;
 
 // `models.X ??` keeps hot reload from redefining models.
+export const Tenant: Model<TenantDoc> =
+  (mongoose.models.Tenant as Model<TenantDoc>) ?? mongoose.model("Tenant", tenantSchema);
+
 export const Service: Model<ServiceDoc> =
   (mongoose.models.Service as Model<ServiceDoc>) ?? mongoose.model("Service", serviceSchema);
 

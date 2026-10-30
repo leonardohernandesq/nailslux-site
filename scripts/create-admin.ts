@@ -1,7 +1,7 @@
 /**
- * Creates the admin login, or resets its password if the email already exists.
+ * Creates a studio's admin login, or resets its password if the email already exists.
  *
- *   npm run admin:create -- --email ana@exemplo.pt --name "Ana" --password "uma-frase-longa"
+ *   npm run admin:create -- --tenant nailslux --email ana@exemplo.pt --name "Ana" --password "uma-frase-longa"
  *
  * Reads MONGODB_URI from .env.local / .env.
  */
@@ -14,6 +14,7 @@ config({ path: [".env.local", ".env"], quiet: true });
 
 const args = z
   .object({
+    tenant: z.string("--tenant is missing").trim().toLowerCase().min(1),
     email: z.email("--email is missing or invalid").trim().toLowerCase(),
     name: z.string().trim().min(1).default("Admin"),
     password: z
@@ -22,7 +23,7 @@ const args = z
   })
   .safeParse(
     parseArgs({
-      options: { email: { type: "string" }, name: { type: "string" }, password: { type: "string" } },
+      options: { tenant: { type: "string" }, email: { type: "string" }, name: { type: "string" }, password: { type: "string" } },
     }).values,
   );
 
@@ -33,7 +34,7 @@ if (!args.success) {
       ...args.error.issues.map((issue) => `  • ${issue.message}`),
       "",
       "Usage:",
-      '  npm run admin:create -- --email "you@example.com" --name "Your Name" --password "at-least-10-chars"',
+      '  npm run admin:create -- --tenant nailslux --email "you@example.com" --name "Your Name" --password "at-least-10-chars"',
     ].join("\n"),
   );
   process.exit(1);
@@ -42,14 +43,17 @@ if (!args.success) {
 async function main() {
   // Imported after dotenv so MONGODB_URI is set.
   const { connectDB, disconnectDB } = await import("../lib/db/connect");
-  const { User } = await import("../lib/db/models");
-  const { email, name, password } = args.data!;
+  const { Tenant, User } = await import("../lib/db/models");
+  const { tenant: slug, email, name, password } = args.data!;
 
   await connectDB();
+  const tenant = await Tenant.findOne({ slug }, { _id: 1 }).lean();
+  if (!tenant) throw new Error(`No studio with the slug "${slug}".`);
+
   const passwordHash = await bcrypt.hash(password, 12);
   const existing = await User.findOneAndUpdate(
     { email },
-    { $set: { name, passwordHash } },
+    { $set: { name, passwordHash, tenantId: tenant._id } },
     { upsert: true, new: false },
   );
   console.log(existing ? `Updated admin ${email}.` : `Created admin ${email}.`);

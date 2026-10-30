@@ -29,7 +29,7 @@ function renderForm() {
   return render(
     <BookingProvider services={services}>
       <ServiceSelectButton id="pe" name="Pedicure" />
-      <BookingForm whatsappNumber="351922269283" hours={hours} />
+      <BookingForm tenantSlug="nailslux" studioName="NailsLux" whatsappNumber="351922269283" hours={hours} />
     </BookingProvider>,
   );
 }
@@ -94,6 +94,7 @@ describe("BookingForm", () => {
     expect(open).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(popup.location.href).not.toBe(""));
     expect(requestAppointment).toHaveBeenCalledWith(
+      "nailslux",
       expect.objectContaining({ name: "Ana", phone: "912 345 678", date: "2026-10-16", time: "10:30" }),
     );
     expect(popup.opener).toBeNull();
