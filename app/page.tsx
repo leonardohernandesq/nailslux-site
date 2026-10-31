@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRightIcon, ArrowSquareOutIcon } from "@phosphor-icons/react/ssr";
+import { ArrowRightIcon } from "@phosphor-icons/react/ssr";
 import { PageMotion } from "@/components/motion/page-motion";
 import { BookingStory } from "@/components/platform/booking-story";
 import { HeroDemo } from "@/components/platform/hero-demo";
 import { LandingMotion } from "@/components/platform/landing-motion";
 import { PanelTour } from "@/components/platform/panel-tour";
 import { Pricing } from "@/components/platform/pricing";
+import { StudioCarousel } from "@/components/platform/studio-carousel";
 import { SectionHeading } from "@/components/site/section-heading";
 import { buttonClasses } from "@/components/ui/button";
+import { getShowcaseStudios } from "@/lib/data/showcase";
 import { sora } from "@/lib/fonts";
 import { isRegistrationOpen, PLATFORM } from "@/lib/site";
-import heroImage from "@/public/brand/hero-hands.webp";
 
 export const metadata: Metadata = {
   title: { absolute: `${PLATFORM.name} · ${PLATFORM.description}` },
@@ -34,11 +35,12 @@ const FEATURES = [
 const NAV = [
   { href: "#como-funciona", label: "Como funciona" },
   { href: "#painel", label: "O painel" },
-  { href: "#exemplo", label: "Exemplo real" },
+  { href: "#studios", label: "Studios" },
   { href: "#preco", label: "Preço" },
 ];
 
-export default function PlatformHome() {
+export default async function PlatformHome() {
+  const studios = await getShowcaseStudios();
   // The contact link is set per deployment, so no number is baked into the code.
   const contactUrl = process.env.PLATFORM_CONTACT_URL;
   const primaryCta = isRegistrationOpen()
@@ -167,34 +169,18 @@ export default function PlatformHome() {
           </div>
         </section>
 
-        <section id="exemplo" aria-labelledby="exemplo-title" className="py-16 sm:py-24">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6">
-            <SectionHeading id="exemplo-title" eyebrow="Exemplo real" title="Veja um studio a funcionar">
-              O NailsLux já recebe marcações neste sistema.
-            </SectionHeading>
-            <a
-              href={EXAMPLE_STUDIO}
-              data-scroll-grow
-              className="group relative block aspect-[4/3] overflow-hidden rounded-3xl bg-peach-100 shadow-lift sm:aspect-[16/9]"
-            >
-              <Image
-                src={heroImage}
-                alt="Mãos com unhas arranjadas no studio NailsLux"
-                fill
-                sizes="(max-width: 1024px) 100vw, 960px"
-                className="object-cover transition-[scale] duration-700 ease-(--ease-out-soft) group-hover:scale-105 motion-reduce:transition-none"
-              />
-              <span className="absolute inset-0 bg-gradient-to-t from-ink/70 to-transparent" />
-              <span className="absolute right-5 bottom-5 left-5 flex items-center justify-between gap-3 text-cream">
-                <span className="text-2xl font-bold sm:text-3xl">NailsLux</span>
-                <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-cream px-4 font-semibold text-ink">
-                  Abrir site
-                  <ArrowSquareOutIcon size={18} aria-hidden="true" />
-                </span>
-              </span>
-            </a>
-          </div>
-        </section>
+        {studios.length > 0 && (
+          <section id="studios" aria-labelledby="studios-title" className="py-16 sm:py-24">
+            <div className="mx-auto max-w-5xl px-4 sm:px-6">
+              <SectionHeading id="studios-title" eyebrow="Studios Nailo" title="Os studios que já fazem parte do nosso time">
+                Conheça quem já recebe marcações com o {PLATFORM.name}.
+              </SectionHeading>
+              <div data-reveal>
+                <StudioCarousel studios={studios} />
+              </div>
+            </div>
+          </section>
+        )}
 
         <section id="preco" aria-labelledby="preco-title" className="bg-glow py-16 sm:py-24">
           <div className="mx-auto max-w-5xl px-4 sm:px-6">

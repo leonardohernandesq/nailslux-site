@@ -9,7 +9,7 @@ test("the landing page presents the platform and leads to a real studio", async 
   await page.getByRole("tab", { name: "Estatísticas" }).click();
   await expect(page.getByRole("tabpanel")).toContainText("Pedidos por dia da semana");
 
-  await page.locator("#exemplo a").click();
+  await page.locator("#studios a").first().click();
   await expect(page).toHaveURL(new RegExp(`/${E2E_SLUG}$`));
 });
 

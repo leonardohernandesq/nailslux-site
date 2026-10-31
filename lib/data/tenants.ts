@@ -30,7 +30,7 @@ export type TenantDTO = {
   hasBillingAccount: boolean;
 };
 
-type LeanTenant = {
+export type LeanTenant = {
   _id: unknown;
   slug: string;
   name: string;
@@ -52,7 +52,7 @@ type LeanTenant = {
 
 const imageSrc = (fileId: unknown) => `/api/images/${String(fileId)}`;
 
-function toTenantDTO(doc: LeanTenant): TenantDTO {
+export function toTenantDTO(doc: LeanTenant): TenantDTO {
   const tagline = doc.tagline ?? "Studio de unhas";
   const { logo, banner } = doc;
   return {

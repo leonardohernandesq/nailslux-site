@@ -21,6 +21,7 @@ const SECTIONS: LegalSection[] = [
     body: [
       "Deve indicar dados verdadeiros e manter a sua palavra-passe em segurança. É responsável pelo que for feito com a sua conta.",
       "É também responsável pelos conteúdos que publica no site do studio, incluindo textos, preços e fotografias, e por ter autorização para os usar.",
+      `O nome, a frase, o logo e o banner de um site público podem ser mostrados na página do ${PLATFORM.name}, com ligação para esse site. Se preferir que o seu studio não apareça, contacte-nos.`,
     ],
   },
   {
