@@ -254,6 +254,14 @@ describe("openBilling", () => {
     expect(customers).not.toHaveBeenCalled();
   });
 
+  it("shows a message instead of crashing when Stripe refuses", async () => {
+    await seed({ status: "pending", stripeCustomerId: "cus_1" });
+    vi.spyOn(stripe.checkout.sessions, "create").mockRejectedValue(new Error("No such price"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(await billing()).toMatchObject({ status: "error", message: "Não foi possível abrir a página de pagamento." });
+  });
+
   it("says so when Stripe isn't configured", async () => {
     await seed({ status: "pending" });
     const price = process.env.STRIPE_PRICE_ID;

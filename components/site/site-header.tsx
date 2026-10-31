@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/button";
-import { hasBrandAssets } from "@/lib/site";
+import type { StudioBrand } from "@/lib/studio-brand";
 
 const NAV = [
   { href: "#servicos", label: "Serviços" },
@@ -9,21 +9,13 @@ const NAV = [
   { href: "#como-funciona", label: "Como funciona" },
 ];
 
-export function SiteHeader({ tenantSlug, studioName }: { tenantSlug: string; studioName: string }) {
-  const brandAssets = hasBrandAssets(tenantSlug);
+export function SiteHeader({ tenantSlug, studioName, logo }: { tenantSlug: string; studioName: string; logo: StudioBrand["logo"] }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-cream/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:h-20 sm:px-6">
         <Link href={`/${tenantSlug}`} aria-label={`${studioName}, início`} className="shrink-0">
-          {brandAssets ? (
-            <Image
-              src="/brand/logo-wordmark.png"
-              alt=""
-              width={1000}
-              height={288}
-              priority
-              className="h-9 w-auto sm:h-11"
-            />
+          {logo ? (
+            <Image src={logo.src} alt="" width={logo.width} height={logo.height} priority className="h-9 w-auto max-w-44 object-contain sm:h-11 sm:max-w-64" />
           ) : (
             <span className="font-display text-2xl font-semibold sm:text-3xl">{studioName}</span>
           )}

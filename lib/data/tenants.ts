@@ -16,6 +16,13 @@ export type TenantDTO = {
   instagramUrl: string | null;
   address: string | null;
   hours: OpeningHours;
+  brand: {
+    primaryColor: string | null;
+    secondaryColor: string | null;
+    logo: { src: string; width: number; height: number } | null;
+    banner: { src: string; width: number; height: number; blurDataURL: string } | null;
+    iconSrc: string | null;
+  };
   status: TenantStatus;
   emailConfirmed: boolean;
   /** Stripe's status for the subscription, null if there has never been one. */
@@ -32,6 +39,10 @@ type LeanTenant = {
   whatsappNumber: string;
   instagramUrl?: string | null;
   address?: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  logo?: { fileId?: unknown; iconFileId?: unknown; width?: number; height?: number } | null;
+  banner?: { fileId?: unknown; width?: number; height?: number; blurDataUrl?: string } | null;
   status: TenantStatus;
   emailConfirmedAt?: Date | null;
   stripeCustomerId?: string | null;
@@ -39,8 +50,11 @@ type LeanTenant = {
   hours: Omit<OpeningHours, "days"> & { days: number[] };
 };
 
+const imageSrc = (fileId: unknown) => `/api/images/${String(fileId)}`;
+
 function toTenantDTO(doc: LeanTenant): TenantDTO {
   const tagline = doc.tagline ?? "Studio de unhas";
+  const { logo, banner } = doc;
   return {
     id: String(doc._id),
     slug: doc.slug,
@@ -52,6 +66,15 @@ function toTenantDTO(doc: LeanTenant): TenantDTO {
     whatsappNumber: doc.whatsappNumber,
     instagramUrl: doc.instagramUrl ?? null,
     address: doc.address ?? null,
+    brand: {
+      primaryColor: doc.primaryColor ?? null,
+      secondaryColor: doc.secondaryColor ?? null,
+      logo: logo?.fileId ? { src: imageSrc(logo.fileId), width: logo.width!, height: logo.height! } : null,
+      banner: banner?.fileId
+        ? { src: imageSrc(banner.fileId), width: banner.width!, height: banner.height!, blurDataURL: banner.blurDataUrl! }
+        : null,
+      iconSrc: logo?.iconFileId ? imageSrc(logo.iconFileId) : null,
+    },
     status: doc.status,
     emailConfirmed: Boolean(doc.emailConfirmedAt),
     subscriptionStatus: doc.subscriptionStatus ?? null,

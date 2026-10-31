@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BrandSettings } from "@/components/admin/brand-settings";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { requireAdmin } from "@/lib/auth/dal";
 import { getTenantById } from "@/lib/data/tenants";
@@ -24,6 +25,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/admin/d
           ? "Confirme os dados do studio. Depois adicione os serviços e as fotografias."
           : "Estes dados aparecem no seu site."}
       </p>
+      <BrandSettings brand={tenant.brand} />
       <SettingsForm tenant={tenant} />
       <p className="mt-6 text-center">
         <Link href="/admin/subscricao" className="inline-flex min-h-11 items-center font-semibold text-accent hover:underline">

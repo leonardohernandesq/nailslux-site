@@ -12,6 +12,10 @@ export const ACCEPTED_IMAGE_TYPES = [
 /** Longest edge, in pixels, of portfolio photos after processing. */
 export const PORTFOLIO_MAX_EDGE = 1600;
 
+/** Below the 4.5 MB Vercel accepts per request, so the limit is ours to explain. */
+export const BRAND_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+export const LOGO_MAX_EDGE = 800;
+
 /** Most photos the portfolio holds; the admin removes one to add another. */
 export const PORTFOLIO_MAX_ITEMS = 30;
 

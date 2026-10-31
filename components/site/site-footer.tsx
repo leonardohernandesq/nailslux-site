@@ -2,22 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { ClockIcon, InstagramLogoIcon, MapPinIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import type { TenantDTO } from "@/lib/data/tenants";
-import { formatOpeningDays, formatPhoneForDisplay, hasBrandAssets } from "@/lib/site";
+import { formatOpeningDays, formatPhoneForDisplay } from "@/lib/site";
+import type { StudioBrand } from "@/lib/studio-brand";
 
-export function SiteFooter({ tenant }: { tenant: TenantDTO }) {
-  const { slug, name, tagline, whatsappNumber, instagramUrl, address, hours } = tenant;
+export function SiteFooter({ tenant, logo }: { tenant: TenantDTO; logo: StudioBrand["logo"] }) {
+  const { name, tagline, whatsappNumber, instagramUrl, address, hours } = tenant;
   return (
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr]">
         <div>
-          {hasBrandAssets(slug) ? (
-            <Image
-              src="/brand/logo-wordmark.png"
-              alt={`${name}, ${tagline.toLowerCase()}`}
-              width={1000}
-              height={288}
-              className="h-12 w-auto"
-            />
+          {logo ? (
+            <Image src={logo.src} alt={`${name}, ${tagline.toLowerCase()}`} width={logo.width} height={logo.height} className="h-12 w-auto max-w-64 object-contain" />
           ) : (
             <p className="font-display text-3xl font-semibold">{name}</p>
           )}

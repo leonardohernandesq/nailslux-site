@@ -2,16 +2,23 @@ import Image from "next/image";
 import { SparkleIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import { buttonClasses } from "@/components/ui/button";
 import { formatPhoneForDisplay } from "@/lib/site";
-import heroImage from "@/public/brand/hero-hands.webp";
+import type { StudioBrand } from "@/lib/studio-brand";
 
-export function Hero({ whatsappNumber, brandAssets }: { whatsappNumber: string; brandAssets: boolean }) {
+type HeroProps = {
+  whatsappNumber: string;
+  studioName: string;
+  banner: StudioBrand["banner"];
+  mascot: boolean;
+};
+
+export function Hero({ whatsappNumber, studioName, banner, mascot }: HeroProps) {
   return (
     <section
       aria-labelledby="hero-title"
       className="bg-glow relative overflow-hidden"
     >
       <div className={`mx-auto grid max-w-6xl items-center gap-7 px-4 pt-6 pb-12 sm:px-6 md:gap-10 md:py-20 lg:gap-16 ${
-          brandAssets ? "md:grid-cols-[1.1fr_1fr]" : ""
+          banner ? "md:grid-cols-[1.1fr_1fr]" : ""
         }`}>
         <div className="flex flex-col items-start gap-5 md:gap-6">
           <p
@@ -72,7 +79,7 @@ export function Hero({ whatsappNumber, brandAssets }: { whatsappNumber: string; 
 
         {/* On phones the photo leads (order-first), smaller and squarer so the title and
             main button still fit on the first screen. Side by side from md up. */}
-        {brandAssets && (
+        {banner && (
         <div
           data-hero="image"
           className="relative order-first mx-auto w-full max-w-52 min-[375px]:max-w-56 sm:max-w-64 md:order-none md:max-w-sm lg:max-w-[26rem]"
@@ -83,23 +90,25 @@ export function Hero({ whatsappNumber, brandAssets }: { whatsappNumber: string; 
           />
           <div className="relative overflow-hidden rounded-t-[999px] rounded-b-[2.5rem] border-[6px] border-surface shadow-lift">
             <Image
-              src={heroImage}
-              alt="Mão com unhas amendoadas em nude com brilho, feitas no studio"
+              {...banner}
+              alt={mascot ? "Mão com unhas amendoadas em nude com brilho, feitas no studio" : `Fotografia do studio ${studioName}`}
               priority
               quality={90}
               placeholder="blur"
               sizes="(min-width: 1024px) 416px, (min-width: 768px) 384px, (min-width: 640px) 256px, (min-width: 375px) 224px, 208px"
-              className="aspect-square w-full object-cover object-[30%_55%] md:aspect-4/5 md:object-[30%_50%]"
+              className={`aspect-square w-full object-cover md:aspect-4/5 ${mascot ? "object-[30%_55%] md:object-[30%_50%]" : ""}`}
             />
           </div>
-          <Image
-            src="/brand/fox.png"
-            alt=""
-            width={279}
-            height={339}
-            data-hero="fox"
-            className="absolute -bottom-4 -left-5 h-16 w-auto drop-shadow-md md:-bottom-6 md:-left-6 md:h-28"
-          />
+          {mascot && (
+            <Image
+              src="/brand/fox.png"
+              alt=""
+              width={279}
+              height={339}
+              data-hero="fox"
+              className="absolute -bottom-4 -left-5 h-16 w-auto drop-shadow-md md:-bottom-6 md:-left-6 md:h-28"
+            />
+          )}
         </div>
         )}
       </div>

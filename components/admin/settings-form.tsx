@@ -20,13 +20,15 @@ const WEEKDAYS = [
   { value: 0, label: "Dom" },
 ];
 
-export function SettingsForm({ tenant }: { tenant: TenantDTO }) {
+/** `studioId` is set when the platform admin edits a studio from the backoffice. */
+export function SettingsForm({ tenant, studioId }: { tenant: TenantDTO; studioId?: string }) {
   const [state, formAction] = useActionState(updateSettings, idleState);
   const errors = state.fieldErrors ?? {};
   const v = state.values;
 
   return (
     <form action={formAction} noValidate className="flex flex-col gap-6 rounded-3xl bg-surface p-5 shadow-soft sm:p-8">
+      {studioId && <input type="hidden" name="studioId" value={studioId} />}
       {state.status === "error" && state.message && (
         <p role="alert" className="flex items-center gap-2 rounded-2xl border border-danger/25 bg-danger-soft p-4 text-sm font-semibold text-danger">
           <WarningCircleIcon size={20} weight="bold" aria-hidden="true" />

@@ -43,6 +43,20 @@ test("the platform admin sees the studios and can suspend and reactivate one", a
   await expect(back.getByRole("heading", { level: 1 })).toContainText("Unhas impecáveis");
   await back.close();
 
+  // Editing a studio on the owner's behalf reaches its data.
+  await page.getByRole("link", { name: /^Editar / }).first().waitFor();
+  await row.getByRole("link", { name: /^Editar / }).click();
+  const tagline = page.getByLabel("Frase curta");
+  const original = await tagline.inputValue();
+  await tagline.fill("Frase do backoffice");
+  await page.getByRole("button", { name: "Guardar definições" }).click();
+  await expect(page.getByText("Definições guardadas.")).toBeVisible();
+  await page.reload();
+  await expect(tagline).toHaveValue("Frase do backoffice");
+  await tagline.fill(original);
+  await page.getByRole("button", { name: "Guardar definições" }).click();
+  await expect(page.getByText("Definições guardadas.")).toBeVisible();
+
   // The platform login has no studio, so a studio panel sends it home.
   await page.goto("/admin/marcacoes");
   await expect(page).toHaveURL(/\/backoffice$/);

@@ -19,8 +19,10 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
       <header className="sticky top-0 z-30 border-b border-line bg-cream/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
           <Link href="/admin/marcacoes" className="flex items-center gap-2" aria-label="Painel">
-            <Image src="/brand/nailo/nailo-simbolo.svg" alt="" width={36} height={36} unoptimized className="size-9" />
-            <span className="font-display text-2xl font-semibold">Painel</span>
+            {/* Empty while loading, so a studio's logo never flashes as the Nailo one. */}
+            <Suspense fallback={<div className="h-9 w-28" />}>
+              <PanelLogo />
+            </Suspense>
           </Link>
           <div className="order-2 flex items-center gap-1 sm:order-3">
             <Suspense fallback={<div className="h-11 w-24" />}>
@@ -55,6 +57,21 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
         {children}
       </main>
     </div>
+  );
+}
+
+/** The platform's mark until the studio uploads its own logo. */
+async function PanelLogo() {
+  const { tenantId } = await requireAdmin();
+  const logo = (await getTenantById(tenantId))?.brand.logo;
+  if (logo) {
+    return <Image src={logo.src} alt="" width={logo.width} height={logo.height} className="h-9 w-auto max-w-44 object-contain" />;
+  }
+  return (
+    <>
+      <Image src="/brand/nailo/nailo-simbolo.svg" alt="" width={36} height={36} unoptimized className="size-9" />
+      <span className="font-display text-2xl font-semibold">Painel</span>
+    </>
   );
 }
 

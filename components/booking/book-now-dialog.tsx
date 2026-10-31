@@ -20,11 +20,11 @@ import { useBooking } from "./booking-context";
 export function BookNowDialog({
   targetId = "marcar",
   headingId = "marcar-title",
-  brandAssets = false,
+  mascot = false,
 }: {
   targetId?: string;
   headingId?: string;
-  brandAssets?: boolean;
+  mascot?: boolean;
 }) {
   const { services, selectedIds, promptedId, dismissPrompt } = useBooking();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -141,7 +141,7 @@ export function BookNowDialog({
           className="pointer-events-auto w-full max-w-md rounded-4xl bg-surface p-6 text-center shadow-lift sm:p-8"
         >
           <div className="relative mx-auto w-fit">
-            {brandAssets ? (
+            {mascot ? (
               <Image
                 src="/brand/fox.png"
                 alt=""

@@ -22,12 +22,16 @@ export async function openBilling(_prev: FormState, formData: FormData): Promise
   const tenant = await Tenant.findById(tenantId, { name: 1, stripeCustomerId: 1, subscriptionStatus: 1 }).lean();
   if (!tenant) return UNAVAILABLE;
 
-  let url: string | null;
-  if (tenant.stripeCustomerId && MANAGED_IN_PORTAL.includes(tenant.subscriptionStatus ?? "")) {
-    const portal = await getStripe().billingPortal.sessions.create({ customer: tenant.stripeCustomerId, return_url: billingPageUrl() });
-    url = portal.url;
-  } else {
-    url = await createCheckoutUrl({ tenantId, email, name: tenant.name, customer: tenant.stripeCustomerId, plan: plan.id });
+  let url: string | null = null;
+  try {
+    if (tenant.stripeCustomerId && MANAGED_IN_PORTAL.includes(tenant.subscriptionStatus ?? "")) {
+      const portal = await getStripe().billingPortal.sessions.create({ customer: tenant.stripeCustomerId, return_url: billingPageUrl() });
+      url = portal.url;
+    } else {
+      url = await createCheckoutUrl({ tenantId, email, name: tenant.name, customer: tenant.stripeCustomerId, plan: plan.id });
+    }
+  } catch (error) {
+    console.error("Could not open Stripe.", error);
   }
 
   if (!url) return { status: "error", message: "Não foi possível abrir a página de pagamento." };

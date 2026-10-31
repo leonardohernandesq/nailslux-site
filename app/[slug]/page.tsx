@@ -18,7 +18,8 @@ import { getPublicPortfolio } from "@/lib/data/portfolio";
 import { getPublicServices } from "@/lib/data/services";
 import { SuspendedSite } from "@/components/platform/suspended-site";
 import { getActiveTenant, getActiveTenantSlugs, isTenantSuspended } from "@/lib/data/tenants";
-import { hasBrandAssets } from "@/lib/site";
+import { brandStyle } from "@/lib/brand-colors";
+import { studioBrand } from "@/lib/studio-brand";
 
 // Cache Components needs at least one param to validate the route at build time;
 // this is the fallback for a database with no studios yet. Studios that join later
@@ -38,20 +39,19 @@ export async function generateMetadata({ params }: PageProps<"/[slug]">): Promis
   }
 
   const title = `${tenant.name} · ${tenant.tagline}`;
+  const { icon, appleIcon, shareImage } = studioBrand(tenant);
   return {
     title: { absolute: title },
     description: tenant.description,
-    // Studio sites keep their own icon; the platform's is set in the root layout.
-    icons: { icon: "/brand/studio-icon.png", apple: "/brand/studio-apple-icon.png" },
+    // Studio sites use their own icon; without one, the platform's from the root layout.
+    ...(icon && appleIcon && { icons: { icon, apple: appleIcon } }),
     openGraph: {
       type: "website",
       locale: "pt_PT",
       siteName: tenant.name,
       title,
       description: tenant.description,
-      ...(hasBrandAssets(tenant.slug) && {
-        images: [{ url: "/brand/logo-full.png", width: 900, height: 587, alt: tenant.name }],
-      }),
+      ...(shareImage && { images: [{ url: shareImage.src, width: shareImage.width, height: shareImage.height, alt: tenant.name }] }),
     },
   };
 }
@@ -76,20 +76,20 @@ async function StudioSite({ params }: Pick<PageProps<"/[slug]">, "params">) {
 
   const [services, portfolio] = await Promise.all([getPublicServices(tenant.id), getPublicPortfolio(tenant.id)]);
   const { whatsappNumber, instagramUrl } = tenant;
-  const brandAssets = hasBrandAssets(tenant.slug);
+  const brand = studioBrand(tenant);
 
   return (
-    <>
+    <div style={brandStyle(tenant.brand.primaryColor, tenant.brand.secondaryColor)} className="bg-cream">
       <a
         href="#conteudo"
         className="sr-only z-50 rounded-full bg-ink px-4 py-2 text-cream focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
       >
         Saltar para o conteúdo
       </a>
-      <SiteHeader tenantSlug={tenant.slug} studioName={tenant.name} />
+      <SiteHeader tenantSlug={tenant.slug} studioName={tenant.name} logo={brand.logo} />
       <BookingProvider services={services}>
         <main id="conteudo">
-          <Hero whatsappNumber={whatsappNumber} brandAssets={brandAssets} />
+          <Hero whatsappNumber={whatsappNumber} studioName={tenant.name} banner={brand.banner} mascot={brand.mascot} />
           <ServicesSection services={services} />
           <HowItWorks />
           <PortfolioSection items={portfolio} instagramUrl={instagramUrl} />
@@ -110,11 +110,11 @@ async function StudioSite({ params }: Pick<PageProps<"/[slug]">, "params">) {
           </section>
         </main>
         <SelectionBar />
-        <BookNowDialog targetId="marcar" headingId="marcar-title" brandAssets={brandAssets} />
+        <BookNowDialog targetId="marcar" headingId="marcar-title" mascot={brand.mascot} />
       </BookingProvider>
-      <SiteFooter tenant={tenant} />
+      <SiteFooter tenant={tenant} logo={brand.logo} />
       <PageMotion />
       <AnalyticsTracker tenantSlug={tenant.slug} />
-    </>
+    </div>
   );
 }

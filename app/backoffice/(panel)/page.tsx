@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ArrowSquareOutIcon } from "@phosphor-icons/react/ssr";
+import Link from "next/link";
+import { ArrowSquareOutIcon, PencilSimpleIcon } from "@phosphor-icons/react/ssr";
 import { StudioAction } from "@/components/platform/studio-action";
 import { getPlatformOverview, type StudioRow } from "@/lib/data/platform";
 import { formatPrice } from "@/lib/format";
@@ -85,6 +86,14 @@ export default async function BackofficePage() {
                       Ver site
                     </a>
                   )}
+                  <Link
+                    href={`/backoffice/studios/${studio.id}`}
+                    aria-label={`Editar ${studio.name}`}
+                    className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-ink-muted hover:bg-peach-50 hover:text-ink"
+                  >
+                    <PencilSimpleIcon size={16} aria-hidden="true" />
+                    Editar
+                  </Link>
                   <StudioAction studio={studio} />
                 </div>
               </li>

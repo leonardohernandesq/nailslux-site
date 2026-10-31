@@ -1,7 +1,7 @@
 "use server";
 
 import { refresh, updateTag } from "next/cache";
-import { requireAdmin } from "../auth/dal";
+import { requireStudioEditor } from "../auth/studio-access";
 import { CACHE_TAGS } from "../constants";
 import { connectDB } from "../db/connect";
 import { Tenant } from "../db/models";
@@ -9,7 +9,7 @@ import { settingsSchema } from "../validation/registration";
 import { formValues, validationError, type FormState } from "./form-state";
 
 export async function updateSettings(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { tenantId, tenantSlug } = await requireAdmin();
+  const { tenantId, tenantSlug } = await requireStudioEditor(formData.get("studioId"));
   const values = formValues(formData);
   const parsed = settingsSchema.safeParse({ ...values, days: formData.getAll("days") });
   if (!parsed.success) return validationError(parsed.error, values);

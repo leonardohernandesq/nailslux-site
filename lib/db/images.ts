@@ -23,12 +23,12 @@ export type ProcessedImage = {
 };
 
 /** Fixes orientation, strips metadata, resizes and converts to WebP. */
-export async function processImage(input: Buffer): Promise<ProcessedImage> {
+export async function processImage(input: Buffer, maxEdge = PORTFOLIO_MAX_EDGE): Promise<ProcessedImage> {
   const { data, info } = await sharp(input)
     .rotate()
     .resize({
-      width: PORTFOLIO_MAX_EDGE,
-      height: PORTFOLIO_MAX_EDGE,
+      width: maxEdge,
+      height: maxEdge,
       fit: "inside",
       withoutEnlargement: true,
     })
@@ -45,9 +45,18 @@ export async function processImage(input: Buffer): Promise<ProcessedImage> {
   };
 }
 
-export async function saveImage(buffer: Buffer, filename: string): Promise<mongoose.Types.ObjectId> {
+/** A square PNG of the logo for the browser tab; PNG is what every browser takes as an icon. */
+export function processIcon(input: Buffer): Promise<Buffer> {
+  return sharp(input)
+    .rotate()
+    .resize(180, 180, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+}
+
+export async function saveImage(buffer: Buffer, filename: string, contentType = "image/webp"): Promise<mongoose.Types.ObjectId> {
   const b = await bucket();
-  const upload = b.openUploadStream(filename, { metadata: { contentType: "image/webp" } });
+  const upload = b.openUploadStream(filename, { metadata: { contentType } });
   await new Promise<void>((resolve, reject) => {
     Readable.from(buffer).pipe(upload).on("finish", () => resolve()).on("error", reject);
   });

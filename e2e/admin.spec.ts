@@ -10,6 +10,20 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/admin\/marcacoes/);
 }
 
+test("the panel shows the Nailo mark until the studio uploads its logo", async ({ page }) => {
+  await login(page);
+  await page.goto("/admin/definicoes");
+  const panelLogo = page.getByRole("link", { name: "Painel" }).locator("img");
+  await expect(panelLogo).toHaveAttribute("src", /nailo-simbolo/);
+
+  await page.getByLabel("Logo", { exact: true }).setInputFiles(path.join("public", "brand", "nailo", "app-icon-180.png"));
+  await expect(page.getByText("Logo guardado.")).toBeVisible();
+  await expect(panelLogo).toHaveAttribute("src", /api%2Fimages/);
+
+  await page.getByRole("button", { name: "Remover" }).click();
+  await expect(panelLogo).toHaveAttribute("src", /nailo-simbolo/);
+});
+
 test("admin pages require login", async ({ page }) => {
   await page.goto("/admin/servicos");
   await expect(page).toHaveURL(/\/admin\/login/);
