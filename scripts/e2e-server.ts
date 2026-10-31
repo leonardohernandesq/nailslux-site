@@ -13,6 +13,8 @@ async function main() {
   const mongo = await MongoMemoryServer.create();
   const uri = mongo.getUri("nailslux-e2e");
   process.env.MONGODB_URI = uri;
+  // Next also loads .env.local, whose MONGODB_DB must not point the app away from the seed.
+  process.env.MONGODB_DB = "nailslux-e2e";
 
   const { connectDB, disconnectDB } = await import("../lib/db/connect");
   const { Service, Tenant, User } = await import("../lib/db/models");
