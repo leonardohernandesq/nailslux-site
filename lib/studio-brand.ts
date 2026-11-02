@@ -8,12 +8,18 @@ import heroImage from "@/public/brand/hero-hands.webp";
  */
 export function studioBrand({ slug, brand }: Pick<TenantDTO, "slug" | "brand">) {
   const builtIn = hasBrandAssets(slug);
+  // Without a favicon of its own, a studio's logo stands in for it.
+  const shareSource = brand.favicon ?? brand.logo;
   return {
     logo: brand.logo ?? (builtIn ? { src: "/brand/logo-wordmark.png", width: 1000, height: 288 } : null),
     banner: brand.banner ?? (builtIn ? { src: heroImage } : null),
-    icon: brand.iconSrc ?? (builtIn ? "/brand/studio-icon.png" : null),
-    appleIcon: brand.iconSrc ?? (builtIn ? "/brand/studio-apple-icon.png" : null),
-    shareImage: brand.logo ?? (builtIn ? { src: "/brand/logo-full.png", width: 900, height: 587 } : null),
+    icon: brand.favicon?.src ?? brand.iconSrc ?? (builtIn ? "/brand/studio-icon.png" : null),
+    appleIcon: brand.favicon?.src ?? brand.iconSrc ?? (builtIn ? "/brand/studio-apple-icon.png" : null),
+    shareImage: shareSource
+      ? { src: `${shareSource.src}/share`, width: 1200, height: 630 }
+      : builtIn
+        ? { src: "/brand/logo-full.png", width: 900, height: 587 }
+        : null,
     mascot: builtIn,
   };
 }

@@ -21,6 +21,8 @@ const { updateTag } = await import("next/cache");
 const { connectDB, disconnectDB } = await import("@/lib/db/connect");
 const { Tenant } = await import("@/lib/db/models");
 const { readImage } = await import("@/lib/db/images");
+const { studioBrand } = await import("@/lib/studio-brand");
+const { GET: shareImage } = await import("@/app/api/images/[id]/share/route");
 const { removeBrandImage, resetBrandColors, updateBrandColors, uploadBrandImage } = await import("@/lib/actions/brand");
 const { idleState } = await import("@/lib/actions/form-state");
 const { updateSettings } = await import("@/lib/actions/settings");
@@ -184,7 +186,37 @@ describe("images", () => {
     expect((await getTenantById(TENANT_A))?.brand.logo).toEqual(before);
   });
 
-  it("only accepts the two known kinds", async () => {
+  it("uses the favicon for the tab and link previews, falling back to the logo", async () => {
+    await uploadBrandImage("logo", await upload(await png(1200, 400)));
+    const logoOnly = (await getTenantById(TENANT_A))!;
+    expect(studioBrand(logoOnly).icon).toBe(logoOnly.brand.iconSrc);
+    expect(studioBrand(logoOnly).shareImage?.src).toBe(`${logoOnly.brand.logo?.src}/share`);
+
+    await uploadBrandImage("favicon", await upload(await png(600, 300)));
+    const withFavicon = (await getTenantById(TENANT_A))!;
+    const { favicon } = withFavicon.brand;
+    expect(await sharp((await readImage(fileIdOf(favicon?.src)))!.buffer).metadata()).toMatchObject({ width: 512, height: 512, format: "png" });
+    expect(studioBrand(withFavicon)).toMatchObject({ icon: favicon?.src, appleIcon: favicon?.src, shareImage: { src: `${favicon?.src}/share` } });
+
+    await removeBrandImage("favicon");
+    expect(await readImage(fileIdOf(favicon?.src))).toBeNull();
+    expect(studioBrand((await getTenantById(TENANT_A))!).icon).toBe(logoOnly.brand.iconSrc);
+  });
+
+  it("serves a wide logo as a 1200x630 JPEG for link previews", async () => {
+    await uploadBrandImage("logo", await upload(await png(1200, 200)));
+    const id = fileIdOf((await getTenantById(TENANT_A))!.brand.logo?.src);
+
+    const response = await shareImage(new Request("http://x"), { params: Promise.resolve({ id }) });
+    expect(response.headers.get("Content-Type")).toBe("image/jpeg");
+    const meta = await sharp(Buffer.from(await response.arrayBuffer())).metadata();
+    expect(meta).toMatchObject({ width: 1200, height: 630, format: "jpeg" });
+
+    const missing = await shareImage(new Request("http://x"), { params: Promise.resolve({ id: "64b000000000000000000099" }) });
+    expect(missing.status).toBe(404);
+  });
+
+  it("only accepts the known kinds", async () => {
     await expect(uploadBrandImage("slug" as never, await upload(await png(10, 10)))).rejects.toThrow();
     await expect(removeBrandImage("whatsappNumber" as never)).rejects.toThrow();
   });

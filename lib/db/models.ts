@@ -24,6 +24,7 @@ const tenantSchema = new Schema(
     secondaryColor: { type: String },
     logo: { fileId: Schema.Types.ObjectId, iconFileId: Schema.Types.ObjectId, width: Number, height: Number },
     banner: { fileId: Schema.Types.ObjectId, width: Number, height: Number, blurDataUrl: String },
+    favicon: { fileId: Schema.Types.ObjectId, width: Number, height: Number },
     // "pending" until the owner confirms their email: set up, but not public yet.
     status: { type: String, required: true, enum: TENANT_STATUSES, default: "active" },
     // Who suspended it: only "billing" is lifted automatically when payment returns.

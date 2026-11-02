@@ -57,7 +57,7 @@ function ColorsForm({ primary, secondary, studioId }: { primary: string | null; 
 }
 
 type ImageFieldProps = {
-  kind: "logo" | "banner";
+  kind: "logo" | "banner" | "favicon";
   label: string;
   hint: string;
   image: { src: string; width: number; height: number } | null;
@@ -148,8 +148,9 @@ export function BrandSettings({ brand, studioId }: { brand: TenantDTO["brand"]; 
         Aspeto do site
       </h2>
       <ColorsForm primary={brand.primaryColor} secondary={brand.secondaryColor} studioId={studioId} />
-      <div className="grid gap-6 sm:grid-cols-2">
-        <ImageField kind="logo" label="Logo" hint="Aparece no site e no separador do navegador. Prefira PNG com fundo transparente." image={brand.logo} studioId={studioId} />
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ImageField kind="logo" label="Logo" hint="Aparece no site. Prefira PNG com fundo transparente." image={brand.logo} studioId={studioId} />
+        <ImageField kind="favicon" label="Favicon" hint="Aparece no separador do navegador e ao partilhar o link no WhatsApp. Prefira uma imagem quadrada. Sem favicon, usamos o logo." image={brand.favicon} studioId={studioId} />
         <ImageField kind="banner" label="Banner" hint="A fotografia em destaque no topo do site." image={brand.banner} studioId={studioId} />
       </div>
     </section>

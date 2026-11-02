@@ -45,12 +45,24 @@ export async function processImage(input: Buffer, maxEdge = PORTFOLIO_MAX_EDGE):
   };
 }
 
-/** A square PNG of the logo for the browser tab; PNG is what every browser takes as an icon. */
-export function processIcon(input: Buffer): Promise<Buffer> {
+/** A square PNG for the browser tab; PNG is what every browser takes as an icon. */
+export function processIcon(input: Buffer, size = 180): Promise<Buffer> {
   return sharp(input)
     .rotate()
-    .resize(180, 180, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
+    .toBuffer();
+}
+
+/**
+ * The picture for link previews: the image centered on a white 1200x630 card, the
+ * shape WhatsApp and others expect, with margins so their cropping doesn't cut it.
+ */
+export async function renderShareImage(input: Buffer): Promise<Buffer> {
+  const fitted = await sharp(input).resize(1000, 500, { fit: "inside", withoutEnlargement: true }).png().toBuffer();
+  return sharp({ create: { width: 1200, height: 630, channels: 3, background: "#ffffff" } })
+    .composite([{ input: fitted }])
+    .jpeg({ quality: 85 })
     .toBuffer();
 }
 

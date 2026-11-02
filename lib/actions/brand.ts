@@ -3,14 +3,21 @@
 import { refresh, updateTag } from "next/cache";
 import { z } from "zod";
 import { requireStudioEditor } from "../auth/studio-access";
-import { CACHE_TAGS, LOGO_MAX_EDGE } from "../constants";
+import { CACHE_TAGS, FAVICON_SIZE, LOGO_MAX_EDGE } from "../constants";
 import { connectDB } from "../db/connect";
 import { deleteImage, processIcon, processImage, saveImage } from "../db/images";
 import { Tenant } from "../db/models";
 import { brandColorsSchema, brandImageSchema } from "../validation/brand";
 import { formValues, validationError, type FormState } from "./form-state";
 
-const imageKind = z.enum(["logo", "banner"]);
+const imageKind = z.enum(["logo", "banner", "favicon"]);
+type ImageKind = z.infer<typeof imageKind>;
+
+const SAVED_MESSAGES: Record<ImageKind, string> = {
+  logo: "Logo guardado.",
+  banner: "Banner guardado.",
+  favicon: "Favicon guardado.",
+};
 
 function refreshSite(tenantSlug: string) {
   updateTag(CACHE_TAGS.tenant(tenantSlug));
@@ -37,38 +44,45 @@ export async function resetBrandColors(formData: FormData): Promise<void> {
 }
 
 /** Stores the new image first, so a failure leaves the site with the one it had. */
-export async function uploadBrandImage(kind: "logo" | "banner", formData: FormData): Promise<FormState> {
+export async function uploadBrandImage(kind: ImageKind, formData: FormData): Promise<FormState> {
   const { tenantId, tenantSlug } = await requireStudioEditor(formData.get("studioId"));
   const target = imageKind.parse(kind);
   const file = brandImageSchema.safeParse(formData.get("file"));
   if (!file.success) return { status: "error", message: file.error.issues[0]?.message ?? "Imagem inválida." };
 
   const input = Buffer.from(await file.data.arrayBuffer());
-  let image, icon;
+  let value: Record<string, unknown>;
   try {
-    image = target === "logo" ? await processImage(input, LOGO_MAX_EDGE) : await processImage(input);
-    icon = target === "logo" ? await processIcon(input) : undefined;
+    if (target === "favicon") {
+      const icon = await processIcon(input, FAVICON_SIZE);
+      await connectDB();
+      value = { fileId: await saveImage(icon, "favicon.png", "image/png"), width: FAVICON_SIZE, height: FAVICON_SIZE };
+    } else if (target === "logo") {
+      const image = await processImage(input, LOGO_MAX_EDGE);
+      const icon = await processIcon(input);
+      await connectDB();
+      value = {
+        fileId: await saveImage(image.buffer, file.data.name),
+        iconFileId: await saveImage(icon, "icon.png", "image/png"),
+        width: image.width,
+        height: image.height,
+      };
+    } else {
+      const { buffer, width, height, blurDataUrl } = await processImage(input);
+      await connectDB();
+      value = { fileId: await saveImage(buffer, file.data.name), width, height, blurDataUrl };
+    }
   } catch {
     return { status: "error", message: "Não foi possível ler esta imagem. Tente outra." };
-  }
-
-  await connectDB();
-  const fileId = await saveImage(image.buffer, file.data.name);
-  const { width, height, blurDataUrl } = image;
-  let value;
-  if (icon) {
-    value = { fileId, iconFileId: await saveImage(icon, "icon.png", "image/png"), width, height };
-  } else {
-    value = { fileId, width, height, blurDataUrl };
   }
 
   const before = await Tenant.findOneAndUpdate({ _id: tenantId }, { [target]: value }).lean();
   await deleteBrandFiles(before?.[target]);
   refreshSite(tenantSlug);
-  return { status: "success", message: target === "logo" ? "Logo guardado." : "Banner guardado." };
+  return { status: "success", message: SAVED_MESSAGES[target] };
 }
 
-export async function removeBrandImage(kind: "logo" | "banner", studioId?: string): Promise<void> {
+export async function removeBrandImage(kind: ImageKind, studioId?: string): Promise<void> {
   const { tenantId, tenantSlug } = await requireStudioEditor(studioId);
   const target = imageKind.parse(kind);
 

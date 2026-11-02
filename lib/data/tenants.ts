@@ -22,6 +22,7 @@ export type TenantDTO = {
     logo: { src: string; width: number; height: number } | null;
     banner: { src: string; width: number; height: number; blurDataURL: string } | null;
     iconSrc: string | null;
+    favicon: { src: string; width: number; height: number } | null;
   };
   status: TenantStatus;
   emailConfirmed: boolean;
@@ -43,6 +44,7 @@ export type LeanTenant = {
   secondaryColor?: string | null;
   logo?: { fileId?: unknown; iconFileId?: unknown; width?: number; height?: number } | null;
   banner?: { fileId?: unknown; width?: number; height?: number; blurDataUrl?: string } | null;
+  favicon?: { fileId?: unknown; width?: number; height?: number } | null;
   status: TenantStatus;
   emailConfirmedAt?: Date | null;
   stripeCustomerId?: string | null;
@@ -59,7 +61,7 @@ const imageSrc = (fileId: unknown) => `/api/images/${String(fileId)}`;
 
 export function toTenantDTO(doc: LeanTenant): TenantDTO {
   const tagline = doc.tagline ?? "Studio de unhas";
-  const { logo, banner } = doc;
+  const { logo, banner, favicon } = doc;
   return {
     id: String(doc._id),
     slug: doc.slug,
@@ -79,6 +81,7 @@ export function toTenantDTO(doc: LeanTenant): TenantDTO {
         ? { src: imageSrc(banner.fileId), width: banner.width!, height: banner.height!, blurDataURL: banner.blurDataUrl! }
         : null,
       iconSrc: logo?.iconFileId ? imageSrc(logo.iconFileId) : null,
+      favicon: favicon?.fileId ? { src: imageSrc(favicon.fileId), width: favicon.width!, height: favicon.height! } : null,
     },
     status: doc.status,
     emailConfirmed: Boolean(doc.emailConfirmedAt),
