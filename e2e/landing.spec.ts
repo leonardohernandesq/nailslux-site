@@ -19,8 +19,8 @@ test("the menu leads to the plans, and a plan to sign-up with it chosen", async 
 
   const pricing = page.locator("#preco");
   await expect(pricing).toContainText("9,99");
-  await expect(pricing).toContainText("99,99");
-  await expect(pricing).toContainText("119,88 € por ano");
+  await expect(pricing).toContainText("99,99 € por ano + IVA");
+  await expect(pricing).toContainText("119,88 € por ano + IVA");
   await expect(pricing.locator("s")).toHaveText("119,88 €");
   await expect(pricing).toContainText("Económico");
 
@@ -33,7 +33,7 @@ test("the footer leads to the terms and the privacy policy", async ({ page }) =>
   await page.goto("/");
   await page.getByRole("contentinfo").getByRole("link", { name: "Termos" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Termos de utilização");
-  await expect(page.getByRole("main")).toContainText("99,99 € por ano");
+  await expect(page.getByRole("main")).toContainText("99,99 € por ano + IVA");
 
   await page.goto("/");
   await page.getByRole("contentinfo").getByRole("link", { name: "Privacidade" }).click();

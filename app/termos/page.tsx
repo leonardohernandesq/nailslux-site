@@ -6,7 +6,7 @@ import { PLATFORM } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Termos de utilização" };
 
-const PRICES = PLANS.map((plan) => `${plan.name}: ${formatPrice(plan.priceCents)} por ${plan.period}`).join("; ");
+const PRICES = PLANS.map((plan) => `${plan.name}: ${formatPrice(plan.priceCents)} por ${plan.period} + IVA`).join("; ");
 
 const SECTIONS: LegalSection[] = [
   {

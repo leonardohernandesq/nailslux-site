@@ -16,7 +16,7 @@ export function PlanPicker({ defaultPlan = "mensal" }: { defaultPlan?: PlanId })
             <span>
               <span className="block font-bold">{plan.name}</span>
               <span className="block text-sm text-ink-muted">
-                {formatPrice(plan.priceCents)} por {plan.period}
+                {formatPrice(plan.priceCents)} por {plan.period} + IVA
               </span>
               {plan.id === "anual" && <span className="block text-sm font-semibold text-accent">Poupa {formatPrice(YEARLY_SAVING_CENTS)}</span>}
             </span>

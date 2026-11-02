@@ -31,7 +31,7 @@ export function Pricing() {
             <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
             <p className="mt-3">
               <span className="font-display text-4xl font-bold tabular-nums">{formatPrice(plan.priceCents)}</span>
-              <span className={yearly ? "text-cream/70" : "text-ink-muted"}> por {plan.period}</span>
+              <span className={yearly ? "text-cream/70" : "text-ink-muted"}> por {plan.period} + IVA</span>
             </p>
             {yearly ? (
               <p className="mt-1 text-sm font-semibold text-cream/70">
@@ -39,7 +39,7 @@ export function Pricing() {
                 <s>{formatPrice(TWELVE_MONTHS_CENTS)}</s>
               </p>
             ) : (
-              <p className="mt-1 text-sm font-semibold text-ink-muted">{formatPrice(TWELVE_MONTHS_CENTS)} por ano</p>
+              <p className="mt-1 text-sm font-semibold text-ink-muted">{formatPrice(TWELVE_MONTHS_CENTS)} por ano + IVA</p>
             )}
             <ul className="mt-6 flex flex-1 flex-col gap-3">
               {INCLUDED.map((item) => (
