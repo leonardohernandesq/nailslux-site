@@ -3,30 +3,38 @@
 
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 0; // 1 = Monday
 
-export type OpeningHours = {
-  /** Days the studio takes appointments. */
-  days: readonly Weekday[];
+/** Monday first, as in a Portuguese week. */
+export const WEEK: readonly Weekday[] = [1, 2, 3, 4, 5, 6, 0];
+
+export type DayHours = {
+  day: Weekday;
   /** First bookable start time, "HH:mm". */
   opens: string;
   /** Last bookable start time, "HH:mm". */
   lastStart: string;
+};
+
+export type OpeningHours = {
+  /** The days the studio takes appointments, each with its own times. */
+  days: readonly DayHours[];
   /** Minutes between bookable start times. */
   slotMinutes: number;
   /** How many days ahead clients can pick. */
   maxDaysAhead: number;
 };
 
+/** The times of a day until the studio sets its own. */
+export const DEFAULT_DAY_TIMES = { opens: "09:00", lastStart: "20:00" } as const;
+
 /** What a new studio starts with until it sets its own hours. */
 export const DEFAULT_OPENING_HOURS: OpeningHours = {
-  days: [1, 2, 3, 4, 5, 6, 0], // Monday to Sunday
-  opens: "09:00",
-  lastStart: "20:00",
+  days: WEEK.map((day) => ({ day, ...DEFAULT_DAY_TIMES })),
   slotMinutes: 30,
   maxDaysAhead: 60,
 };
 
 /** Indexed by JavaScript's Date#getDay(), so 0 is Sunday (same as `Weekday`). */
-const DAY_NAMES: Record<Weekday, string> = {
+export const DAY_NAMES: Record<Weekday, string> = {
   0: "domingo",
   1: "segunda",
   2: "terça",
@@ -55,6 +63,16 @@ export function formatOpeningDays(days: readonly Weekday[]): string {
   return names.length > 1
     ? `${names.slice(0, -1).join(", ")} e ${names.at(-1)}`
     : (names[0] ?? "");
+}
+
+/** Days sharing the same times, e.g. [{ days: "sábado e domingo", times: "09:00–20:00" }]. */
+export function formatOpeningHours(days: readonly DayHours[]): { days: string; times: string }[] {
+  const groups = new Map<string, Weekday[]>();
+  for (const { day, opens, lastStart } of [...days].sort((a, b) => weekPosition(a.day) - weekPosition(b.day))) {
+    const times = `${opens}–${lastStart}`;
+    groups.set(times, [...(groups.get(times) ?? []), day]);
+  }
+  return [...groups].map(([times, grouped]) => ({ days: formatOpeningDays(grouped), times }));
 }
 
 /** Sign-up stays closed until payments exist; see REGISTRATION_OPEN in .env.example. */

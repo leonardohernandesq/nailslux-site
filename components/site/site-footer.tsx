@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ClockIcon, InstagramLogoIcon, MapPinIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import type { TenantDTO } from "@/lib/data/tenants";
-import { formatOpeningDays, formatPhoneForDisplay } from "@/lib/site";
+import { formatOpeningHours, formatPhoneForDisplay } from "@/lib/site";
 import type { StudioBrand } from "@/lib/studio-brand";
 
 export function SiteFooter({ tenant, logo }: { tenant: TenantDTO; logo: StudioBrand["logo"] }) {
@@ -55,12 +55,14 @@ export function SiteFooter({ tenant, logo }: { tenant: TenantDTO; logo: StudioBr
           )}
           <li className="flex items-start gap-3">
             <ClockIcon size={22} aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
-            <span>
-              <span className="first-letter:uppercase inline-block">
-                {formatOpeningDays(hours.days)}
-              </span>
-              {" · "}
-              {hours.opens}–{hours.lastStart}
+            <span className="flex flex-col">
+              {formatOpeningHours(hours.days).map(({ days, times }) => (
+                <span key={times}>
+                  <span className="first-letter:uppercase inline-block">{days}</span>
+                  {" · "}
+                  {times}
+                </span>
+              ))}
             </span>
           </li>
         </ul>

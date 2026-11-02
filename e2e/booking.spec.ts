@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_WHATSAPP } from "./constants";
+import { pickDate } from "./pick-date";
 
 /** Next Monday–Saturday at least one day ahead, as YYYY-MM-DD. */
 function nextOpenDay(): string {
@@ -68,7 +69,7 @@ test("client books through WhatsApp", async ({ page }) => {
   await expect(form.getByText(/43,00/)).toBeVisible();
 
   const date = nextOpenDay();
-  await form.getByLabel(/^Data/).fill(date);
+  await pickDate(form, date);
   await form.getByText("10:30", { exact: true }).click();
   await form.getByLabel(/O seu nome/).fill("Maria Teste");
   await form.getByLabel(/O seu WhatsApp/).fill("912 345 678");

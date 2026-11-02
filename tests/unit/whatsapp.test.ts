@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatDuration, formatPrice } from "@/lib/format";
-import { formatOpeningDays, formatPhoneForDisplay } from "@/lib/site";
+import { formatOpeningDays, formatOpeningHours, formatPhoneForDisplay } from "@/lib/site";
 import { buildBookingMessage, buildWhatsAppUrl, type BookingService } from "@/lib/whatsapp";
 
 const services: BookingService[] = [
@@ -61,6 +61,16 @@ describe("formatters", () => {
     // Sunday is 0 (Date#getDay) but comes last in the Portuguese week.
     expect(formatOpeningDays([1, 2, 3, 4, 5, 6, 0])).toBe("segunda a domingo");
     expect(formatOpeningDays([0, 6])).toBe("sábado e domingo");
+    expect(
+      formatOpeningHours([
+        { day: 0, opens: "09:00", lastStart: "20:00" },
+        { day: 5, opens: "18:00", lastStart: "20:00" },
+        { day: 6, opens: "09:00", lastStart: "20:00" },
+      ]),
+    ).toEqual([
+      { days: "sexta", times: "18:00–20:00" },
+      { days: "sábado e domingo", times: "09:00–20:00" },
+    ]);
   });
 
   it("formats Portuguese phone numbers", () => {

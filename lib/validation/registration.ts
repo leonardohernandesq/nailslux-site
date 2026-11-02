@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DAY_NAMES, type Weekday } from "../site";
 import { RESERVED_SLUGS, TENANT_SLUG_PATTERN } from "../constants";
 import { normalizePhone } from "../phone";
 import { loginSchema } from "./auth";
@@ -67,31 +68,35 @@ const optionalText = (max: number) =>
     .max(max, { error: `Máximo de ${max} caracteres.` })
     .transform((value) => value || undefined);
 
-const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, { error: "Escolha uma hora." });
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-export const settingsSchema = z
-  .object({
-    name: studioNameSchema,
-    tagline: z.string().trim().min(2, { error: "Indique uma frase curta." }).max(80, { error: "Máximo de 80 caracteres." }),
-    whatsappNumber: whatsappSchema,
-    // Rendered as a link, so only https is accepted.
-    instagramUrl: z
-      .string()
-      .trim()
-      .refine((value) => value === "" || /^https:\/\/([\w-]+\.)?instagram\.com\//.test(value), {
-        error: "Cole o link completo, ex.: https://www.instagram.com/o.seu.studio/",
-      })
-      .transform((value) => value || undefined),
-    address: optionalText(200),
-    days: z
-      .array(z.coerce.number().int().min(0).max(6))
-      .min(1, { error: "Escolha pelo menos um dia." }),
-    opens: timeSchema,
-    lastStart: timeSchema,
-  })
-  .refine((data) => data.opens < data.lastStart, {
-    path: ["lastStart"],
-    error: "A última marcação tem de ser depois da primeira.",
+const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1);
+
+const dayHoursSchema = z
+  .object({ day: z.custom<Weekday>(), opens: z.string(), lastStart: z.string() })
+  .superRefine(({ day, opens, lastStart }, ctx) => {
+    const name = capitalize(DAY_NAMES[day]);
+    if (!TIME_PATTERN.test(opens) || !TIME_PATTERN.test(lastStart)) {
+      ctx.addIssue({ code: "custom", message: `${name}: escolha as horas.` });
+    } else if (opens >= lastStart) {
+      ctx.addIssue({ code: "custom", message: `${name}: a última marcação tem de ser depois da primeira.` });
+    }
   });
+
+export const settingsSchema = z.object({
+  name: studioNameSchema,
+  tagline: z.string().trim().min(2, { error: "Indique uma frase curta." }).max(80, { error: "Máximo de 80 caracteres." }),
+  whatsappNumber: whatsappSchema,
+  // Rendered as a link, so only https is accepted.
+  instagramUrl: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || /^https:\/\/([\w-]+\.)?instagram\.com\//.test(value), {
+      error: "Cole o link completo, ex.: https://www.instagram.com/o.seu.studio/",
+    })
+    .transform((value) => value || undefined),
+  address: optionalText(200),
+  days: z.array(dayHoursSchema).min(1, { error: "Escolha pelo menos um dia." }),
+});
 
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_ADMIN } from "./constants";
+import { pickDate } from "./pick-date";
 
 /** Next Monday–Saturday at least one day ahead, as YYYY-MM-DD. */
 function nextOpenDay(): string {
@@ -41,7 +42,7 @@ test("visits, WhatsApp clicks and booking requests show up in the statistics", a
   await site.getByRole("button", { name: "Escolher Verniz gel" }).click();
   await site.getByRole("button", { name: "Agendar Agora" }).click();
   const form = site.getByRole("form", { name: "Pedido de marcação" });
-  await form.getByLabel(/^Data/).fill(nextOpenDay());
+  await pickDate(form, nextOpenDay());
   await form.getByText("10:30", { exact: true }).click();
   await form.getByLabel(/O seu nome/).fill("Maria Teste");
   await form.getByLabel(/O seu WhatsApp/).fill("912 345 678");

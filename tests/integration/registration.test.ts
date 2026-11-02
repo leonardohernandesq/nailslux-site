@@ -278,9 +278,12 @@ describe("updateSettings", () => {
     whatsappNumber: "912 345 678",
     instagramUrl: "https://www.instagram.com/studio.c/",
     address: "Rua A, 1",
-    days: ["1", "2"],
-    opens: "10:00",
-    lastStart: "18:00",
+    "open-1": "on",
+    "opens-1": "10:00",
+    "lastStart-1": "18:00",
+    "open-5": "on",
+    "opens-5": "18:00",
+    "lastStart-5": "20:00",
   };
 
   beforeEach(async () => {
@@ -292,8 +295,23 @@ describe("updateSettings", () => {
 
     const tenant = await getActiveTenant("studio-c");
     expect(tenant).toMatchObject({ name: "Studio C", whatsappNumber: "351912345678", address: "Rua A, 1" });
-    expect(tenant?.hours).toMatchObject({ days: [1, 2], opens: "10:00", lastStart: "18:00", slotMinutes: 30 });
+    expect(tenant?.hours).toMatchObject({
+      days: [
+        { day: 1, opens: "10:00", lastStart: "18:00" },
+        { day: 5, opens: "18:00", lastStart: "20:00" },
+      ],
+      slotMinutes: 30,
+    });
     expect(updateTag).toHaveBeenCalledWith("tenant:studio-c");
+  });
+
+  it("keeps one schedule for every open day until the studio saves its own", async () => {
+    await Tenant.updateOne({ _id: TENANT_ID }, { $set: { "hours.days": [5, 6], "hours.opens": "10:00", "hours.lastStart": "19:00" } });
+    const tenant = await getActiveTenant("studio-c");
+    expect(tenant?.hours.days).toEqual([
+      { day: 5, opens: "10:00", lastStart: "19:00" },
+      { day: 6, opens: "10:00", lastStart: "19:00" },
+    ]);
   });
 
   it("removes optional fields that were cleared", async () => {
@@ -306,10 +324,13 @@ describe("updateSettings", () => {
     const link = await updateSettings(idleState, form({ ...settings, instagramUrl: "javascript:alert(1)" }));
     expect(link.fieldErrors?.instagramUrl).toBeDefined();
 
-    const hours = await updateSettings(idleState, form({ ...settings, opens: "19:00" }));
-    expect(hours.fieldErrors?.lastStart).toBeDefined();
+    const hours = await updateSettings(idleState, form({ ...settings, "opens-5": "21:00" }));
+    expect(hours.fieldErrors?.days?.[0]).toMatch(/^Sexta:/);
 
-    const days = await updateSettings(idleState, form({ ...settings, days: [] }));
+    const closed: Record<string, string> = { ...settings };
+    delete closed["open-1"];
+    delete closed["open-5"];
+    const days = await updateSettings(idleState, form(closed));
     expect(days.fieldErrors?.days).toBeDefined();
   });
 });

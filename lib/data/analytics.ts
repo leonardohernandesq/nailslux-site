@@ -168,7 +168,7 @@ export async function getAnalytics(days: AnalyticsPeriod, at?: Date): Promise<An
 }
 
 function hourRange(opening: OpeningHours, requested: number[]): number[] {
-  const from = Math.min(Number(opening.opens.slice(0, 2)), ...requested);
-  const to = Math.max(Number(opening.lastStart.slice(0, 2)), ...requested);
+  const from = Math.min(...opening.days.map((day) => Number(day.opens.slice(0, 2))), ...requested);
+  const to = Math.max(...opening.days.map((day) => Number(day.lastStart.slice(0, 2))), ...requested);
   return Array.from({ length: to - from + 1 }, (_, i) => from + i);
 }

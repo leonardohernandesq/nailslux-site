@@ -4,9 +4,7 @@ import type { OpeningHours } from "@/lib/site";
 import { createBookingSchema } from "@/lib/validation/booking";
 
 const hours: OpeningHours = {
-  days: [1, 2, 3, 4, 5, 6],
-  opens: "09:00",
-  lastStart: "11:00",
+  days: ([1, 2, 3, 4, 5, 6] as const).map((day) => ({ day, opens: "09:00", lastStart: "11:00" })),
   slotMinutes: 30,
   maxDaysAhead: 30,
 };
@@ -16,7 +14,7 @@ const now = new Date(2026, 9, 14, 9, 40);
 
 describe("schedule", () => {
   it("lists every slot between opening and last start", () => {
-    expect(allSlots(hours)).toEqual(["09:00", "09:30", "10:00", "10:30", "11:00"]);
+    expect(allSlots(hours.days[0], hours.slotMinutes)).toEqual(["09:00", "09:30", "10:00", "10:30", "11:00"]);
   });
 
   it("hides slots that already passed today", () => {
@@ -26,6 +24,21 @@ describe("schedule", () => {
   it("offers all slots on future open days and none on closed days", () => {
     expect(slotsFor("2026-10-15", hours, now)).toHaveLength(5);
     expect(slotsFor("2026-10-18", hours, now)).toEqual([]); // Sunday
+  });
+
+  it("uses each day's own times", () => {
+    const weekend: OpeningHours = {
+      ...hours,
+      days: [
+        { day: 5, opens: "18:00", lastStart: "19:00" },
+        { day: 6, opens: "09:00", lastStart: "10:00" },
+        { day: 0, opens: "09:00", lastStart: "10:00" },
+      ],
+    };
+    expect(slotsFor("2026-10-15", weekend, now)).toEqual([]); // Thursday
+    expect(slotsFor("2026-10-16", weekend, now)).toEqual(["18:00", "18:30", "19:00"]); // Friday
+    expect(slotsFor("2026-10-17", weekend, now)).toEqual(["09:00", "09:30", "10:00"]); // Saturday
+    expect(slotsFor("2026-10-18", weekend, now)).toEqual(["09:00", "09:30", "10:00"]); // Sunday
   });
 
   it("computes the bookable date range", () => {

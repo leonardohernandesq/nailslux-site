@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { CACHE_TAGS, TENANT_SLUG_PATTERN } from "../constants";
 import { connectDB } from "../db/connect";
 import { Tenant, type TenantStatus } from "../db/models";
-import type { OpeningHours, Weekday } from "../site";
+import type { DayHours, OpeningHours, Weekday } from "../site";
 
 export type TenantDTO = {
   id: string;
@@ -47,7 +47,12 @@ export type LeanTenant = {
   emailConfirmedAt?: Date | null;
   stripeCustomerId?: string | null;
   subscriptionStatus?: string | null;
-  hours: Omit<OpeningHours, "days"> & { days: number[] };
+  hours: Omit<OpeningHours, "days"> & {
+    weekly?: DayHours[] | null;
+    days: number[];
+    opens: string;
+    lastStart: string;
+  };
 };
 
 const imageSrc = (fileId: unknown) => `/api/images/${String(fileId)}`;
@@ -80,9 +85,9 @@ export function toTenantDTO(doc: LeanTenant): TenantDTO {
     subscriptionStatus: doc.subscriptionStatus ?? null,
     hasBillingAccount: Boolean(doc.stripeCustomerId),
     hours: {
-      days: doc.hours.days as Weekday[],
-      opens: doc.hours.opens,
-      lastStart: doc.hours.lastStart,
+      days:
+        doc.hours.weekly ??
+        (doc.hours.days as Weekday[]).map((day) => ({ day, opens: doc.hours.opens, lastStart: doc.hours.lastStart })),
       slotMinutes: doc.hours.slotMinutes,
       maxDaysAhead: doc.hours.maxDaysAhead,
     },

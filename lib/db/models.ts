@@ -1,5 +1,5 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { DEFAULT_OPENING_HOURS } from "../site";
+import { DEFAULT_DAY_TIMES, DEFAULT_OPENING_HOURS } from "../site";
 import { tenantScoped } from "./tenant-scope";
 
 export const TENANT_STATUSES = ["pending", "active", "suspended"] as const;
@@ -35,9 +35,15 @@ const tenantSchema = new Schema(
     subscriptionStatus: { type: String },
     subscriptionMonthlyCents: { type: Number },
     hours: {
-      days: { type: [Number], default: () => [...DEFAULT_OPENING_HOURS.days] },
-      opens: { type: String, default: DEFAULT_OPENING_HOURS.opens },
-      lastStart: { type: String, default: DEFAULT_OPENING_HOURS.lastStart },
+      // Each open day's times, set once the studio saves its hours. Until then
+      // the three fields below apply to all of `days`; `weekly` wins over them.
+      weekly: {
+        type: [new Schema({ day: Number, opens: String, lastStart: String }, { _id: false })],
+        default: undefined,
+      },
+      days: { type: [Number], default: () => DEFAULT_OPENING_HOURS.days.map(({ day }) => day) },
+      opens: { type: String, default: DEFAULT_DAY_TIMES.opens },
+      lastStart: { type: String, default: DEFAULT_DAY_TIMES.lastStart },
       slotMinutes: { type: Number, default: DEFAULT_OPENING_HOURS.slotMinutes },
       maxDaysAhead: { type: Number, default: DEFAULT_OPENING_HOURS.maxDaysAhead },
     },

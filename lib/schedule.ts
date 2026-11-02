@@ -1,5 +1,5 @@
 import { parseISODate, toISODate } from "./format";
-import type { OpeningHours } from "./site";
+import type { DayHours, OpeningHours } from "./site";
 
 /** Services without a duration block this long. */
 export const DEFAULT_SERVICE_MINUTES = 60;
@@ -17,22 +17,29 @@ export function fromMinutes(total: number): string {
 }
 
 /** Every bookable start time in a day, e.g. ["09:00", "09:30", ...]. */
-export function allSlots(hours: OpeningHours): string[] {
+export function allSlots(day: DayHours, slotMinutes: number): string[] {
   const slots: string[] = [];
-  for (let t = toMinutes(hours.opens); t <= toMinutes(hours.lastStart); t += hours.slotMinutes) {
+  for (let t = toMinutes(day.opens); t <= toMinutes(day.lastStart); t += slotMinutes) {
     slots.push(fromMinutes(t));
   }
   return slots;
 }
 
+/** That weekday's times, or undefined if the studio is closed. */
+function hoursOn(isoDate: string, hours: OpeningHours): DayHours | undefined {
+  const weekday = parseISODate(isoDate).getDay();
+  return hours.days.find(({ day }) => day === weekday);
+}
+
 export function isOpenOn(isoDate: string, hours: OpeningHours): boolean {
-  return hours.days.includes(parseISODate(isoDate).getDay() as OpeningHours["days"][number]);
+  return hoursOn(isoDate, hours) !== undefined;
 }
 
 /** Slots for a given date; for today, only times that haven't passed yet. */
 export function slotsFor(isoDate: string, hours: OpeningHours, now: Date): string[] {
-  if (!isOpenOn(isoDate, hours)) return [];
-  const slots = allSlots(hours);
+  const day = hoursOn(isoDate, hours);
+  if (!day) return [];
+  const slots = allSlots(day, hours.slotMinutes);
   if (isoDate !== toISODate(now)) return slots;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   return slots.filter((slot) => toMinutes(slot) > nowMinutes);

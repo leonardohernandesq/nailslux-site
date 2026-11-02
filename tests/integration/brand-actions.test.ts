@@ -98,7 +98,7 @@ describe("editing from the backoffice", () => {
   };
   const settings = () => {
     const data = new FormData();
-    for (const [key, value] of Object.entries({ name: "Novo nome", tagline: "Frase nova", whatsappNumber: "912345678", instagramUrl: "", address: "", opens: "09:00", lastStart: "18:00", days: "1" })) {
+    for (const [key, value] of Object.entries({ name: "Novo nome", tagline: "Frase nova", whatsappNumber: "912345678", instagramUrl: "", address: "", "open-1": "on", "opens-1": "09:00", "lastStart-1": "18:00" })) {
       data.set(key, value);
     }
     return data;

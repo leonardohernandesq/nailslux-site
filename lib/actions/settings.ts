@@ -5,17 +5,23 @@ import { requireStudioEditor } from "../auth/studio-access";
 import { CACHE_TAGS } from "../constants";
 import { connectDB } from "../db/connect";
 import { Tenant } from "../db/models";
+import { WEEK } from "../site";
 import { settingsSchema } from "../validation/registration";
 import { formValues, validationError, type FormState } from "./form-state";
 
 export async function updateSettings(_prev: FormState, formData: FormData): Promise<FormState> {
   const { tenantId, tenantSlug } = await requireStudioEditor(formData.get("studioId"));
   const values = formValues(formData);
-  const parsed = settingsSchema.safeParse({ ...values, days: formData.getAll("days") });
+  const days = WEEK.filter((day) => values[`open-${day}`]).map((day) => ({
+    day,
+    opens: values[`opens-${day}`] ?? "",
+    lastStart: values[`lastStart-${day}`] ?? "",
+  }));
+  const parsed = settingsSchema.safeParse({ ...values, days });
   if (!parsed.success) return validationError(parsed.error, values);
 
-  const { days, opens, lastStart, instagramUrl, address, ...rest } = parsed.data;
-  const $set: Record<string, unknown> = { ...rest, "hours.days": days, "hours.opens": opens, "hours.lastStart": lastStart };
+  const { days: weekly, instagramUrl, address, ...rest } = parsed.data;
+  const $set: Record<string, unknown> = { ...rest, "hours.weekly": weekly };
   const $unset: Record<string, 1> = {};
   // Clearing an optional field in the form removes it from the document.
   if (instagramUrl) $set.instagramUrl = instagramUrl;

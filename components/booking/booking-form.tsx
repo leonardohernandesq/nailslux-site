@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import {
-  CalendarBlankIcon,
   CheckCircleIcon,
   CircleNotchIcon,
   ClockIcon,
@@ -19,6 +18,7 @@ import { buildBookingMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 import { requestAppointment, type BookingField } from "@/lib/actions/appointments";
 import { track } from "@/lib/analytics/client";
 import { useBooking } from "./booking-context";
+import { DatePicker } from "./date-picker";
 import { useNow } from "./use-now";
 
 type Errors = Partial<Record<BookingField, string[]>>;
@@ -283,33 +283,26 @@ export function BookingForm({
       <div className="flex flex-col gap-6">
         <h3 className="font-display text-2xl font-semibold">2. Data, hora e contacto</h3>
 
-        <Field
-          id={ids.date}
-          label="Data"
-          required
-          errors={errors.date}
-          hint={`O studio abre de ${formatOpeningDays(hours.days)}.`}
-        >
-          <div className="relative">
-            <CalendarBlankIcon
-              size={20}
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-muted"
-            />
-            <Input
-              id={ids.date}
-              name="date"
-              type="date"
-              required
-              value={date}
-              min={bounds?.min}
-              max={bounds?.max}
-              onChange={(e) => onDateChange(e.target.value)}
-              className="pl-12"
-              {...describedBy(ids.date, errors.date, "hint")}
-            />
-          </div>
-        </Field>
+        <fieldset aria-describedby={errors.date ? `${ids.date}-error` : `${ids.date}-hint`}>
+          <legend id={ids.date} tabIndex={-1} className="text-sm font-semibold">
+            Data
+            <span className="text-accent" aria-hidden="true">
+              {" "}
+              *
+            </span>
+          </legend>
+          {bounds ? (
+            <DatePicker value={date} bounds={bounds} hours={hours} onChange={onDateChange} />
+          ) : (
+            <div aria-hidden="true" className="mt-2 h-85 animate-pulse rounded-2xl bg-peach-50" />
+          )}
+          {!errors.date && (
+            <p id={`${ids.date}-hint`} className="mt-1.5 text-sm text-ink-muted">
+              O studio abre de {formatOpeningDays(hours.days.map(({ day }) => day))}.
+            </p>
+          )}
+          <FieldError id={`${ids.date}-error`} errors={errors.date} />
+        </fieldset>
 
         <fieldset aria-describedby={errors.time ? `${ids.time}-error` : `${ids.time}-hint`}>
           <legend id={ids.time} tabIndex={-1} className="flex items-center gap-2 text-sm font-semibold">

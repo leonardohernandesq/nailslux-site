@@ -7,18 +7,8 @@ import { updateSettings } from "@/lib/actions/settings";
 import { idleState } from "@/lib/actions/form-state";
 import type { TenantDTO } from "@/lib/data/tenants";
 import { formatPhone } from "@/lib/phone";
+import { DAY_NAMES, DEFAULT_DAY_TIMES, WEEK } from "@/lib/site";
 import { SubmitButton } from "./submit-button";
-
-// Monday first, as in a Portuguese week.
-const WEEKDAYS = [
-  { value: 1, label: "Seg" },
-  { value: 2, label: "Ter" },
-  { value: 3, label: "Qua" },
-  { value: 4, label: "Qui" },
-  { value: 5, label: "Sex" },
-  { value: 6, label: "Sáb" },
-  { value: 0, label: "Dom" },
-];
 
 /** `studioId` is set when the platform admin edits a studio from the backoffice. */
 export function SettingsForm({ tenant, studioId }: { tenant: TenantDTO; studioId?: string }) {
@@ -79,26 +69,31 @@ export function SettingsForm({ tenant, studioId }: { tenant: TenantDTO; studioId
       </Field>
 
       <fieldset>
-        <legend className="text-sm font-semibold">Dias de abertura</legend>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {WEEKDAYS.map(({ value, label }) => (
-            <label key={value} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line px-4 has-checked:border-accent has-checked:bg-peach-50">
-              <input type="checkbox" name="days" value={value} defaultChecked={tenant.hours.days.includes(value as never)} className="size-4 accent-accent" />
-              <span className="text-sm font-semibold">{label}</span>
-            </label>
-          ))}
+        <legend className="text-sm font-semibold">Horário de cada dia</legend>
+        <p className="mt-1 text-sm text-ink-muted">Marque os dias em que abre e indique a primeira e a última marcação.</p>
+        <div className="mt-3 flex flex-col gap-2">
+          {WEEK.map((day) => {
+            const saved = tenant.hours.days.find((entry) => entry.day === day);
+            const times = saved ?? DEFAULT_DAY_TIMES;
+            const name = DAY_NAMES[day];
+            return (
+              <div key={day} className="group flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line px-4 py-2 has-[input[type=checkbox]:checked]:border-accent has-[input[type=checkbox]:checked]:bg-peach-50">
+                <label className="flex min-h-11 w-28 cursor-pointer items-center gap-2">
+                  <input type="checkbox" name={`open-${day}`} defaultChecked={v ? `open-${day}` in v : Boolean(saved)} className="size-4 accent-accent" />
+                  <span className="text-sm font-semibold capitalize">{name}</span>
+                </label>
+                <div className="hidden flex-1 items-center gap-2 group-has-[input[type=checkbox]:checked]:flex">
+                  <Input aria-label={`Primeira marcação de ${name}`} name={`opens-${day}`} type="time" step={1800} defaultValue={v?.[`opens-${day}`] ?? times.opens} className="min-w-0" />
+                  <span className="text-sm text-ink-muted">até</span>
+                  <Input aria-label={`Última marcação de ${name}`} name={`lastStart-${day}`} type="time" step={1800} defaultValue={v?.[`lastStart-${day}`] ?? times.lastStart} className="min-w-0" />
+                </div>
+                <span className="text-sm text-ink-muted group-has-[input[type=checkbox]:checked]:hidden">Fechado</span>
+              </div>
+            );
+          })}
         </div>
         {errors.days && <p className="mt-1.5 text-sm font-semibold text-danger">{errors.days[0]}</p>}
       </fieldset>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <Field id="opens" label="Primeira marcação" required errors={errors.opens}>
-          <Input id="opens" name="opens" type="time" step={1800} required defaultValue={v?.opens ?? tenant.hours.opens} {...describedBy("opens", errors.opens)} />
-        </Field>
-        <Field id="lastStart" label="Última marcação" required errors={errors.lastStart}>
-          <Input id="lastStart" name="lastStart" type="time" step={1800} required defaultValue={v?.lastStart ?? tenant.hours.lastStart} {...describedBy("lastStart", errors.lastStart)} />
-        </Field>
-      </div>
 
       <div className="flex justify-end">
         <SubmitButton pendingLabel="A guardar…">Guardar definições</SubmitButton>

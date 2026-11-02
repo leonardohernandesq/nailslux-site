@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { E2E_ADMIN } from "./constants";
+import { pickDate } from "./pick-date";
 
 /** A day well ahead, so this test's appointment doesn't affect the other specs. */
 function dayAhead(days: number): string {
@@ -22,7 +23,7 @@ async function openForm(page: Page) {
   await page.getByRole("button", { name: "Escolher Verniz gel" }).click(); // 1 hour
   await page.getByRole("button", { name: "Agendar Agora" }).click();
   const form = page.getByRole("form", { name: "Pedido de marcação" });
-  await form.getByLabel(/^Data/).fill(DATE);
+  await pickDate(form, DATE);
   return form;
 }
 

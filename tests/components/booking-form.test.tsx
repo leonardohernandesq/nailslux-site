@@ -13,9 +13,7 @@ import { ServiceSelectButton } from "@/components/booking/service-select-button"
 import type { OpeningHours } from "@/lib/site";
 
 const hours: OpeningHours = {
-  days: [1, 2, 3, 4, 5, 6],
-  opens: "09:00",
-  lastStart: "12:00",
+  days: ([1, 2, 3, 4, 5, 6] as const).map((day) => ({ day, opens: "09:00", lastStart: "12:00" })),
   slotMinutes: 30,
   maxDaysAhead: 60,
 };
@@ -24,6 +22,9 @@ const services = [
   { id: "gel", name: "Verniz gel", priceCents: 2500, durationMinutes: 60 },
   { id: "pe", name: "Pedicure", priceCents: 1800 },
 ];
+
+const dayButton = (name: RegExp) => screen.getByRole("button", { name }) as HTMLButtonElement;
+const pickFriday = () => fireEvent.click(dayButton(/16 de outubro/));
 
 function renderForm() {
   return render(
@@ -60,6 +61,13 @@ describe("BookingForm", () => {
     requestAppointment.mockReset();
   });
 
+  it("only lets the client pick days the studio is open", () => {
+    renderForm();
+    expect(dayButton(/17 de outubro/).disabled).toBe(false); // Saturday
+    expect(dayButton(/18 de outubro/).disabled).toBe(true); // Sunday, closed
+    expect(dayButton(/13 de outubro/).disabled).toBe(true); // yesterday
+  });
+
   it("shows an error summary and opens nothing when the form is empty", async () => {
     const user = userEvent.setup();
     renderForm();
@@ -85,7 +93,7 @@ describe("BookingForm", () => {
     await user.click(screen.getByRole("checkbox", { name: /verniz gel/i }));
     expect(screen.getByText(/43,00/)).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
+    pickFriday();
     await user.click(await screen.findByRole("radio", { name: "10:30" }));
     await user.type(screen.getByLabelText(/o seu nome/i), "Ana");
     await user.type(screen.getByLabelText(/o seu whatsapp/i), "912 345 678");
@@ -107,7 +115,7 @@ describe("BookingForm", () => {
     expect(text).toContain("*Data:* sexta-feira, 16 de outubro de 2026");
     expect(text).toContain("*Hora:* 10:30");
     expect(text).not.toContain("http"); // no links in the client's message
-    expect(screen.getByRole("status").textContent).toMatch(/mensagem pronta/i);
+    expect(screen.getByText("Mensagem pronta!")).toBeTruthy();
   });
 
   it("shows no times until it knows which are taken", async () => {
@@ -121,7 +129,7 @@ describe("BookingForm", () => {
     renderForm();
 
     await user.click(screen.getByRole("button", { name: /escolher pedicure/i }));
-    fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
+    pickFriday();
     expect(screen.getByText(/a verificar as horas disponíveis/i)).toBeTruthy();
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
 
@@ -133,7 +141,7 @@ describe("BookingForm", () => {
   it("still shows the times if availability can't be loaded", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("offline"))));
     renderForm();
-    fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
+    pickFriday();
     expect(await screen.findByRole("radio", { name: "10:30" })).toBeTruthy();
   });
 
@@ -143,7 +151,7 @@ describe("BookingForm", () => {
     renderForm();
 
     await user.click(screen.getByRole("button", { name: /escolher pedicure/i })); // no duration: 1h
-    fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
+    pickFriday();
 
     await waitFor(() => expect((screen.getByRole("radio", { name: /11:00/ }) as HTMLInputElement).disabled).toBe(true));
     expect(screen.getByRole("radio", { name: /11:00\s*\(ocupado\)/ })).toBeTruthy();
@@ -158,7 +166,7 @@ describe("BookingForm", () => {
     renderForm();
 
     await user.click(screen.getByRole("button", { name: /escolher pedicure/i }));
-    fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-16" } });
+    pickFriday();
     await user.click(await screen.findByRole("radio", { name: "10:30" }));
     await user.type(screen.getByLabelText(/o seu nome/i), "Ana");
     await user.type(screen.getByLabelText(/o seu whatsapp/i), "912 345 678");
@@ -167,11 +175,5 @@ describe("BookingForm", () => {
     expect(await screen.findByText(/hora: esta hora acabou de ficar ocupada/i)).toBeTruthy();
     expect(popup.close).toHaveBeenCalled();
     expect(popup.location.href).toBe("");
-  });
-
-  it("explains when the chosen day is closed", async () => {
-    renderForm();
-    fireEvent.change(screen.getByLabelText(/data/i), { target: { value: "2026-10-18" } }); // Sunday
-    expect(screen.getByText(/não há horas disponíveis neste dia/i)).toBeTruthy();
   });
 });
