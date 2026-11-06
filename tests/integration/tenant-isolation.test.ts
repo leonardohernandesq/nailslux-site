@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/dal", () => ({
 }));
 vi.mock("@/auth", () => ({ auth: vi.fn(async () => null) }));
 vi.mock("next/cache", () => ({ refresh: vi.fn(), updateTag: vi.fn(), cacheTag: vi.fn(), cacheLife: vi.fn() }));
-vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
+vi.mock("next/server", () => ({ connection: vi.fn(async () => {}), after: vi.fn() }));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);

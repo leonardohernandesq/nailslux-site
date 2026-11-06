@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, Input, Textarea, describedBy } from "@/components/ui/field";
 import { formatDuration, formatPrice } from "@/lib/format";
-import { bookingDuration, dateBounds, isSlotFree, slotsFor, type BusyInterval } from "@/lib/schedule";
+import { bookingDuration, dateBounds, isSlotFree, slotsFor, timeOffIntervals, type BusyInterval } from "@/lib/schedule";
 import { formatOpeningDays, type OpeningHours } from "@/lib/site";
 import { createBookingSchema } from "@/lib/validation/booking";
 import { buildBookingMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
@@ -98,7 +98,8 @@ export function BookingForm({
   const totalMinutes = chosen.reduce((sum, service) => sum + (service.durationMinutes ?? 0), 0);
   // How long the chosen services block the agenda (unknown durations count as 1h).
   const blockMinutes = chosen.length > 0 ? bookingDuration(chosen) : hours.slotMinutes;
-  const busy = busyByDate[date] ?? [];
+  // Booked times plus any hours off the studio set for that day.
+  const busy = [...(busyByDate[date] ?? []), ...(date ? timeOffIntervals(date, hours) : [])];
   // Times only show once we know which are taken, so none flips to "occupied" a moment later.
   const availabilityKnown = date in busyByDate;
   const isFree = (slot: string) => isSlotFree(slot, blockMinutes, busy);
@@ -174,7 +175,7 @@ export function BookingForm({
       popup.opener = null;
       popup.location.href = url;
     } else {
-      window.location.href = url; // popup blocked: open in the same tab
+      window.location.assign(url); // popup blocked: open in the same tab
     }
     setSentUrl(url);
     track(tenantSlug, {

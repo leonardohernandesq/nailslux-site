@@ -11,7 +11,8 @@ import { slugify } from "@/lib/validation/registration";
 import { FormMessage } from "./auth-shell";
 import { PlanPicker } from "./plan-picker";
 
-export function RegisterForm({ siteHost, plan }: { siteHost: string; plan: PlanId }) {
+/** `referralCode` is the inviting studio's slug, from a ?ref= link. */
+export function RegisterForm({ siteHost, plan, referralCode }: { siteHost: string; plan: PlanId; referralCode?: string }) {
   const [state, formAction] = useActionState(register, idleState);
   const errors = state.fieldErrors ?? {};
   const v = state.values;
@@ -76,6 +77,8 @@ export function RegisterForm({ siteHost, plan }: { siteHost: string; plan: PlanI
       <Field id="password" label="Palavra-passe" required errors={errors.password} hint="Pelo menos 10 caracteres.">
         <Input id="password" name="password" type="password" required autoComplete="new-password" {...describedBy("password", errors.password, "hint")} />
       </Field>
+
+      {referralCode && <input type="hidden" name="ref" value={referralCode} />}
 
       {/* Left empty by people; see the check in the register action. */}
       <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px]" />

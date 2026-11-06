@@ -1,5 +1,5 @@
 import { parseISODate, toISODate } from "./format";
-import type { DayHours, OpeningHours } from "./site";
+import type { DayHours, OpeningHours, TimeOff } from "./site";
 
 /** Services without a duration block this long. */
 export const DEFAULT_SERVICE_MINUTES = 60;
@@ -25,10 +25,29 @@ export function allSlots(day: DayHours, slotMinutes: number): string[] {
   return slots;
 }
 
-/** That weekday's times, or undefined if the studio is closed. */
+/** Time off that covers this date (all of it, or part of it). */
+function timeOffOn(isoDate: string, hours: OpeningHours): TimeOff[] {
+  return (hours.timeOff ?? []).filter(({ start, end }) => start <= isoDate && isoDate <= end);
+}
+
+/** True when the time off takes the whole day rather than a few hours. */
+export const isWholeDay = (off: Pick<TimeOff, "from" | "to">) => !off.from || !off.to;
+
+/** That weekday's times, or undefined if the studio is closed (including days off). */
 function hoursOn(isoDate: string, hours: OpeningHours): DayHours | undefined {
+  if (timeOffOn(isoDate, hours).some(isWholeDay)) return undefined;
   const weekday = parseISODate(isoDate).getDay();
   return hours.days.find(({ day }) => day === weekday);
+}
+
+/**
+ * Hours off on this date, as busy intervals. They join the booked times, so a
+ * service that would run into the break can't start before it either.
+ */
+export function timeOffIntervals(isoDate: string, hours: OpeningHours): BusyInterval[] {
+  return timeOffOn(isoDate, hours)
+    .filter((off) => !isWholeDay(off))
+    .map((off) => ({ start: toMinutes(off.from!), end: toMinutes(off.to!) }));
 }
 
 export function isOpenOn(isoDate: string, hours: OpeningHours): boolean {

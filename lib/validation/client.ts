@@ -25,3 +25,13 @@ const mold = z
 
 /** The admin's mold sizes for a client; each one is optional. */
 export const moldsSchema = z.object({ handMold: mold, footMold: mold });
+
+/** The client card: molds plus private notes. */
+export const clientCardSchema = moldsSchema.extend({
+  notes: z
+    .string()
+    .trim()
+    .max(1000, { error: "Máximo de 1000 caracteres." })
+    .optional()
+    .transform((value) => value || undefined),
+});

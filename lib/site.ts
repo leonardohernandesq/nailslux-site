@@ -14,9 +14,25 @@ export type DayHours = {
   lastStart: string;
 };
 
+/**
+ * A break from the usual hours: days off (holidays, a day away) or, with
+ * `from`/`to`, a stretch of each of those days ("14:00"–"18:00", end exclusive).
+ * Dates are "YYYY-MM-DD" and inclusive.
+ */
+export type TimeOff = {
+  id: string;
+  start: string;
+  end: string;
+  from?: string;
+  to?: string;
+  note?: string;
+};
+
 export type OpeningHours = {
   /** The days the studio takes appointments, each with its own times. */
   days: readonly DayHours[];
+  /** Days or hours off on top of the weekly hours. */
+  timeOff?: readonly TimeOff[];
   /** Minutes between bookable start times. */
   slotMinutes: number;
   /** How many days ahead clients can pick. */

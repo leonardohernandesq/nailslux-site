@@ -6,6 +6,7 @@ import { CACHE_TAGS } from "../constants";
 import { connectDB } from "../db/connect";
 import { Tenant } from "../db/models";
 import { canSendMail } from "../mail";
+import { rewardReferral } from "./referral";
 
 const PAYING: string[] = ["active", "trialing"];
 
@@ -71,6 +72,7 @@ export async function applySubscription(subscription: Stripe.Subscription): Prom
 
   if (paying) {
     await publishIfReady(tenantId);
+    await rewardReferral(tenantId);
     // Only undoes a billing suspension; one made by hand stays.
     await Tenant.updateOne(
       { _id: tenantId, status: "suspended", suspendedFor: "billing" },

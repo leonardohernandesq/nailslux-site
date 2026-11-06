@@ -48,9 +48,32 @@ const tenantSchema = new Schema(
       slotMinutes: { type: Number, default: DEFAULT_OPENING_HOURS.slotMinutes },
       maxDaysAhead: { type: Number, default: DEFAULT_OPENING_HOURS.maxDaysAhead },
     },
+    // Days or hours off on top of `hours` (see TimeOff in lib/site.ts).
+    timeOff: {
+      type: [
+        new Schema({
+          start: { type: String, required: true },
+          end: { type: String, required: true },
+          from: { type: String },
+          to: { type: String },
+          note: { type: String, trim: true, maxlength: 80 },
+        }),
+      ],
+      default: undefined,
+    },
+    // Secret part of the calendar feed URL (/api/agenda/<token>); anyone with it can
+    // read the confirmed appointments, so it can be replaced from the panel.
+    calendarToken: { type: String },
+    // Email the owner when a booking request arrives.
+    notifyNewBookings: { type: Boolean, default: true },
+    // The studio whose link this one signed up through, and when both got their credit.
+    referredBy: { type: Schema.Types.ObjectId, ref: "Tenant" },
+    referralRewardedAt: { type: Date },
   },
   { timestamps: true },
 );
+tenantSchema.index({ calendarToken: 1 }, { unique: true, sparse: true });
+tenantSchema.index({ referredBy: 1 }, { sparse: true });
 
 const tenantRef = { type: Schema.Types.ObjectId, ref: "Tenant", required: true } as const;
 
@@ -175,6 +198,8 @@ const clientSchema = new Schema(
     phone: { type: String, required: true },
     handMold: { type: String, trim: true, maxlength: 40 },
     footMold: { type: String, trim: true, maxlength: 40 },
+    // Private notes: allergies, preferences, the colour from last time.
+    notes: { type: String, trim: true, maxlength: 1000 },
   },
   { timestamps: true },
 );

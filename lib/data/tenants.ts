@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { CACHE_TAGS, TENANT_SLUG_PATTERN } from "../constants";
 import { connectDB } from "../db/connect";
 import { Tenant, type TenantStatus } from "../db/models";
-import type { DayHours, OpeningHours, Weekday } from "../site";
+import type { DayHours, OpeningHours, TimeOff, Weekday } from "../site";
 
 export type TenantDTO = {
   id: string;
@@ -49,6 +49,7 @@ export type LeanTenant = {
   emailConfirmedAt?: Date | null;
   stripeCustomerId?: string | null;
   subscriptionStatus?: string | null;
+  timeOff?: { _id: unknown; start: string; end: string; from?: string | null; to?: string | null; note?: string | null }[] | null;
   hours: Omit<OpeningHours, "days"> & {
     weekly?: DayHours[] | null;
     days: number[];
@@ -58,6 +59,18 @@ export type LeanTenant = {
 };
 
 const imageSrc = (fileId: unknown) => `/api/images/${String(fileId)}`;
+
+export function toTimeOff(list: LeanTenant["timeOff"]): TimeOff[] {
+  return (list ?? [])
+    .map((off) => ({
+      id: String(off._id),
+      start: off.start,
+      end: off.end,
+      ...(off.from && off.to && { from: off.from, to: off.to }),
+      ...(off.note && { note: off.note }),
+    }))
+    .sort((a, b) => a.start.localeCompare(b.start) || (a.from ?? "").localeCompare(b.from ?? ""));
+}
 
 export function toTenantDTO(doc: LeanTenant): TenantDTO {
   const tagline = doc.tagline ?? "Studio de unhas";
@@ -93,6 +106,8 @@ export function toTenantDTO(doc: LeanTenant): TenantDTO {
         (doc.hours.days as Weekday[]).map((day) => ({ day, opens: doc.hours.opens, lastStart: doc.hours.lastStart })),
       slotMinutes: doc.hours.slotMinutes,
       maxDaysAhead: doc.hours.maxDaysAhead,
+      // Notes are left out: these hours reach the public site.
+      timeOff: toTimeOff(doc.timeOff).map(({ id, start, end, from, to }) => ({ id, start, end, ...(from && to && { from, to }) })),
     },
   };
 }
@@ -141,4 +156,25 @@ export async function getActiveTenantSlugs(): Promise<string[]> {
   await connectDB();
   const docs = await Tenant.find({ status: "active" }, { slug: 1 }).lean();
   return docs.map((doc) => doc.slug);
+}
+
+export type PanelSettings = {
+  /** Time off from today on, with the studio's private notes. */
+  timeOff: TimeOff[];
+  calendarToken: string | null;
+  notifyNewBookings: boolean;
+};
+
+/** Panel-only settings, never part of the cached public studio. */
+export async function getPanelSettings(tenantId: string, today: string): Promise<PanelSettings> {
+  await connection();
+  await connectDB();
+  const doc = await Tenant.findById(tenantId, { timeOff: 1, calendarToken: 1, notifyNewBookings: 1 }).lean<
+    Pick<LeanTenant, "timeOff"> & { calendarToken?: string | null; notifyNewBookings?: boolean | null }
+  >();
+  return {
+    timeOff: toTimeOff(doc?.timeOff).filter(({ end }) => end >= today),
+    calendarToken: doc?.calendarToken ?? null,
+    notifyNewBookings: doc?.notifyNewBookings !== false,
+  };
 }

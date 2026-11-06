@@ -3,6 +3,7 @@ import { LegalPage, type LegalSection } from "@/components/platform/legal-page";
 import { formatPrice } from "@/lib/format";
 import { PLANS } from "@/lib/plans";
 import { PLATFORM } from "@/lib/site";
+import { REFERRAL_CREDIT_CENTS } from "@/lib/billing/referral";
 
 export const metadata: Metadata = { title: "Termos de utilização" };
 
@@ -30,6 +31,13 @@ const SECTIONS: LegalSection[] = [
       `Planos disponíveis: ${PRICES}.`,
       "A subscrição é paga através da Stripe e renova-se automaticamente no fim de cada período, até ser cancelada. O site do studio é publicado depois de confirmado o pagamento.",
       "Se o pagamento falhar, tentaremos cobrar novamente. Se a subscrição terminar por falta de pagamento, o site fica suspenso até a situação ser regularizada.",
+    ],
+  },
+  {
+    title: "Indicações",
+    body: [
+      `Cada studio tem um link de indicação. Quando um novo studio se regista por esse link e a primeira subscrição fica ativa, cada um recebe um crédito de ${formatPrice(REFERRAL_CREDIT_CENTS)} na sua conta de pagamento, descontado automaticamente nas faturas seguintes. Studios pagos fora da Stripe não recebem crédito; o studio indicado recebe-o na mesma.`,
+      "O crédito é atribuído uma vez por studio indicado, não é convertível em dinheiro e perde-se se a conta for encerrada.",
     ],
   },
   {

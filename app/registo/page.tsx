@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { AuthShell } from "@/components/platform/auth-shell";
 import { RegisterForm } from "@/components/platform/register-form";
 import { buttonClasses } from "@/components/ui/button";
+import { GiftIcon } from "@phosphor-icons/react/ssr";
+import { findReferrer, REFERRAL_CREDIT_CENTS } from "@/lib/billing/referral";
+import { formatPrice } from "@/lib/format";
 import { toPlan } from "@/lib/plans";
 import { isRegistrationOpen } from "@/lib/site";
 
@@ -37,7 +41,23 @@ export default function RegisterPage({ searchParams }: PageProps<"/registo">) {
 
 // The plan comes from the link on the landing page, read per request.
 async function RegisterWithPlan({ searchParams }: Pick<PageProps<"/registo">, "searchParams">) {
-  const { plano } = await searchParams;
+  const { plano, ref } = await searchParams;
   const siteHost = new URL(process.env.SITE_URL ?? "http://localhost:3000").host;
-  return <RegisterForm siteHost={siteHost} plan={toPlan(plano).id} />;
+  // The invite is looked up in the database, so this part renders per request.
+  await connection();
+  const referrer = await findReferrer(ref);
+  return (
+    <>
+      {referrer && (
+        <p role="status" className="mb-5 flex items-start gap-3 rounded-2xl bg-peach-50 p-4 text-sm">
+          <GiftIcon size={22} weight="duotone" aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
+          <span>
+            Convite do studio <strong>{referrer.name}</strong>: quando a sua subscrição ficar ativa, ganha{" "}
+            <strong>{formatPrice(REFERRAL_CREDIT_CENTS)}</strong> de crédito, o valor de um mês.
+          </span>
+        </p>
+      )}
+      <RegisterForm siteHost={siteHost} plan={toPlan(plano).id} referralCode={referrer ? String(ref) : undefined} />
+    </>
+  );
 }

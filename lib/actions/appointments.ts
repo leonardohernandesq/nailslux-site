@@ -2,13 +2,17 @@
 
 import { isValidObjectId } from "mongoose";
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { requireAdmin } from "@/lib/auth/dal";
 import { connectDB } from "@/lib/db/connect";
-import { Appointment, Service, type AppointmentStatus } from "@/lib/db/models";
+import { Appointment, Service, Tenant, User, type AppointmentStatus } from "@/lib/db/models";
 import { getBusyIntervals } from "@/lib/data/appointments";
 import { getActiveTenant } from "@/lib/data/tenants";
-import { bookingDuration, fromMinutes, isSlotFree, overlaps, toMinutes } from "@/lib/schedule";
+import { bookingDuration, fromMinutes, isSlotFree, overlaps, timeOffIntervals, toMinutes } from "@/lib/schedule";
 import { createBookingSchema, type BookingInput } from "@/lib/validation/booking";
+import { formatLongDate, formatPrice } from "@/lib/format";
+import { sendMail } from "@/lib/mail";
+import { formatPhone } from "@/lib/phone";
 import type { FormState } from "./form-state";
 
 export type BookingField = "name" | "phone" | "serviceIds" | "date" | "time" | "notes";
@@ -53,7 +57,8 @@ export async function requestAppointment(tenantSlug: string, input: BookingInput
     .filter((s) => s !== undefined);
   const duration = bookingDuration(chosen);
 
-  if (!isSlotFree(time, duration, await getBusyIntervals(tenant.id, date))) {
+  const busy = [...(await getBusyIntervals(tenant.id, date)), ...timeOffIntervals(date, tenant.hours)];
+  if (!isSlotFree(time, duration, busy)) {
     return { ok: false, field: "time", message: TAKEN_MESSAGE };
   }
 
@@ -72,7 +77,79 @@ export async function requestAppointment(tenantSlug: string, input: BookingInput
     notes,
   });
 
-  return { ok: true, id: String(appointment._id) };
+  const id = String(appointment._id);
+  // After the response: the client shouldn't wait on the email, nor see it fail.
+  after(() =>
+    notifyStudio(tenant.id, {
+      id,
+      name,
+      phone,
+      serviceNames: chosen.map((s) => s.name),
+      totalCents: chosen.reduce((sum, s) => sum + s.priceCents, 0),
+      date,
+      time,
+      notes,
+    }),
+  );
+  return { ok: true, id };
+}
+
+type NewRequest = {
+  id: string;
+  name: string;
+  phone: string;
+  serviceNames: string[];
+  totalCents: number;
+  date: string;
+  time: string;
+  notes?: string;
+};
+
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
+
+/**
+ * Emails the owner about a new request, unless they turned it off in Definições.
+ * Not exported: everything exported from a "use server" file is callable from browsers.
+ */
+async function notifyStudio(tenantId: string, request: NewRequest): Promise<void> {
+  try {
+    await connectDB();
+    const tenant = await Tenant.findById(tenantId, { notifyNewBookings: 1 }).lean();
+    if (!tenant || tenant.notifyNewBookings === false) return;
+    const owner = await User.findOne({ tenantId, role: "owner" }, { email: 1 }).sort({ createdAt: 1 }).lean();
+    if (!owner) return;
+
+    const url = `${process.env.SITE_URL ?? "http://localhost:3000"}/admin/marcacoes/${request.id}`;
+    const when = `${formatLongDate(request.date)} às ${request.time}`;
+    const lines = [
+      ["Cliente", request.name],
+      ["WhatsApp", formatPhone(request.phone)],
+      [request.serviceNames.length === 1 ? "Serviço" : "Serviços", request.serviceNames.join(", ")],
+      ["Quando", when],
+      ["Total estimado", formatPrice(request.totalCents)],
+      ...(request.notes ? [["Observações", request.notes]] : []),
+    ];
+
+    await sendMail({
+      to: owner.email,
+      subject: `Novo pedido: ${request.name.replace(/\s+/g, " ")}, ${when}`,
+      text: [
+        "Recebeu um novo pedido de marcação.",
+        "",
+        ...lines.map(([label, value]) => `${label}: ${value}`),
+        "",
+        `Confirmar ou recusar: ${url}`,
+      ].join("\n"),
+      // The client typed the name and notes, so they're escaped.
+      html:
+        "<p>Recebeu um novo pedido de marcação.</p><ul>" +
+        lines.map(([label, value]) => `<li><strong>${label}:</strong> ${escapeHtml(value)}</li>`).join("") +
+        `</ul><p><a href="${url}">Confirmar ou recusar no painel</a></p>`,
+    });
+  } catch (error) {
+    console.error("Could not email the studio about a new request.", error);
+  }
 }
 
 async function decide(

@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, WarningIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
+import { AddressBookIcon, ArrowLeftIcon, BellRingingIcon, WarningIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import { AppointmentActions } from "@/components/admin/appointment-actions";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status";
 import { ClientMoldsForm } from "@/components/admin/client-molds-form";
+import { lisbonDay } from "@/lib/analytics/server";
+import { requireAdmin } from "@/lib/auth/dal";
 import { getAppointment } from "@/lib/data/appointments";
+import { getClientIdForPhone } from "@/lib/data/clients";
+import { getTenantById } from "@/lib/data/tenants";
 import { formatDuration, formatLongDate, formatPrice } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { buildReminderMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 
 export const metadata: Metadata = { title: "Marcação" };
 
@@ -27,6 +31,19 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/marc
   if (!result) notFound();
   const { appointment, conflicts, isPast } = result;
   const open = appointment.status === "pending" || appointment.status === "declined";
+  const { tenantId } = await requireAdmin();
+  const today = lisbonDay(new Date());
+  const [tenant, clientId] = await Promise.all([
+    getTenantById(tenantId),
+    appointment.phone ? getClientIdForPhone(tenantId, appointment.phone) : null,
+  ]);
+  const reminderUrl =
+    appointment.phone && appointment.status === "confirmed" && appointment.date >= today
+      ? buildWhatsAppUrl(
+          appointment.phone,
+          buildReminderMessage({ ...appointment, studioName: tenant?.name ?? "", today }),
+        )
+      : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -95,6 +112,30 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/marc
               <WhatsappLogoIcon size={20} weight="fill" aria-hidden="true" />
               {formatPhone(appointment.phone)}
             </a>
+            {(reminderUrl || clientId) && (
+              <div className="mt-2 mb-4 flex flex-wrap gap-2">
+                {reminderUrl && (
+                  <a
+                    href={reminderUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 font-semibold text-on-accent hover:bg-accent-hover"
+                  >
+                    <BellRingingIcon size={18} aria-hidden="true" />
+                    Enviar lembrete
+                  </a>
+                )}
+                {clientId && (
+                  <Link
+                    href={`/admin/clientes/${clientId}`}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full px-5 font-semibold text-accent ring-1 ring-line-strong hover:bg-peach-50"
+                  >
+                    <AddressBookIcon size={18} aria-hidden="true" />
+                    Ver ficha da cliente
+                  </Link>
+                )}
+              </div>
+            )}
             <p className="mb-4 text-sm text-ink-muted">
               Os moldes ficam guardados neste número e aparecem em todas as marcações desta cliente.
             </p>

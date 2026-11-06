@@ -8,6 +8,7 @@ import { signIn } from "@/auth";
 import { requireAdmin } from "../auth/dal";
 import { consumeAuthToken, createAuthToken, lastTokenAt } from "../auth/tokens";
 import { createCheckoutUrl } from "../billing/checkout";
+import { findReferrer } from "../billing/referral";
 import { publishIfReady } from "../billing/subscription";
 import { CACHE_TAGS } from "../constants";
 import { connectDB } from "../db/connect";
@@ -61,9 +62,18 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   await connectDB();
   const passwordHash = await bcrypt.hash(password, 12);
 
+  // An unknown or inactive code is ignored rather than refused: it's only a bonus.
+  const referrer = await findReferrer(formData.get("ref"));
+
   let tenant;
   try {
-    tenant = await Tenant.create({ slug, name: studioName, whatsappNumber, status: "pending" });
+    tenant = await Tenant.create({
+      slug,
+      name: studioName,
+      whatsappNumber,
+      status: "pending",
+      ...(referrer && { referredBy: referrer.id }),
+    });
   } catch (error) {
     if (!isDuplicate(error)) throw error;
     return { status: "error", message: "Corrija os campos assinalados.", fieldErrors: { slug: ["Este endereço já está ocupado."] }, values };

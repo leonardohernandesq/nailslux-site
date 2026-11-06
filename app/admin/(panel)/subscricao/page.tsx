@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BillingButton } from "@/components/admin/billing-button";
+import { ReferralCard } from "@/components/admin/referral-card";
+import { getReferralStats, REFERRAL_CREDIT_CENTS, referralUrl } from "@/lib/billing/referral";
+import { formatPrice } from "@/lib/format";
 import { requireAdmin } from "@/lib/auth/dal";
 import { MANAGED_IN_PORTAL } from "@/lib/billing/subscription";
 import { getTenantById } from "@/lib/data/tenants";
@@ -20,7 +23,7 @@ const STATUS: Record<string, { label: string; text: string }> = {
 
 export default async function BillingPage({ searchParams }: PageProps<"/admin/subscricao">) {
   const { tenantId } = await requireAdmin();
-  const tenant = await getTenantById(tenantId);
+  const [tenant, referrals] = await Promise.all([getTenantById(tenantId), getReferralStats(tenantId)]);
   if (!tenant) notFound();
   const { pago } = await searchParams;
 
@@ -47,6 +50,14 @@ export default async function BillingPage({ searchParams }: PageProps<"/admin/su
           </>
         )}
       </div>
+      <ReferralCard
+        url={referralUrl(tenant.slug)}
+        creditLabel={formatPrice(REFERRAL_CREDIT_CENTS)}
+        signedUp={referrals.signedUp}
+        rewarded={referrals.rewarded}
+        active={tenant.status === "active"}
+        billedDirectly={billedDirectly}
+      />
     </>
   );
 }

@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheckIcon, ChartBarIcon, GearSixIcon, HandHeartIcon, ImageIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, CalendarCheckIcon, ChartBarIcon, GearSixIcon, HandHeartIcon, ImageIcon } from "@phosphor-icons/react";
 
+// `short` is what fits under the icon on phones, where six tabs share the width.
 const LINKS = [
-  { href: "/admin/marcacoes", label: "Marcações", icon: CalendarCheckIcon },
-  { href: "/admin/servicos", label: "Serviços", icon: HandHeartIcon },
-  { href: "/admin/portfolio", label: "Portfólio", icon: ImageIcon },
-  { href: "/admin/estatisticas", label: "Estatísticas", icon: ChartBarIcon },
-  { href: "/admin/definicoes", label: "Definições", icon: GearSixIcon },
+  { href: "/admin/marcacoes", label: "Marcações", short: "Agenda", icon: CalendarCheckIcon },
+  { href: "/admin/clientes", label: "Clientes", short: "Clientes", icon: AddressBookIcon },
+  { href: "/admin/servicos", label: "Serviços", short: "Serviços", icon: HandHeartIcon },
+  { href: "/admin/portfolio", label: "Portfólio", short: "Fotos", icon: ImageIcon },
+  { href: "/admin/estatisticas", label: "Estatísticas", short: "Números", icon: ChartBarIcon },
+  { href: "/admin/definicoes", label: "Definições", short: "Ajustes", icon: GearSixIcon },
 ];
 
 export function AdminNav() {
@@ -17,8 +19,8 @@ export function AdminNav() {
   return (
     <nav aria-label="Painel">
       {/* Phones: equal tabs with the icon above the label, so they always fit. */}
-      <ul className="grid grid-cols-5 gap-1 sm:flex">
-        {LINKS.map(({ href, label, icon: Icon }) => {
+      <ul className="grid grid-cols-6 gap-1 sm:flex">
+        {LINKS.map(({ href, label, short, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
             <li key={href}>
@@ -30,7 +32,8 @@ export function AdminNav() {
                 }`}
               >
                 <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden="true" />
-                {label}
+                <span className="sm:hidden">{short}</span>
+                <span className="hidden sm:inline">{label}</span>
               </Link>
             </li>
           );

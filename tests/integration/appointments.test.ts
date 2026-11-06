@@ -10,7 +10,7 @@ vi.mock("@/lib/auth/dal", () => ({
   }),
 }));
 vi.mock("next/cache", () => ({ refresh: vi.fn(), updateTag: vi.fn(), cacheTag: vi.fn(), cacheLife: vi.fn() }));
-vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
+vi.mock("next/server", () => ({ connection: vi.fn(async () => {}), after: vi.fn() }));
 
 const { connectDB, disconnectDB } = await import("@/lib/db/connect");
 const { Appointment, Client, Service, Tenant } = await import("@/lib/db/models");

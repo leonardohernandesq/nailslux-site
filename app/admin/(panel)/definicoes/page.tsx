@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AgendaSettings } from "@/components/admin/agenda-settings";
 import { BrandSettings } from "@/components/admin/brand-settings";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { TimeOffManager } from "@/components/admin/time-off-manager";
+import { lisbonDay } from "@/lib/analytics/server";
 import { requireAdmin } from "@/lib/auth/dal";
-import { getTenantById } from "@/lib/data/tenants";
+import { getPanelSettings, getTenantById } from "@/lib/data/tenants";
+import { canSendMail } from "@/lib/mail";
 
 export const metadata: Metadata = { title: "Definições" };
 
@@ -12,9 +16,11 @@ export const metadata: Metadata = { title: "Definições" };
 export const instant = false;
 
 export default async function SettingsPage({ searchParams }: PageProps<"/admin/definicoes">) {
-  const { tenantId } = await requireAdmin();
-  const tenant = await getTenantById(tenantId);
+  const { tenantId, email } = await requireAdmin();
+  const today = lisbonDay(new Date());
+  const [tenant, panel] = await Promise.all([getTenantById(tenantId), getPanelSettings(tenantId, today)]);
   if (!tenant) notFound();
+  const base = process.env.SITE_URL ?? "http://localhost:3000";
   const { novo } = await searchParams;
 
   return (
@@ -27,6 +33,13 @@ export default async function SettingsPage({ searchParams }: PageProps<"/admin/d
       </p>
       <BrandSettings brand={tenant.brand} />
       <SettingsForm tenant={tenant} />
+      <TimeOffManager timeOff={panel.timeOff} today={today} />
+      <AgendaSettings
+        calendarUrl={panel.calendarToken ? `${base}/api/agenda/${panel.calendarToken}` : null}
+        notifyNewBookings={panel.notifyNewBookings}
+        email={email}
+        mailReady={canSendMail()}
+      />
       <p className="mt-6 text-center">
         <Link href="/admin/subscricao" className="inline-flex min-h-11 items-center font-semibold text-accent hover:underline">
           Ver subscrição

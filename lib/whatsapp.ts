@@ -39,3 +39,29 @@ export function buildBookingMessage(
 export function buildWhatsAppUrl(phoneDigits: string, message: string): string {
   return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
 }
+
+/** The day after `isoDate`, as "YYYY-MM-DD" (calendar dates, no timezones involved). */
+function nextDay(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
+/** A friendly reminder the studio sends the client from its own WhatsApp. */
+export function buildReminderMessage(appointment: {
+  name: string;
+  serviceNames: readonly string[];
+  date: string;
+  time: string;
+  studioName: string;
+  today: string;
+}): string {
+  const { name, serviceNames, date, time, studioName, today } = appointment;
+  const firstName = name.trim().split(/\s+/)[0];
+  const day =
+    date === today ? "hoje" : date === nextDay(today) ? `amanhã, ${formatLongDate(date).replace(/ de \d{4}$/, "")}` : formatLongDate(date);
+  return [
+    `Olá, ${firstName}! Lembramos a sua marcação ${day}, às ${time} (${serviceNames.join(", ")}).`,
+    "Se precisar de mudar a hora, responda a esta mensagem. Até já!",
+    `— ${studioName}`,
+  ].join("\n");
+}

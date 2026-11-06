@@ -7,8 +7,8 @@ import type { ClientMolds } from "@/lib/data/appointments";
 import { MoldInput } from "./mold-input";
 import { SubmitButton } from "./submit-button";
 
-const HAND = ["Polegar", "Indicador", "Médio", "Anelar", "Mindinho"] as const;
-const FOOT = ["Dedão", "2.º dedo", "3.º dedo", "4.º dedo", "Mindinho"] as const;
+export const HAND = ["Polegar", "Indicador", "Médio", "Anelar", "Mindinho"] as const;
+export const FOOT = ["Dedão", "2.º dedo", "3.º dedo", "4.º dedo", "Mindinho"] as const;
 
 /** Hand and foot mold sizes, saved on the client's WhatsApp number. */
 export function ClientMoldsForm({ appointmentId, molds }: { appointmentId: string; molds: ClientMolds }) {
