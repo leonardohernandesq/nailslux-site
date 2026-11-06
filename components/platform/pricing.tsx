@@ -7,8 +7,10 @@ const INCLUDED = [
   "Site com a marca do seu studio",
   "Marcações online e pedidos no WhatsApp",
   "Agenda sem sobreposições",
-  "Portfólio e moldes de cada cliente",
-  "Estatísticas do site",
+  "Ficha e histórico de cada cliente",
+  "Agenda no calendário do telemóvel",
+  "Aviso de cada pedido por email",
+  "Portfólio e estatísticas do site",
 ];
 
 export function Pricing() {

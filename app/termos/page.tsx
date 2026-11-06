@@ -3,7 +3,6 @@ import { LegalPage, type LegalSection } from "@/components/platform/legal-page";
 import { formatPrice } from "@/lib/format";
 import { PLANS } from "@/lib/plans";
 import { PLATFORM } from "@/lib/site";
-import { REFERRAL_CREDIT_CENTS } from "@/lib/billing/referral";
 
 export const metadata: Metadata = { title: "Termos de utilização" };
 
@@ -36,8 +35,8 @@ const SECTIONS: LegalSection[] = [
   {
     title: "Indicações",
     body: [
-      `Cada studio tem um link de indicação. Quando um novo studio se regista por esse link e a primeira subscrição fica ativa, cada um recebe um crédito de ${formatPrice(REFERRAL_CREDIT_CENTS)} na sua conta de pagamento, descontado automaticamente nas faturas seguintes. Studios pagos fora da Stripe não recebem crédito; o studio indicado recebe-o na mesma.`,
-      "O crédito é atribuído uma vez por studio indicado, não é convertível em dinheiro e perde-se se a conta for encerrada.",
+      "Cada studio tem um link de indicação. Quando um novo studio se regista por esse link e a primeira subscrição fica ativa, cada um ganha um mês grátis: a próxima cobrança passa um mês para a frente, sem custo nesse mês. Studios pagos fora da Stripe, ou sem subscrição ativa nesse momento, não recebem o mês; o studio indicado recebe-o na mesma.",
+      "O mês grátis é atribuído uma vez por studio indicado e não é convertível em dinheiro.",
     ],
   },
   {

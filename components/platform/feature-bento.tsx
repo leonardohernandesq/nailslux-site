@@ -1,7 +1,10 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import {
+  AddressBookIcon,
   CalendarCheckIcon,
+  CalendarDotsIcon,
+  EnvelopeSimpleIcon,
   ChartLineUpIcon,
   HandIcon,
   ImagesIcon,
@@ -22,6 +25,7 @@ function Card({
   text,
   wide = false,
   wideLg = false,
+  wideMd = false,
   children,
 }: {
   icon: Icon;
@@ -30,13 +34,15 @@ function Card({
   /** Spans two columns from tablets up; `wideLg` only on the three-column desktop grid. */
   wide?: boolean;
   wideLg?: boolean;
+  /** Spans two columns on tablets only, to fill the two-column grid. */
+  wideMd?: boolean;
   children: ReactNode;
 }) {
   return (
     <li
       data-spotlight
       className={`spotlight group relative flex flex-col overflow-hidden rounded-[1.75rem] bg-surface p-6 shadow-soft ring-1 ring-line transition-[box-shadow,translate] duration-500 ease-(--ease-out-soft) hover:-translate-y-1 hover:shadow-lift sm:p-7 ${
-        wide ? "md:col-span-2" : wideLg ? "lg:col-span-2" : ""
+        wide ? "md:col-span-2" : wideLg ? "lg:col-span-2" : wideMd ? "md:col-span-2 lg:col-span-1" : ""
       }`}
     >
       <div aria-hidden="true" className="relative mb-6 flex h-36 items-center justify-center overflow-hidden rounded-2xl bg-peach-50">
@@ -143,6 +149,52 @@ export function FeatureBento() {
               className={`flex-1 origin-bottom rounded-t-md bg-gradient-to-t from-brand-coral to-gold ${MOVE} scale-y-50 group-hover:scale-y-100`}
             />
           ))}
+        </div>
+      </Card>
+
+      <Card wideMd icon={AddressBookIcon} title="Ficha e histórico de cada cliente" text="Visitas, total gasto, última e próxima marcação, moldes e as suas notas, numa só ficha.">
+        <div className="flex w-60 flex-col gap-2">
+          {[
+            { name: "Maria", visits: "12 visitas", tone: "bg-brand-flame" },
+            { name: "Joana", visits: "5 visitas", tone: "bg-gold" },
+            { name: "Rita", visits: "2 visitas", tone: "bg-ink" },
+          ].map((client, index) => (
+            <span
+              key={client.name}
+              style={{ transitionDelay: `${index * 60}ms` }}
+              className={`flex items-center gap-2.5 rounded-xl bg-surface px-3 py-2 text-xs shadow-soft ${MOVE} ${index === 0 ? "group-hover:scale-105" : "group-hover:translate-x-2"}`}
+            >
+              <span className={`grid size-6 place-items-center rounded-full text-[0.65rem] font-bold text-white ${client.tone}`}>{client.name[0]}</span>
+              <span className="flex-1 font-bold">{client.name}</span>
+              <span className="text-ink-muted">{client.visits}</span>
+            </span>
+          ))}
+        </div>
+      </Card>
+
+      <Card icon={CalendarDotsIcon} title="Agenda no seu calendário" text="As marcações confirmadas aparecem sozinhas no Google Calendar, no iPhone ou no Outlook.">
+        <div className="w-48 overflow-hidden rounded-2xl bg-surface shadow-soft">
+          <p className="bg-ink px-3 py-1.5 text-xs font-bold text-gold">Sábado, 8</p>
+          <div className="flex flex-col gap-1.5 p-2.5">
+            {["10:30 · Maria · Verniz gel", "14:00 · Joana · Pedicure"].map((event, index) => (
+              <span
+                key={event}
+                style={{ transitionDelay: `${index * 80}ms` }}
+                className={`rounded-lg border-l-4 border-brand-flame bg-peach-50 px-2 py-1 text-[0.68rem] font-semibold ${MOVE} ${index === 1 ? "translate-x-3 opacity-0 group-hover:translate-x-0 group-hover:opacity-100" : ""}`}
+              >
+                {event}
+              </span>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card icon={EnvelopeSimpleIcon} title="Aviso de cada pedido" text="Recebe um email sempre que chega uma marcação nova, com tudo o que precisa para confirmar.">
+        <div className="relative">
+          <EnvelopeSimpleIcon size={64} weight="duotone" className={`text-gold-deep ${MOVE} group-hover:-rotate-6 group-hover:scale-110`} />
+          <span className={`absolute -top-1 -right-2 grid size-6 place-items-center rounded-full bg-brand-flame text-xs font-bold text-white ring-4 ring-peach-50 ${MOVE} scale-0 group-hover:scale-100`}>
+            1
+          </span>
         </div>
       </Card>
     </ul>

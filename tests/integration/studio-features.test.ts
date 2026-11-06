@@ -202,28 +202,60 @@ describe("calendar feed", () => {
 });
 
 describe("referrals", () => {
+  const PERIOD_END = Date.UTC(2026, 11, 6) / 1000; // 6 Dec 2026
   const subscription = (tenantId: string, customer: string) =>
-    ({ id: `sub_${tenantId}`, status: "active", metadata: { tenantId }, customer, items: { data: [{ price: { unit_amount: 999, recurring: { interval: "month" } } }] } }) as unknown as Stripe.Subscription;
+    ({
+      id: `sub_${tenantId}`,
+      status: "active",
+      metadata: { tenantId },
+      customer,
+      trial_end: null,
+      items: { data: [{ current_period_end: PERIOD_END, price: { unit_amount: 999, recurring: { interval: "month" } } }] },
+    }) as unknown as Stripe.Subscription;
 
-  it("credits both studios once, when the referred one starts paying", async () => {
-    await Tenant.updateOne({ _id: TENANT_ID }, { stripeCustomerId: "cus_referrer" });
-    await Tenant.create({ _id: OTHER_ID, slug: "novo", name: "Novo", whatsappNumber: "351911111111", status: "pending", referredBy: TENANT_ID });
-    const credit = vi.spyOn(getStripe().customers, "createBalanceTransaction").mockResolvedValue({} as never);
+  /** Stripe's side: both studios' subscriptions, and a spy on the extensions. */
+  function stripeWithSubscriptions() {
+    const stripe = getStripe();
+    vi.spyOn(stripe.subscriptions, "retrieve").mockImplementation((async (id: string) =>
+      subscription(id.replace("sub_", ""), "cus_x")) as never);
+    return vi.spyOn(stripe.subscriptions, "update").mockResolvedValue({} as never);
+  }
+
+  const referredStudio = () =>
+    Tenant.create({ _id: OTHER_ID, slug: "novo", name: "Novo", whatsappNumber: "351911111111", status: "pending", referredBy: TENANT_ID });
+
+  it("gives both studios a free month once, when the referred one starts paying", async () => {
+    await Tenant.updateOne({ _id: TENANT_ID }, { stripeSubscriptionId: `sub_${TENANT_ID}`, subscriptionStatus: "active" });
+    await referredStudio();
+    const update = stripeWithSubscriptions();
 
     await applySubscription(subscription(OTHER_ID, "cus_new"));
     await applySubscription(subscription(OTHER_ID, "cus_new")); // the webhook again
 
-    expect(credit).toHaveBeenCalledTimes(2);
-    expect(credit).toHaveBeenCalledWith("cus_new", expect.objectContaining({ amount: -999, currency: "eur" }), expect.anything());
-    expect(credit).toHaveBeenCalledWith("cus_referrer", expect.objectContaining({ amount: -999 }), expect.anything());
-    expect((await Tenant.findById(OTHER_ID).lean())?.referralRewardedAt).toBeInstanceOf(Date);
+    // The next charge moves from 6 Dec to 6 Jan, with nothing charged or refunded now.
+    const nextMonth = Date.UTC(2027, 0, 6) / 1000;
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update).toHaveBeenCalledWith(`sub_${OTHER_ID}`, { trial_end: nextMonth, proration_behavior: "none" }, expect.anything());
+    expect(update).toHaveBeenCalledWith(`sub_${TENANT_ID}`, { trial_end: nextMonth, proration_behavior: "none" }, expect.anything());
+    const referred = await Tenant.findById(OTHER_ID).lean();
+    expect(referred?.referredFreeMonthAt).toBeInstanceOf(Date);
+    expect(referred?.referrerFreeMonthAt).toBeInstanceOf(Date);
   });
 
-  it("releases the claim when Stripe fails, so the webhook's retry can credit", async () => {
-    await Tenant.create({ _id: OTHER_ID, slug: "novo", name: "Novo", whatsappNumber: "351911111111", status: "pending", referredBy: TENANT_ID });
-    vi.spyOn(getStripe().customers, "createBalanceTransaction").mockRejectedValue(new Error("stripe down"));
+  it("only rewards the new studio when the referrer isn't billed through Stripe", async () => {
+    await referredStudio();
+    const update = stripeWithSubscriptions();
+
+    await applySubscription(subscription(OTHER_ID, "cus_new"));
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith(`sub_${OTHER_ID}`, expect.anything(), expect.anything());
+  });
+
+  it("releases the claim when Stripe fails, so the webhook's retry can extend", async () => {
+    await referredStudio();
+    stripeWithSubscriptions().mockRejectedValue(new Error("stripe down"));
 
     await expect(applySubscription(subscription(OTHER_ID, "cus_new"))).rejects.toThrow("stripe down");
-    expect((await Tenant.findById(OTHER_ID).lean())?.referralRewardedAt).toBeUndefined();
+    expect((await Tenant.findById(OTHER_ID).lean())?.referredFreeMonthAt).toBeUndefined();
   });
 });

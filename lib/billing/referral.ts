@@ -2,49 +2,57 @@ import "server-only";
 import type { Types } from "mongoose";
 import { connectDB } from "../db/connect";
 import { Tenant } from "../db/models";
-import { formatPrice } from "../format";
-import { PLANS } from "../plans";
-import { getStripe } from "../stripe";
-
-/** What each side of a referral gets: one month of the monthly plan, as account credit. */
-export const REFERRAL_CREDIT_CENTS = PLANS[0].priceCents;
+import { extendSubscription } from "./free-time";
 
 /** The sign-up link a studio shares. Its slug is the code: readable, and already unique. */
 export const referralUrl = (slug: string) => `${process.env.SITE_URL ?? "http://localhost:3000"}/registo?ref=${slug}`;
 
+const PAYING = ["active", "trialing"];
+
+type Side = "referred" | "referrer";
+const DONE_FIELD = { referred: "referredFreeMonthAt", referrer: "referrerFreeMonthAt" } as const;
+
 /**
- * Credits both studios once the referred one's first subscription is paying.
- * Claimed in the database first, so two webhook deliveries can't credit twice;
- * if Stripe fails, the claim is released and Stripe's retry of the webhook tries
- * again (the idempotency keys keep a half-done attempt from crediting twice).
- * A referrer billed outside Stripe has no Stripe balance, so only the new studio
- * is credited.
+ * Runs one side of the reward once: it's claimed in the database first, so two
+ * webhook deliveries can't both extend; if Stripe fails, the claim is released
+ * and Stripe's retry of the webhook tries again.
+ */
+async function rewardSide(referredId: string, side: Side, subscriptionId: string | null | undefined): Promise<void> {
+  if (!subscriptionId) return;
+  const field = DONE_FIELD[side];
+  const claimed = await Tenant.updateOne({ _id: referredId, [field]: null }, { [field]: new Date() });
+  if (claimed.modifiedCount === 0) return;
+
+  try {
+    // A free month: the next charge moves a month later (see extendSubscription).
+    const extended = await extendSubscription(subscriptionId, { amount: 1, unit: "months" }, `referral-${referredId}-${side}`);
+    if (!extended) await Tenant.updateOne({ _id: referredId }, { $unset: { [field]: 1 } });
+  } catch (error) {
+    await Tenant.updateOne({ _id: referredId }, { $unset: { [field]: 1 } });
+    throw error;
+  }
+}
+
+/**
+ * When a studio that signed up through a referral link starts paying, it and the
+ * studio that referred it each get a free month. A referrer billed outside Stripe,
+ * or without a paying subscription, has nothing to extend, so only the new studio
+ * gains.
  */
 export async function rewardReferral(tenantId: Types.ObjectId | string): Promise<void> {
   await connectDB();
-  const claimed = await Tenant.findOneAndUpdate(
-    { _id: tenantId, referredBy: { $ne: null }, referralRewardedAt: null, stripeCustomerId: { $ne: null } },
-    { referralRewardedAt: new Date() },
-    { projection: { referredBy: 1, stripeCustomerId: 1 } },
+  const referred = await Tenant.findOne(
+    { _id: tenantId, referredBy: { $ne: null } },
+    { referredBy: 1, stripeSubscriptionId: 1, subscriptionStatus: 1 },
   ).lean();
-  if (!claimed?.referredBy || !claimed.stripeCustomerId) return;
+  if (!referred?.referredBy || !PAYING.includes(referred.subscriptionStatus ?? "")) return;
 
-  const referrer = await Tenant.findById(claimed.referredBy, { name: 1, stripeCustomerId: 1 }).lean();
-  const credit = (customer: string, side: "referred" | "referrer", description: string) =>
-    getStripe().customers.createBalanceTransaction(
-      customer,
-      { amount: -REFERRAL_CREDIT_CENTS, currency: "eur", description },
-      { idempotencyKey: `referral-${String(tenantId)}-${side}` },
-    );
+  const id = String(tenantId);
+  await rewardSide(id, "referred", referred.stripeSubscriptionId);
 
-  try {
-    await credit(claimed.stripeCustomerId, "referred", `Crédito de boas-vindas por indicação (${formatPrice(REFERRAL_CREDIT_CENTS)})`);
-    if (referrer?.stripeCustomerId) {
-      await credit(referrer.stripeCustomerId, "referrer", `Crédito por indicar um studio (${formatPrice(REFERRAL_CREDIT_CENTS)})`);
-    }
-  } catch (error) {
-    await Tenant.updateOne({ _id: tenantId }, { $unset: { referralRewardedAt: 1 } });
-    throw error;
+  const referrer = await Tenant.findById(referred.referredBy, { stripeSubscriptionId: 1, subscriptionStatus: 1 }).lean();
+  if (referrer && PAYING.includes(referrer.subscriptionStatus ?? "")) {
+    await rewardSide(id, "referrer", referrer.stripeSubscriptionId);
   }
 }
 
@@ -56,11 +64,29 @@ export async function findReferrer(code: unknown): Promise<{ id: string; name: s
   return tenant ? { id: String(tenant._id), name: tenant.name } : null;
 }
 
-export async function getReferralStats(tenantId: string): Promise<{ signedUp: number; rewarded: number }> {
+export type ReferredStudio = {
+  name: string;
+  joinedAt: string;
+  /** Has an active or trialing subscription now. */
+  paying: boolean;
+  /** The referrer's free month for this studio has been given. */
+  rewarded: boolean;
+};
+
+/** Studios that signed up through this one's link, newest first. */
+export async function getReferredStudios(tenantId: string): Promise<ReferredStudio[]> {
   await connectDB();
-  const [signedUp, rewarded] = await Promise.all([
-    Tenant.countDocuments({ referredBy: tenantId }),
-    Tenant.countDocuments({ referredBy: tenantId, referralRewardedAt: { $ne: null } }),
-  ]);
-  return { signedUp, rewarded };
+  const docs = await Tenant.find(
+    { referredBy: tenantId },
+    { name: 1, createdAt: 1, subscriptionStatus: 1, referrerFreeMonthAt: 1 },
+  )
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+  return docs.map((doc) => ({
+    name: doc.name,
+    joinedAt: (doc.createdAt ?? new Date(0)).toISOString(),
+    paying: PAYING.includes(doc.subscriptionStatus ?? ""),
+    rewarded: Boolean(doc.referrerFreeMonthAt),
+  }));
 }

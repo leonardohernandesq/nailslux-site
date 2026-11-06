@@ -22,6 +22,11 @@ const QUESTIONS = [
     answer: `Sim, sempre que quiser. No painel muda serviços, preços, durações, horários e até ${PORTFOLIO_MAX_ITEMS} fotografias, e o site atualiza na hora.`,
   },
   {
+    question: "Como funciona o mês grátis por indicação?",
+    answer:
+      "No painel tem um link para partilhar. Quando outro studio cria conta por esse link e ativa a subscrição, a próxima cobrança de cada um passa um mês para a frente. Se indicar três studios, ganha três meses.",
+  },
+  {
     question: "Posso cancelar quando quiser?",
     answer: "Sim. Cancela na área Subscrição do painel e o acesso mantém-se até ao fim do período já pago.",
   },

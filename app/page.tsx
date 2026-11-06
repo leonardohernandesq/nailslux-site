@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRightIcon } from "@phosphor-icons/react/ssr";
+import { ArrowRightIcon, GiftIcon } from "@phosphor-icons/react/ssr";
 import { PageMotion } from "@/components/motion/page-motion";
 import { BookingStory } from "@/components/platform/booking-story";
 import { Faq } from "@/components/platform/faq";
@@ -35,8 +35,10 @@ const FEATURES = [
   "Marcações online",
   "Pedidos no WhatsApp",
   "Agenda sem sobreposições",
+  "Ficha de cada cliente",
+  "Agenda no seu calendário",
+  "Aviso de pedidos por email",
   "Portfólio",
-  "Moldes de cada cliente",
   "Estatísticas do site",
 ];
 
@@ -290,6 +292,28 @@ export default async function PlatformHome() {
               Escolha pagar ao mês ou ao ano.
             </SectionHeading>
             <Pricing />
+          </div>
+        </section>
+
+        <section aria-labelledby="indicar-title" className="px-4 pb-16 sm:px-6 sm:pb-24">
+          <div
+            data-reveal
+            className="relative mx-auto flex max-w-5xl flex-col items-center gap-6 overflow-hidden rounded-[2rem] bg-surface p-8 text-center shadow-soft ring-1 ring-line sm:p-12 md:flex-row md:text-left"
+          >
+            <span aria-hidden="true" className="absolute -right-16 -bottom-20 size-64 rounded-full bg-gold/15 blur-3xl" />
+            <span aria-hidden="true" className="relative grid size-20 shrink-0 place-items-center rounded-full bg-ink text-gold shadow-lift">
+              <GiftIcon size={40} weight="duotone" />
+            </span>
+            <div className="relative flex-1">
+              <p className="text-sm font-bold tracking-[0.18em] text-accent uppercase">Indique e ganhe</p>
+              <h2 id="indicar-title" className="font-display mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
+                Um mês grátis <em className={LUXE_ON_LIGHT}>para os dois studios</em>
+              </h2>
+              <p className="mt-2 max-w-[52ch] text-ink-muted">
+                Cada studio tem um link para partilhar. Quando outro studio cria o site por esse link e ativa a subscrição,
+                ganham os dois um mês sem pagar.
+              </p>
+            </div>
           </div>
         </section>
 

@@ -66,9 +66,27 @@ const tenantSchema = new Schema(
     calendarToken: { type: String },
     // Email the owner when a booking request arrives.
     notifyNewBookings: { type: Boolean, default: true },
-    // The studio whose link this one signed up through, and when both got their credit.
+    // The studio whose link this one signed up through, and when each side got its
+    // free month (see lib/billing/referral.ts).
     referredBy: { type: Schema.Types.ObjectId, ref: "Tenant" },
-    referralRewardedAt: { type: Date },
+    referredFreeMonthAt: { type: Date },
+    referrerFreeMonthAt: { type: Date },
+    // Free time given by hand from the backoffice, newest last.
+    accessGrants: {
+      type: [
+        new Schema(
+          {
+            at: { type: Date, required: true },
+            by: { type: String, required: true },
+            amount: { type: Number, required: true },
+            unit: { type: String, enum: ["days", "months"], required: true },
+            until: { type: Date, required: true },
+          },
+          { _id: false },
+        ),
+      ],
+      default: undefined,
+    },
   },
   { timestamps: true },
 );

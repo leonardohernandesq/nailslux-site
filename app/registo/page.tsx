@@ -6,8 +6,7 @@ import { AuthShell } from "@/components/platform/auth-shell";
 import { RegisterForm } from "@/components/platform/register-form";
 import { buttonClasses } from "@/components/ui/button";
 import { GiftIcon } from "@phosphor-icons/react/ssr";
-import { findReferrer, REFERRAL_CREDIT_CENTS } from "@/lib/billing/referral";
-import { formatPrice } from "@/lib/format";
+import { findReferrer } from "@/lib/billing/referral";
 import { toPlan } from "@/lib/plans";
 import { isRegistrationOpen } from "@/lib/site";
 
@@ -53,7 +52,7 @@ async function RegisterWithPlan({ searchParams }: Pick<PageProps<"/registo">, "s
           <GiftIcon size={22} weight="duotone" aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
           <span>
             Convite do studio <strong>{referrer.name}</strong>: quando a sua subscrição ficar ativa, ganha{" "}
-            <strong>{formatPrice(REFERRAL_CREDIT_CENTS)}</strong> de crédito, o valor de um mês.
+            <strong>um mês grátis</strong>.
           </span>
         </p>
       )}

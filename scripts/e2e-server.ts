@@ -56,6 +56,9 @@ async function main() {
         AUTH_SECRET: "e2e-only-secret-not-for-production-000000",
         REGISTRATION_OPEN: "true",
         NEXT_DIST_DIR: ".next-e2e",
+        // The tests run without Stripe even when .env.local has test keys; set
+        // E2E_STRIPE=1 to keep them for trying payments against a sandbox by hand.
+        ...(!process.env.E2E_STRIPE && { STRIPE_SECRET_KEY: "", STRIPE_PRICE_ID: "", STRIPE_PRICE_ID_YEARLY: "", STRIPE_WEBHOOK_SECRET: "" }),
         NEXT_TELEMETRY_DISABLED: "1",
       },
     },

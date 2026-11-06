@@ -3,27 +3,27 @@
 import { useState } from "react";
 import { CheckIcon, CopyIcon, GiftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import type { ReferredStudio } from "@/lib/billing/referral";
 
-/** The studio's referral link, with how many studios signed up through it. */
+const joined = new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "short", year: "numeric" });
+
+/** The studio's referral link, and the studios that signed up through it. */
 export function ReferralCard({
   url,
-  creditLabel,
-  signedUp,
-  rewarded,
+  referred,
   active,
   billedDirectly,
 }: {
   url: string;
-  creditLabel: string;
-  signedUp: number;
-  rewarded: number;
+  referred: ReferredStudio[];
   /** Links only work once the studio's own site is published. */
   active: boolean;
-  /** Without a Stripe account there's no balance to credit, so only the new studio gains. */
+  /** Without a Stripe subscription there's nothing to extend, so only the new studio gains. */
   billedDirectly: boolean;
 }) {
   const [copied, setCopied] = useState(false);
-  const share = `Uso o Nailo App para as marcações do meu studio. Cria o teu site por aqui e ganhas ${creditLabel} de crédito: ${url}`;
+  const freeMonths = referred.filter((studio) => studio.rewarded).length;
+  const share = `Uso o Nailo App para as marcações do meu studio. Cria o teu site por aqui e ganhas um mês grátis: ${url}`;
 
   async function copy() {
     await navigator.clipboard.writeText(url);
@@ -39,8 +39,8 @@ export function ReferralCard({
       </h2>
       <p>
         Quando um studio cria conta pelo seu link e a subscrição fica ativa,{" "}
-        <strong>{billedDirectly ? "esse studio ganha" : "os dois ganham"} {creditLabel}</strong> de crédito, o valor de um mês,
-        descontado nas faturas seguintes.
+        <strong>{billedDirectly ? "esse studio ganha um mês grátis" : "os dois ganham um mês grátis"}</strong>: a próxima
+        cobrança passa um mês para a frente.
       </p>
       {active ? (
         <>
@@ -66,11 +66,33 @@ export function ReferralCard({
               Partilhar
             </a>
           </div>
-          <p className="text-sm text-ink-muted">
-            {signedUp === 0
-              ? "Ainda nenhum studio se registou pelo seu link."
-              : `${signedUp === 1 ? "1 studio registou-se" : `${signedUp} studios registaram-se`} pelo seu link · ${rewarded} com crédito atribuído.`}
-          </p>
+          {referred.length === 0 ? (
+            <p className="text-sm text-ink-muted">Ainda nenhum studio se registou pelo seu link.</p>
+          ) : (
+            <div>
+              <h3 className="text-sm font-bold">
+                Studios que indicou ({referred.length}) ·{" "}
+                {freeMonths === 1 ? "1 mês grátis ganho" : `${freeMonths} meses grátis ganhos`}
+              </h3>
+              <ul className="mt-2 flex flex-col gap-2">
+                {referred.map((studio) => (
+                  <li key={`${studio.name}-${studio.joinedAt}`} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-peach-50 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold wrap-anywhere">{studio.name}</p>
+                      <p className="text-xs text-ink-muted">Registou-se a {joined.format(new Date(studio.joinedAt))}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
+                        studio.rewarded ? "bg-success-soft text-success" : "bg-surface text-ink-muted"
+                      }`}
+                    >
+                      {studio.rewarded ? "Mês grátis ganho" : studio.paying ? "Ativo" : "Ainda não ativou"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </>
       ) : (
         <p className="rounded-2xl bg-peach-50 p-3 text-sm text-ink-muted">O seu link fica disponível quando o site estiver publicado.</p>
