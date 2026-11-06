@@ -52,13 +52,13 @@ export function StudioCarousel({ studios }: { studios: ShowcaseStudio[] }) {
     >
       <ul ref={track} className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] motion-reduce:scroll-auto">
         {ordered.map((studio) => (
-          <li key={studio.slug} className={`shrink-0 snap-start ${several ? "w-[85%] md:w-[calc(50%-0.625rem)]" : "w-full"}`}>
+          <li key={studio.slug} className={`shrink-0 snap-start ${several ? "w-[85%]" : "w-full"} md:w-[calc(50%-0.625rem)]`}>
             <a href={`/${studio.slug}`} className="group relative block aspect-[4/3] overflow-hidden rounded-3xl bg-peach-100 shadow-soft">
               <Image
                 src={studio.banner.src}
                 alt=""
                 fill
-                sizes={several ? "(max-width: 768px) 85vw, 480px" : "(max-width: 1024px) 100vw, 960px"}
+                sizes={several ? "(max-width: 768px) 85vw, 480px" : "(max-width: 768px) 100vw, 480px"}
                 className="object-cover transition-[scale] duration-700 ease-(--ease-out-soft) group-hover:scale-105 motion-reduce:transition-none"
               />
               <span className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent" />
