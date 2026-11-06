@@ -6,7 +6,7 @@ export function SectionHeading({
 }: {
   id: string;
   eyebrow: string;
-  title: string;
+  title: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (

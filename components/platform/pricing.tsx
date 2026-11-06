@@ -20,7 +20,10 @@ export function Pricing() {
           <article
             key={plan.id}
             data-reveal
-            className={`relative flex flex-col rounded-3xl p-6 shadow-soft sm:p-8 ${yearly ? "bg-ink text-cream" : "bg-surface"}`}
+            data-tilt="4"
+            className={`relative flex flex-col rounded-3xl p-6 sm:p-8 ${
+              yearly ? "gold-ring grain bg-ink text-cream shadow-lift" : "bg-surface shadow-soft ring-1 ring-line"
+            }`}
           >
             {yearly && (
               <span className="absolute -top-4 right-6 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#ffb3a5] to-[#ff7a64] px-4 py-2 text-sm font-bold text-ink shadow-lift ring-4 ring-cream">
@@ -28,7 +31,7 @@ export function Pricing() {
                 Económico
               </span>
             )}
-            <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
+            <h3 className="font-luxe text-3xl italic">{plan.name}</h3>
             <p className="mt-3">
               <span className="font-display text-4xl font-bold tabular-nums">{formatPrice(plan.priceCents)}</span>
               <span className={yearly ? "text-cream/70" : "text-ink-muted"}> por {plan.period} + IVA</span>
@@ -44,7 +47,7 @@ export function Pricing() {
             <ul className="mt-6 flex flex-1 flex-col gap-3">
               {INCLUDED.map((item) => (
                 <li key={item} className="flex items-start gap-2">
-                  <CheckIcon size={20} weight="bold" aria-hidden="true" className={`mt-0.5 shrink-0 ${yearly ? "text-peach-200" : "text-accent"}`} />
+                  <CheckIcon size={20} weight="bold" aria-hidden="true" className={`mt-0.5 shrink-0 ${yearly ? "text-gold" : "text-accent"}`} />
                   {item}
                 </li>
               ))}

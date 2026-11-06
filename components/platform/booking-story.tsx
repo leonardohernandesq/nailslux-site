@@ -59,7 +59,7 @@ export function BookingStory() {
     <div ref={root} className="relative grid gap-10 lg:grid-cols-[1fr_auto] lg:gap-24">
       <ol className="relative flex flex-col lg:pl-10">
         <span className="absolute top-0 bottom-0 left-3 hidden w-px bg-line lg:block" />
-        <span data-story-progress className="absolute top-0 bottom-0 left-3 hidden w-px origin-top bg-accent lg:block" />
+        <span data-story-progress className="absolute top-0 bottom-0 left-3 hidden w-px origin-top bg-gradient-to-b from-accent via-brand-flame to-gold lg:block" />
         {STEPS.map(({ title, text, Screen }, index) => (
           <li
             key={title}
@@ -77,6 +77,9 @@ export function BookingStory() {
             </span>
             <div className="max-w-md">
               <p className="text-sm font-bold text-accent lg:hidden">Passo {index + 1}</p>
+              <span aria-hidden="true" className="font-luxe hidden text-6xl leading-none text-gold-deep italic lg:block">
+                {String(index + 1).padStart(2, "0")}
+              </span>
               <h3 className="font-display text-2xl leading-tight font-bold sm:text-3xl">{title}</h3>
               <p className="mt-3 text-ink-muted sm:text-lg">{text}</p>
             </div>
