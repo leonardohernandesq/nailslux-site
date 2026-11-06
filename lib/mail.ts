@@ -2,9 +2,9 @@ import "server-only";
 
 type Mail = { to: string; subject: string; text: string; html: string };
 
-/** False in production without a Resend key, when no email can reach anyone. */
+/** False in production without a Resend key and sender, when no email can reach anyone. */
 export function canSendMail(): boolean {
-  return Boolean(process.env.RESEND_API_KEY) || process.env.NODE_ENV !== "production";
+  return Boolean(process.env.RESEND_API_KEY && process.env.MAIL_FROM) || process.env.NODE_ENV !== "production";
 }
 
 /**
@@ -14,9 +14,10 @@ export function canSendMail(): boolean {
  */
 export async function sendMail(mail: Mail): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
+  const from = process.env.MAIL_FROM;
+  if (!apiKey || !from) {
     if (process.env.NODE_ENV === "production") {
-      console.error("RESEND_API_KEY is not set: email not sent.");
+      console.error("RESEND_API_KEY or MAIL_FROM is not set: email not sent.");
       return false;
     }
     console.info(`[mail] to ${mail.to}: ${mail.subject}\n${mail.text}`);
@@ -27,9 +28,9 @@ export async function sendMail(mail: Mail): Promise<boolean> {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: process.env.MAIL_FROM, ...mail }),
+      body: JSON.stringify({ from, ...mail }),
     });
-    if (!response.ok) console.error(`Resend answered ${response.status}.`);
+    if (!response.ok) console.error(`Resend answered ${response.status}: ${await response.text().catch(() => "")}`);
     return response.ok;
   } catch (error) {
     console.error("Could not reach Resend.", error);

@@ -145,6 +145,7 @@ describe("publishing", () => {
   it("asks for the confirmation again once email works", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("RESEND_API_KEY", "re_x");
+    vi.stubEnv("MAIL_FROM", "Nailo App <nao-responder@nailoapp.pt>");
     await seed({ status: "pending" });
 
     await webhook(subscription("active"));
