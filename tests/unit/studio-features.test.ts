@@ -3,7 +3,7 @@ import { buildCalendar, lisbonToDate } from "@/lib/calendar";
 import { isOpenOn, slotsFor, timeOffIntervals } from "@/lib/schedule";
 import { DEFAULT_OPENING_HOURS, type OpeningHours } from "@/lib/site";
 import { createTimeOffSchema } from "@/lib/validation/time-off";
-import { buildReminderMessage } from "@/lib/whatsapp";
+import { buildCancellationMessage, buildConfirmationMessage, buildReminderMessage } from "@/lib/whatsapp";
 
 const withTimeOff = (timeOff: OpeningHours["timeOff"]): OpeningHours => ({ ...DEFAULT_OPENING_HOURS, timeOff });
 
@@ -100,5 +100,40 @@ describe("buildReminderMessage", () => {
     const message = buildReminderMessage({ ...base, date: "2026-11-07" });
     expect(message.startsWith("Olá, Maria!")).toBe(true);
     expect(message.endsWith("— NailsLux")).toBe(true);
+  });
+});
+
+describe("buildConfirmationMessage", () => {
+  it("says it's confirmed, with the date and time", () => {
+    const message = buildConfirmationMessage({
+      name: "Maria Silva",
+      serviceNames: ["Verniz gel", "Manicure"],
+      date: "2026-11-20",
+      time: "10:30",
+      endTime: "11:45",
+      studioName: "NailsLux",
+    });
+    expect(message.startsWith("Olá, Maria! A sua marcação está confirmada.")).toBe(true);
+    expect(message).toContain("*Data:* Sexta-feira, 20 de novembro de 2026");
+    expect(message).toContain("*Hora:* 10:30–11:45");
+    expect(message).toContain("*Serviços:* Verniz gel, Manicure");
+    expect(message.endsWith("— NailsLux")).toBe(true);
+  });
+});
+
+describe("buildCancellationMessage", () => {
+  const base = { name: "Maria Silva", date: "2026-11-20", time: "10:30", studioName: "NailsLux" };
+
+  it("says it's cancelled and offers another date", () => {
+    const message = buildCancellationMessage({ ...base, bookingUrl: "https://nailslux.pt/lux" });
+    expect(message).toContain("A sua marcação de sexta-feira, 20 de novembro de 2026, às 10:30 foi cancelada.");
+    expect(message).toContain("Quer marcar para outra data?");
+    expect(message).toContain("https://nailslux.pt/lux");
+  });
+
+  it("words a declined request differently and works without a link", () => {
+    const message = buildCancellationMessage({ ...base, declined: true });
+    expect(message).toContain("não conseguimos confirmar o seu pedido");
+    expect(message).not.toContain("http");
   });
 });

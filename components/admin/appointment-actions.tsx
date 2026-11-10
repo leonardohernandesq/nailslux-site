@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { CheckCircleIcon, ProhibitIcon, WarningCircleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, ProhibitIcon, WarningCircleIcon, WhatsappLogoIcon, XCircleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { decideAppointment } from "@/lib/actions/appointments";
 import { idleState } from "@/lib/actions/form-state";
@@ -13,10 +13,13 @@ export function AppointmentActions({
   id,
   status,
   hasConflict,
+  notice,
 }: {
   id: string;
   status: AppointmentStatus;
   hasConflict: boolean;
+  /** WhatsApp message telling the client about the decision, once there is one. */
+  notice: { url: string; label: string } | null;
 }) {
   const [state, formAction] = useActionState(decideAppointment.bind(null, id), idleState);
   const [askCancel, setAskCancel] = useState(false);
@@ -38,6 +41,18 @@ export function AppointmentActions({
           )}
           {state.message}
         </p>
+      )}
+
+      {state.status === "success" && notice && (
+        <a
+          href={notice.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-6 font-semibold text-on-accent hover:bg-accent-hover sm:self-start"
+        >
+          <WhatsappLogoIcon size={22} weight="fill" aria-hidden="true" />
+          {notice.label} à cliente
+        </a>
       )}
 
       {(status === "pending" || status === "declined") && (
@@ -66,7 +81,7 @@ export function AppointmentActions({
           <div className="rounded-2xl border border-danger/25 bg-danger-soft p-4">
             <p className="font-semibold text-danger">Cancelar esta marcação?</p>
             <p className="mt-1 text-sm text-ink-muted">
-              O horário volta a ficar livre no site. Lembre-se de avisar a cliente pelo WhatsApp.
+              O horário volta a ficar livre no site. A seguir pode avisar a cliente pelo WhatsApp e propor outra data.
             </p>
             <form action={formAction} className="mt-4 flex flex-col-reverse gap-3 sm:flex-row">
               <Button variant="ghost" onClick={() => setAskCancel(false)} autoFocus>
