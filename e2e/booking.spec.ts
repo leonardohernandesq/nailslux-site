@@ -95,10 +95,14 @@ test("client books through WhatsApp", async ({ page }) => {
 
 test("empty booking shows a focused error summary", async ({ page }) => {
   await page.goto("/nailslux#marcar");
-  await page.getByRole("button", { name: "Enviar pedido pelo WhatsApp" }).click();
-
   const summary = page.getByRole("alert").filter({ hasText: "Reveja estes campos" });
-  await expect(summary).toBeVisible();
+
+  // On a cold dev server the click can land before the form hydrates and do
+  // nothing; click again until the client-side validation answers.
+  await expect(async () => {
+    await page.getByRole("button", { name: "Enviar pedido pelo WhatsApp" }).click();
+    await expect(summary).toBeVisible({ timeout: 2_000 });
+  }).toPass();
   await expect(summary).toBeFocused();
   await expect(summary).toContainText("Escolha pelo menos um serviço");
   await expect(summary).toContainText("Indique o seu nome");
