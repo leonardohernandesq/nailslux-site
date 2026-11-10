@@ -43,6 +43,9 @@ test("the studio confirms a request in the admin and the time is blocked", async
 
   // 2. The owner finds the request in Marcações and opens it.
   const owner = await browser.newPage();
+  await owner.context().route("https://wa.me/**", (route) =>
+    route.fulfill({ contentType: "text/html", body: "<title>WhatsApp stub</title>" }),
+  );
   await owner.goto("/admin/login");
   await owner.locator("#email").fill(E2E_ADMIN.email);
   await owner.locator("#password").fill(E2E_ADMIN.password);
@@ -53,8 +56,19 @@ test("the studio confirms a request in the admin and the time is blocked", async
   await expect(owner.getByText("15:00–16:00")).toBeVisible();
   await expect(owner.getByRole("article").getByText("Por confirmar")).toBeVisible();
 
+  // Confirming asks first, then opens WhatsApp with the date and time for the client.
   await owner.getByRole("button", { name: "Confirmar marcação" }).click();
+  const confirmDialog = owner.getByRole("dialog", { name: "Tem a certeza que deseja confirmar esta marcação?" });
+  await expect(confirmDialog).toBeVisible();
+  const confirmPopup = owner.waitForEvent("popup");
+  await confirmDialog.getByRole("button", { name: "Sim, confirmar" }).click();
   await expect(owner.getByRole("status").filter({ hasText: "Marcação confirmada" })).toBeVisible();
+  const confirmation = await confirmPopup;
+  await confirmation.waitForURL(/wa\.me\/351912345678/);
+  const confirmationText = new URL(confirmation.url()).searchParams.get("text") ?? "";
+  expect(confirmationText).toContain("A sua marcação está confirmada.");
+  expect(confirmationText).toContain("*Hora:* 15:00–16:00");
+  await confirmation.close();
   await expect(owner.getByRole("article").getByText("Confirmada", { exact: true })).toBeVisible();
 
   // The owner notes the client's molds; they show up in the bookings list.
@@ -81,8 +95,15 @@ test("the studio confirms a request in the admin and the time is blocked", async
 
   // 4. Cancelling frees the time again.
   await owner.getByRole("button", { name: "Cancelar marcação" }).click();
+  const cancelPopup = owner.waitForEvent("popup");
   await owner.getByRole("button", { name: "Sim, cancelar" }).click();
   await expect(owner.getByRole("status").filter({ hasText: "Marcação cancelada" })).toBeVisible();
+  const cancellation = await cancelPopup;
+  await cancellation.waitForURL(/wa\.me/);
+  const cancellationText = new URL(cancellation.url()).searchParams.get("text") ?? "";
+  expect(cancellationText).toContain("foi cancelada");
+  expect(cancellationText).toContain("Quer marcar para outra data?");
+  await cancellation.close();
 
   const later = await openForm(next.page);
   await expect(later.getByRole("radio", { name: "15:00", exact: true })).toBeEnabled();

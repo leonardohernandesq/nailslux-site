@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddressBookIcon, ArrowLeftIcon, BellRingingIcon, ChatCircleTextIcon, WarningIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
+import { AddressBookIcon, ArrowLeftIcon, BellRingingIcon, WarningIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import { AppointmentActions } from "@/components/admin/appointment-actions";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status";
 import { ClientMoldsForm } from "@/components/admin/client-molds-form";
@@ -50,33 +50,21 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/marc
         )
       : null;
 
-  // What the studio tells the client after deciding: confirmed (with the date and
-  // time) or cancelled/declined (offering another date). Only for upcoming dates.
+  // The WhatsApp message that opens once the studio decides: the confirmation
+  // with the date and time, or the cancellation offering another date.
   const studioName = tenant?.name ?? "";
-  let notice: { url: string; label: string } | null = null;
-  if (appointment.phone && appointment.date >= today) {
-    if (appointment.status === "confirmed") {
-      notice = {
-        url: buildWhatsAppUrl(appointment.phone, buildConfirmationMessage({ ...appointment, studioName })),
-        label: "Enviar confirmação",
-      };
-    } else if (appointment.status === "cancelled" || appointment.status === "declined") {
-      const bookingUrl =
-        tenant?.status === "active" ? `${process.env.SITE_URL ?? "http://localhost:3000"}/${tenant.slug}` : undefined;
-      notice = {
-        url: buildWhatsAppUrl(
+  const bookingUrl =
+    tenant?.status === "active" ? `${process.env.SITE_URL ?? "http://localhost:3000"}/${tenant.slug}` : undefined;
+  const messages = appointment.phone
+    ? {
+        confirm: buildWhatsAppUrl(appointment.phone, buildConfirmationMessage({ ...appointment, studioName })),
+        decline: buildWhatsAppUrl(
           appointment.phone,
-          buildCancellationMessage({
-            ...appointment,
-            studioName,
-            declined: appointment.status === "declined",
-            bookingUrl,
-          }),
+          buildCancellationMessage({ ...appointment, studioName, declined: true, bookingUrl }),
         ),
-        label: "Avisar do cancelamento",
-      };
-    }
-  }
+        cancel: buildWhatsAppUrl(appointment.phone, buildCancellationMessage({ ...appointment, studioName, bookingUrl })),
+      }
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -145,25 +133,14 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/marc
               <WhatsappLogoIcon size={20} weight="fill" aria-hidden="true" />
               {formatPhone(appointment.phone)}
             </a>
-            {(notice || reminderUrl || clientId) && (
+            {(reminderUrl || clientId) && (
               <div className="mt-2 mb-4 flex flex-wrap gap-2">
-                {notice && (
-                  <a
-                    href={notice.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 font-semibold text-on-accent hover:bg-accent-hover"
-                  >
-                    <ChatCircleTextIcon size={18} aria-hidden="true" />
-                    {notice.label}
-                  </a>
-                )}
                 {reminderUrl && (
                   <a
                     href={reminderUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full px-5 font-semibold text-accent ring-1 ring-line-strong hover:bg-peach-50"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 font-semibold text-on-accent hover:bg-accent-hover"
                   >
                     <BellRingingIcon size={18} aria-hidden="true" />
                     Enviar lembrete
@@ -219,7 +196,7 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/marc
         id={appointment.id}
         status={appointment.status}
         hasConflict={conflicts.length > 0}
-        notice={notice}
+        messages={messages}
       />
     </div>
   );

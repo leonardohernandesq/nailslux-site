@@ -1,29 +1,92 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { CheckCircleIcon, ProhibitIcon, WarningCircleIcon, WhatsappLogoIcon, XCircleIcon } from "@phosphor-icons/react";
+import { useId, useRef, useState, useTransition } from "react";
+import {
+  CheckCircleIcon,
+  CircleNotchIcon,
+  ProhibitIcon,
+  WarningCircleIcon,
+  XCircleIcon,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { decideAppointment } from "@/lib/actions/appointments";
-import { idleState } from "@/lib/actions/form-state";
+import { idleState, type FormState } from "@/lib/actions/form-state";
 import type { AppointmentStatus } from "@/lib/db/models";
-import { SubmitButton } from "./submit-button";
 
-/** Confirm / decline a request, or cancel a confirmed appointment. */
+type Intent = "confirm" | "decline" | "cancel";
+
+const QUESTIONS: Record<Intent, { title: string; body: string; yes: string }> = {
+  confirm: {
+    title: "Tem a certeza que deseja confirmar esta marcação?",
+    body: "O horário fica bloqueado no site.",
+    yes: "Sim, confirmar",
+  },
+  decline: {
+    title: "Tem a certeza que deseja recusar este pedido?",
+    body: "O horário continua livre no site.",
+    yes: "Sim, recusar",
+  },
+  cancel: {
+    title: "Tem a certeza que deseja cancelar esta marcação?",
+    body: "O horário volta a ficar livre no site.",
+    yes: "Sim, cancelar",
+  },
+};
+
+const WHATSAPP_NOTE: Record<Intent, string> = {
+  confirm: "A seguir abre-se o WhatsApp com a confirmação, a data e a hora, pronta a enviar à cliente.",
+  decline: "A seguir abre-se o WhatsApp com uma mensagem a avisar a cliente e a propor outra data.",
+  cancel: "A seguir abre-se o WhatsApp com uma mensagem a avisar a cliente e a propor outra data.",
+};
+
+/**
+ * Confirm / decline a request, or cancel a confirmed appointment. Each asks
+ * first; on "yes" the decision is saved and WhatsApp opens with the message
+ * for the client (when there's a number).
+ */
 export function AppointmentActions({
   id,
   status,
   hasConflict,
-  notice,
+  messages,
 }: {
   id: string;
   status: AppointmentStatus;
   hasConflict: boolean;
-  /** WhatsApp message telling the client about the decision, once there is one. */
-  notice: { url: string; label: string } | null;
+  /** wa.me links with the message for each decision; null without a phone number. */
+  messages: Record<Intent, string> | null;
 }) {
-  const [state, formAction] = useActionState(decideAppointment.bind(null, id), idleState);
-  const [askCancel, setAskCancel] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [intent, setIntent] = useState<Intent>("confirm");
+  const [state, setState] = useState<FormState>(idleState);
+  const [pending, startTransition] = useTransition();
   const error = state.status === "error";
+  const question = QUESTIONS[intent];
+
+  function ask(next: Intent) {
+    setIntent(next);
+    dialogRef.current?.showModal();
+  }
+
+  function decide() {
+    const url = messages?.[intent];
+    // Opened now, while the click still counts: browsers block pop-ups opened
+    // after waiting on the server. It gets the WhatsApp link once saved.
+    const whatsapp = url ? window.open("", "_blank") : null;
+    if (whatsapp) whatsapp.opener = null;
+
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("intent", intent);
+      const result = await decideAppointment(id, idleState, formData);
+      setState(result);
+      dialogRef.current?.close();
+      if (!whatsapp) return;
+      if (result.status === "success" && url) whatsapp.location.href = url;
+      else whatsapp.close();
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -43,62 +106,54 @@ export function AppointmentActions({
         </p>
       )}
 
-      {state.status === "success" && notice && (
-        <a
-          href={notice.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-6 font-semibold text-on-accent hover:bg-accent-hover sm:self-start"
-        >
-          <WhatsappLogoIcon size={22} weight="fill" aria-hidden="true" />
-          {notice.label} à cliente
-        </a>
-      )}
-
       {(status === "pending" || status === "declined") && (
-        <form action={formAction} className="flex flex-col gap-3 sm:flex-row">
-          <SubmitButton
-            name="intent"
-            value="confirm"
-            size="lg"
-            className="w-full sm:flex-1"
-            disabled={hasConflict}
-          >
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button size="lg" className="w-full sm:flex-1" disabled={hasConflict} onClick={() => ask("confirm")}>
             <CheckCircleIcon size={22} weight="fill" aria-hidden="true" />
             {status === "declined" ? "Confirmar mesmo assim" : "Confirmar marcação"}
-          </SubmitButton>
+          </Button>
           {status === "pending" && (
-            <SubmitButton name="intent" value="decline" size="lg" variant="secondary" className="w-full sm:flex-1">
+            <Button size="lg" variant="secondary" className="w-full sm:flex-1" onClick={() => ask("decline")}>
               <XCircleIcon size={22} aria-hidden="true" />
               Recusar pedido
-            </SubmitButton>
+            </Button>
           )}
-        </form>
+        </div>
       )}
 
-      {status === "confirmed" &&
-        (askCancel ? (
-          <div className="rounded-2xl border border-danger/25 bg-danger-soft p-4">
-            <p className="font-semibold text-danger">Cancelar esta marcação?</p>
-            <p className="mt-1 text-sm text-ink-muted">
-              O horário volta a ficar livre no site. A seguir pode avisar a cliente pelo WhatsApp e propor outra data.
-            </p>
-            <form action={formAction} className="mt-4 flex flex-col-reverse gap-3 sm:flex-row">
-              <Button variant="ghost" onClick={() => setAskCancel(false)} autoFocus>
-                Manter marcação
-              </Button>
-              <SubmitButton name="intent" value="cancel" variant="danger">
-                <ProhibitIcon size={20} aria-hidden="true" />
-                Sim, cancelar
-              </SubmitButton>
-            </form>
-          </div>
-        ) : (
-          <Button variant="danger" size="lg" onClick={() => setAskCancel(true)} className="sm:self-start">
-            <ProhibitIcon size={22} aria-hidden="true" />
-            Cancelar marcação
+      {status === "confirmed" && (
+        <Button variant="danger" size="lg" onClick={() => ask("cancel")} className="sm:self-start">
+          <ProhibitIcon size={22} aria-hidden="true" />
+          Cancelar marcação
+        </Button>
+      )}
+
+      <dialog
+        ref={dialogRef}
+        aria-labelledby={titleId}
+        className="m-auto w-[min(92vw,440px)] rounded-3xl bg-surface p-6 text-ink shadow-lift backdrop:bg-ink/50"
+      >
+        <h2 id={titleId} className="font-display text-2xl font-semibold">
+          {question.title}
+        </h2>
+        <p className="mt-2 text-ink-muted">
+          {question.body} {messages && WHATSAPP_NOTE[intent]}
+        </p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="ghost" onClick={() => dialogRef.current?.close()} disabled={pending} autoFocus>
+            Não
           </Button>
-        ))}
+          <Button
+            variant={intent === "confirm" ? "primary" : "danger"}
+            disabled={pending}
+            aria-busy={pending || undefined}
+            onClick={decide}
+          >
+            {pending && <CircleNotchIcon size={18} className="animate-spin" aria-hidden="true" />}
+            {question.yes}
+          </Button>
+        </div>
+      </dialog>
     </div>
   );
 }
