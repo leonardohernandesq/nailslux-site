@@ -115,3 +115,28 @@ export function buildCancellationMessage(appointment: {
     `— ${studioName}`,
   ].join("\n");
 }
+
+/** Sent by the studio after moving an appointment: the old time, and the new one. */
+export function buildRescheduleMessage(appointment: {
+  name: string;
+  serviceNames: readonly string[];
+  previousDate: string;
+  previousTime: string;
+  date: string;
+  time: string;
+  endTime: string;
+  studioName: string;
+}): string {
+  const { name, serviceNames, previousDate, previousTime, date, time, endTime, studioName } = appointment;
+  const day = formatLongDate(date);
+  return [
+    `Olá, ${firstNameOf(name)}! A sua marcação de ${formatLongDate(previousDate)}, às ${previousTime}, foi remarcada.`,
+    "",
+    `*Nova data:* ${day.charAt(0).toUpperCase()}${day.slice(1)}`,
+    `*Nova hora:* ${time}–${endTime}`,
+    `${serviceNames.length === 1 ? "*Serviço:*" : "*Serviços:*"} ${serviceNames.join(", ")}`,
+    "",
+    "Se este horário não lhe der jeito, responda a esta mensagem. Até breve!",
+    `— ${studioName}`,
+  ].join("\n");
+}

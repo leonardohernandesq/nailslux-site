@@ -7,8 +7,18 @@ import { requireAdmin } from "@/lib/auth/dal";
 import { connectDB } from "@/lib/db/connect";
 import { Appointment, Service, Tenant, User, type AppointmentStatus } from "@/lib/db/models";
 import { getBusyIntervals } from "@/lib/data/appointments";
-import { getActiveTenant } from "@/lib/data/tenants";
-import { bookingDuration, fromMinutes, isSlotFree, overlaps, timeOffIntervals, toMinutes } from "@/lib/schedule";
+import { getActiveTenant, getTenantById } from "@/lib/data/tenants";
+import { lisbonDay } from "@/lib/analytics/server";
+import {
+  bookingDuration,
+  fromMinutes,
+  isSlotFree,
+  overlaps,
+  slotsFor,
+  timeOffIntervals,
+  toMinutes,
+  type BusyInterval,
+} from "@/lib/schedule";
 import { createBookingSchema, type BookingInput } from "@/lib/validation/booking";
 import { formatLongDate, formatPrice } from "@/lib/format";
 import { sendMail } from "@/lib/mail";
@@ -211,4 +221,83 @@ export async function decideAppointment(id: string, _prev: FormState, formData: 
     default:
       return { status: "error", message: "Ação desconhecida." };
   }
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Times blocked on `date` for moving appointment `id` somewhere else: the other
+ * confirmed appointments plus the hours off. Null if the appointment isn't ours.
+ */
+export async function getRescheduleBusy(id: string, date: string): Promise<BusyInterval[] | null> {
+  const { tenantId } = await requireAdmin();
+  if (!isValidObjectId(id) || !ISO_DATE.test(date)) return null;
+  const tenant = await getTenantById(tenantId);
+  if (!tenant) return null;
+  return [...(await getBusyIntervals(tenantId, date, id)), ...timeOffIntervals(date, tenant.hours)];
+}
+
+export type RescheduleResult =
+  | { status: "success"; message: string; date: string; time: string; endTime: string }
+  | { status: "error"; message: string };
+
+/**
+ * Moves an appointment to a new date and time, keeping its services and length.
+ * The studio agreed the new time with the client, so it ends up confirmed and
+ * blocks the agenda. The new time must be one the studio offers and still free.
+ */
+export async function rescheduleAppointment(id: string, date: string, time: string): Promise<RescheduleResult> {
+  const { tenantId } = await requireAdmin();
+  if (!isValidObjectId(id)) return { status: "error", message: "Marcação não encontrada." };
+  if (!ISO_DATE.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+    return { status: "error", message: "Escolha a nova data e a nova hora." };
+  }
+  await connectDB();
+  const [doc, tenant] = await Promise.all([
+    Appointment.findOne({ _id: id, tenantId }).lean(),
+    getTenantById(tenantId),
+  ]);
+  if (!doc || !tenant) return { status: "error", message: "Marcação não encontrada." };
+
+  if (date < lisbonDay(new Date())) return { status: "error", message: "Escolha uma data a partir de hoje." };
+  if (!slotsFor(date, tenant.hours, lisbonNow()).includes(time)) {
+    return { status: "error", message: "Essa hora não está disponível nesse dia. Escolha outra." };
+  }
+  if (doc.date === date && doc.time === time) {
+    return { status: "error", message: "Escolha uma data ou hora diferente da atual." };
+  }
+
+  const duration = doc.endMinutes - doc.startMinutes;
+  const busy = [...(await getBusyIntervals(tenantId, date, id)), ...timeOffIntervals(date, tenant.hours)];
+  if (!isSlotFree(time, duration, busy)) {
+    return { status: "error", message: "Esse horário já está ocupado para a duração desta marcação. Escolha outro." };
+  }
+
+  const start = toMinutes(time);
+  // Only if nobody changed it in the meantime.
+  const updated = await Appointment.updateOne(
+    { _id: doc._id, tenantId, status: doc.status, date: doc.date, time: doc.time },
+    {
+      $set: {
+        date,
+        time,
+        startMinutes: start,
+        endMinutes: start + duration,
+        status: "confirmed",
+        decidedAt: new Date(),
+      },
+    },
+  );
+  if (updated.modifiedCount === 0) {
+    return { status: "error", message: "Esta marcação foi alterada entretanto. Atualize a página." };
+  }
+
+  refresh();
+  return {
+    status: "success",
+    message: "Marcação remarcada e confirmada. O novo horário ficou bloqueado no site.",
+    date,
+    time,
+    endTime: fromMinutes(start + duration),
+  };
 }

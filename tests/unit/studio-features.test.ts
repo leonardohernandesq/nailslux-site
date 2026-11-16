@@ -3,7 +3,12 @@ import { buildCalendar, lisbonToDate } from "@/lib/calendar";
 import { isOpenOn, slotsFor, timeOffIntervals } from "@/lib/schedule";
 import { DEFAULT_OPENING_HOURS, type OpeningHours } from "@/lib/site";
 import { createTimeOffSchema } from "@/lib/validation/time-off";
-import { buildCancellationMessage, buildConfirmationMessage, buildReminderMessage } from "@/lib/whatsapp";
+import {
+  buildCancellationMessage,
+  buildConfirmationMessage,
+  buildReminderMessage,
+  buildRescheduleMessage,
+} from "@/lib/whatsapp";
 
 const withTimeOff = (timeOff: OpeningHours["timeOff"]): OpeningHours => ({ ...DEFAULT_OPENING_HOURS, timeOff });
 
@@ -135,5 +140,25 @@ describe("buildCancellationMessage", () => {
     const message = buildCancellationMessage({ ...base, declined: true });
     expect(message).toContain("não conseguimos confirmar o seu pedido");
     expect(message).not.toContain("http");
+  });
+});
+
+describe("buildRescheduleMessage", () => {
+  it("names the old time and gives the new date and time", () => {
+    const message = buildRescheduleMessage({
+      name: "Maria Silva",
+      serviceNames: ["Verniz gel"],
+      previousDate: "2026-11-20",
+      previousTime: "10:30",
+      date: "2026-11-23",
+      time: "15:00",
+      endTime: "16:00",
+      studioName: "NailsLux",
+    });
+    expect(message.startsWith("Olá, Maria! A sua marcação de sexta-feira, 20 de novembro de 2026, às 10:30, foi remarcada.")).toBe(true);
+    expect(message).toContain("*Nova data:* Segunda-feira, 23 de novembro de 2026");
+    expect(message).toContain("*Nova hora:* 15:00–16:00");
+    expect(message).toContain("*Serviço:* Verniz gel");
+    expect(message.endsWith("— NailsLux")).toBe(true);
   });
 });

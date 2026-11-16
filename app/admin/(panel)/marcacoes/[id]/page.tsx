@@ -5,6 +5,7 @@ import { AddressBookIcon, ArrowLeftIcon, BellRingingIcon, WarningIcon, WhatsappL
 import { AppointmentActions } from "@/components/admin/appointment-actions";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status";
 import { ClientMoldsForm } from "@/components/admin/client-molds-form";
+import { RescheduleAppointment } from "@/components/admin/reschedule-appointment";
 import { lisbonDay } from "@/lib/analytics/server";
 import { requireAdmin } from "@/lib/auth/dal";
 import { getAppointment } from "@/lib/data/appointments";
@@ -198,6 +199,21 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/marc
         hasConflict={conflicts.length > 0}
         messages={messages}
       />
+
+      {tenant && (
+        <RescheduleAppointment
+          id={appointment.id}
+          date={appointment.date}
+          time={appointment.time}
+          durationMinutes={appointment.durationMinutes}
+          hours={tenant.hours}
+          client={
+            appointment.phone
+              ? { phone: appointment.phone, name: appointment.name, serviceNames: appointment.serviceNames, studioName }
+              : null
+          }
+        />
+      )}
     </div>
   );
 }
