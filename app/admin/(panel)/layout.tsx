@@ -17,28 +17,29 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-line bg-cream/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
-          <Link href="/admin/marcacoes" className="flex items-center gap-2" aria-label="Painel">
+        {/* Phones and tablets: logo and links on top, the tabs below. From lg, all on one line. */}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 lg:flex-nowrap lg:gap-x-2 xl:gap-x-4">
+          <Link href="/admin/marcacoes" className="flex shrink-0 items-center gap-2" aria-label="Painel">
             {/* Empty while loading, so a studio's logo never flashes as the Nailo one. */}
             <Suspense fallback={<div className="h-9 w-28" />}>
               <PanelLogo />
             </Suspense>
           </Link>
-          <div className="order-2 flex items-center gap-1 sm:order-3">
-            <Suspense fallback={<div className="h-11 w-24" />}>
+          <div className="order-2 flex shrink-0 items-center gap-0.5 lg:order-3">
+            <Suspense fallback={<div className="h-10 w-24" />}>
               <ViewSiteLink />
             </Suspense>
             <form action={logout}>
               <button
                 type="submit"
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-ink-muted hover:bg-danger-soft hover:text-danger"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-ink-muted hover:bg-danger-soft hover:text-danger"
               >
-                <SignOutIcon size={18} aria-hidden="true" />
+                <SignOutIcon size={16} aria-hidden="true" />
                 Sair
               </button>
             </form>
           </div>
-          <div className="order-3 w-full border-t border-line/70 pt-2 sm:order-2 sm:w-auto sm:border-0 sm:pt-0">
+          <div className="order-3 w-full border-t border-line/70 pt-2 lg:order-2 lg:w-auto lg:min-w-0 lg:flex-1 lg:border-0 lg:pt-0">
             {/* usePathname() reads the URL, so it needs its own boundary. */}
             <Suspense fallback={<div className="h-11" />}>
               <AdminNav />
@@ -46,7 +47,7 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <Suspense fallback={<p className="mb-2 h-6" />}>
           <Greeting />
         </Suspense>
@@ -81,9 +82,9 @@ async function ViewSiteLink() {
     <Link
       href={`/${tenantSlug}`}
       target="_blank"
-      className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-ink-muted hover:bg-peach-50 hover:text-ink"
+      className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-ink-muted hover:bg-peach-50 hover:text-ink"
     >
-      <ArrowSquareOutIcon size={18} aria-hidden="true" />
+      <ArrowSquareOutIcon size={16} aria-hidden="true" />
       Ver site
     </Link>
   );
