@@ -1,13 +1,9 @@
 "use client";
 
 import { useId, useRef, useState, useTransition } from "react";
-import {
-  CheckCircleIcon,
-  CircleNotchIcon,
-  ProhibitIcon,
-  WarningCircleIcon,
-  XCircleIcon,
-} from "@phosphor-icons/react";
+import type { ComponentProps } from "react";
+import { CheckCircleIcon, CircleNotchIcon, ProhibitIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { RescheduleAppointment } from "@/components/admin/reschedule-appointment";
 import { Button } from "@/components/ui/button";
 import { decideAppointment } from "@/lib/actions/appointments";
 import { idleState, type FormState } from "@/lib/actions/form-state";
@@ -22,9 +18,9 @@ const QUESTIONS: Record<Intent, { title: string; body: string; yes: string }> = 
     yes: "Sim, confirmar",
   },
   decline: {
-    title: "Tem a certeza que deseja recusar este pedido?",
+    title: "Tem a certeza que deseja cancelar este pedido?",
     body: "O horário continua livre no site.",
-    yes: "Sim, recusar",
+    yes: "Sim, cancelar",
   },
   cancel: {
     title: "Tem a certeza que deseja cancelar esta marcação?",
@@ -39,22 +35,29 @@ const WHATSAPP_NOTE: Record<Intent, string> = {
   cancel: "A seguir abre-se o WhatsApp com uma mensagem a avisar a cliente e a propor outra data.",
 };
 
+/** Same width, same row: they share a three-column grid and shrink together on phones. */
+const ROW_BUTTON = "w-full min-w-0 px-2 text-sm sm:px-4 sm:text-base";
+
 /**
- * Confirm / decline a request, or cancel a confirmed appointment. Each asks
- * first; on "yes" the decision is saved and WhatsApp opens with the message
- * for the client (when there's a number).
+ * Confirmar · Remarcar · Cancelar, side by side. Confirming and cancelling (or
+ * declining a request) ask first; on "yes" the decision is saved and WhatsApp
+ * opens with the message for the client (when there's a number). A button that
+ * doesn't apply to the current status stays in place, disabled.
  */
 export function AppointmentActions({
   id,
   status,
   hasConflict,
   messages,
+  reschedule,
 }: {
   id: string;
   status: AppointmentStatus;
   hasConflict: boolean;
   /** wa.me links with the message for each decision; null without a phone number. */
   messages: Record<Intent, string> | null;
+  /** What "Remarcar" needs; null (no studio settings) leaves the button disabled. */
+  reschedule: Omit<ComponentProps<typeof RescheduleAppointment>, "id" | "onDone" | "className"> | null;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -63,6 +66,9 @@ export function AppointmentActions({
   const [pending, startTransition] = useTransition();
   const error = state.status === "error";
   const question = QUESTIONS[intent];
+  const canConfirm = status === "pending" || status === "declined";
+  // A pending request is declined; a confirmed appointment is cancelled.
+  const cancelIntent: Intent | null = status === "pending" ? "decline" : status === "confirmed" ? "cancel" : null;
 
   function ask(next: Intent) {
     setIntent(next);
@@ -106,27 +112,39 @@ export function AppointmentActions({
         </p>
       )}
 
-      {(status === "pending" || status === "declined") && (
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button size="lg" className="w-full sm:flex-1" disabled={hasConflict} onClick={() => ask("confirm")}>
-            <CheckCircleIcon size={22} weight="fill" aria-hidden="true" />
-            {status === "declined" ? "Confirmar mesmo assim" : "Confirmar marcação"}
-          </Button>
-          {status === "pending" && (
-            <Button size="lg" variant="secondary" className="w-full sm:flex-1" onClick={() => ask("decline")}>
-              <XCircleIcon size={22} aria-hidden="true" />
-              Recusar pedido
-            </Button>
-          )}
-        </div>
-      )}
-
-      {status === "confirmed" && (
-        <Button variant="danger" size="lg" onClick={() => ask("cancel")} className="sm:self-start">
-          <ProhibitIcon size={22} aria-hidden="true" />
-          Cancelar marcação
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <Button
+          className={ROW_BUTTON}
+          aria-label={status === "declined" ? "Confirmar mesmo assim" : "Confirmar marcação"}
+          disabled={!canConfirm || hasConflict}
+          onClick={() => ask("confirm")}
+        >
+          <CheckCircleIcon size={20} weight="fill" aria-hidden="true" className="max-[380px]:hidden" />
+          Confirmar
         </Button>
-      )}
+        {reschedule ? (
+          <RescheduleAppointment
+            {...reschedule}
+            id={id}
+            className={ROW_BUTTON}
+            onDone={(message) => setState({ status: "success", message })}
+          />
+        ) : (
+          <Button variant="secondary" className={ROW_BUTTON} disabled>
+            Remarcar
+          </Button>
+        )}
+        <Button
+          variant="danger"
+          className={ROW_BUTTON}
+          aria-label={status === "pending" ? "Cancelar pedido" : "Cancelar marcação"}
+          disabled={!cancelIntent}
+          onClick={() => cancelIntent && ask(cancelIntent)}
+        >
+          <ProhibitIcon size={20} aria-hidden="true" className="max-[380px]:hidden" />
+          Cancelar
+        </Button>
+      </div>
 
       <dialog
         ref={dialogRef}

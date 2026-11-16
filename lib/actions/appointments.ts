@@ -215,7 +215,7 @@ export async function decideAppointment(id: string, _prev: FormState, formData: 
     case "confirm":
       return decide(id, ["pending", "declined"], "confirmed", "Marcação confirmada. O horário ficou bloqueado no site.");
     case "decline":
-      return decide(id, ["pending"], "declined", "Pedido recusado.");
+      return decide(id, ["pending"], "declined", "Pedido cancelado.");
     case "cancel":
       return decide(id, ["confirmed"], "cancelled", "Marcação cancelada. O horário voltou a ficar livre no site.");
     default:

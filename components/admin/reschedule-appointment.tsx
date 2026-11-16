@@ -3,7 +3,6 @@
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import {
   CalendarDotsIcon,
-  CheckCircleIcon,
   CircleNotchIcon,
   ClockIcon,
   WarningCircleIcon,
@@ -19,8 +18,6 @@ import { buildRescheduleMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 /** How far ahead the studio can move an appointment, even past what clients can book. */
 const MIN_DAYS_AHEAD = 180;
 
-type Notice = { status: "success" | "error"; message: string } | null;
-
 /**
  * "Remarcar": the studio picks a new date and time (only free times, for this
  * appointment's length), saves it, and WhatsApp opens with the new time for the
@@ -33,6 +30,8 @@ export function RescheduleAppointment({
   durationMinutes,
   hours,
   client,
+  onDone,
+  className = "",
 }: {
   id: string;
   date: string;
@@ -41,6 +40,10 @@ export function RescheduleAppointment({
   hours: OpeningHours;
   /** What the WhatsApp message needs; null without a phone number. */
   client: { phone: string; name: string; serviceNames: string[]; studioName: string } | null;
+  /** Called with the success message once the new time is saved. */
+  onDone: (message: string) => void;
+  /** Classes for the "Remarcar" button. */
+  className?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -50,7 +53,6 @@ export function RescheduleAppointment({
   const [busyByDate, setBusyByDate] = useState<Record<string, BusyInterval[]>>({});
   const [availabilityVersion, setAvailabilityVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<Notice>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -106,7 +108,7 @@ export function RescheduleAppointment({
         return;
       }
       dialogRef.current?.close();
-      setNotice({ status: "success", message: result.message });
+      onDone(result.message);
       if (!whatsapp || !client) return;
       whatsapp.location.href = buildWhatsAppUrl(
         client.phone,
@@ -123,19 +125,9 @@ export function RescheduleAppointment({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {notice && (
-        <p
-          role="status"
-          className="flex items-start gap-2 rounded-2xl border border-success/25 bg-success-soft p-4 text-sm font-semibold text-success"
-        >
-          <CheckCircleIcon size={20} weight="fill" aria-hidden="true" className="mt-px shrink-0" />
-          {notice.message}
-        </p>
-      )}
-
-      <Button variant="secondary" size="lg" onClick={open} className="sm:self-start">
-        <CalendarDotsIcon size={22} aria-hidden="true" />
+    <>
+      <Button variant="secondary" onClick={open} className={className}>
+        <CalendarDotsIcon size={20} aria-hidden="true" className="max-[380px]:hidden" />
         Remarcar
       </Button>
 
@@ -236,6 +228,6 @@ export function RescheduleAppointment({
           </Button>
         </div>
       </dialog>
-    </div>
+    </>
   );
 }
