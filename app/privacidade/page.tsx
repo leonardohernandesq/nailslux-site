@@ -34,6 +34,7 @@ const SECTIONS: LegalSection[] = [
     title: "Estatísticas e cookies",
     body: [
       "As estatísticas dos sites são anónimas: não guardam nomes, IPs nem cookies, e o identificador de cada visita muda todos os dias.",
+      "Também usamos o Vercel Web Analytics para medir as visitas às páginas públicas, da mesma forma: sem cookies e sem identificar quem visita.",
       "Usamos um cookie apenas para manter a sessão de quem entra no painel.",
     ],
   },

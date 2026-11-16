@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Quicksand } from "next/font/google";
+import { VercelAnalytics } from "@/components/vercel-analytics";
 import { PLATFORM } from "@/lib/site";
 import "./globals.css";
 
@@ -39,7 +40,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-PT" data-scroll-behavior="smooth" className={`${quicksand.variable} ${cormorant.variable} antialiased`}>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        {children}
+        <VercelAnalytics />
+      </body>
     </html>
   );
 }
