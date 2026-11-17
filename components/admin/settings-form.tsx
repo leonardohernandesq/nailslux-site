@@ -3,10 +3,10 @@
 import { useActionState } from "react";
 import { CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { Field, Input, describedBy } from "@/components/ui/field";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { updateSettings } from "@/lib/actions/settings";
 import { idleState } from "@/lib/actions/form-state";
 import type { TenantDTO } from "@/lib/data/tenants";
-import { formatPhone } from "@/lib/phone";
 import { DAY_NAMES, DEFAULT_DAY_TIMES, WEEK } from "@/lib/site";
 import { SubmitButton } from "./submit-button";
 
@@ -43,12 +43,11 @@ export function SettingsForm({ tenant, studioId }: { tenant: TenantDTO; studioId
 
       <div className="grid gap-6 sm:grid-cols-2">
         <Field id="whatsappNumber" label="WhatsApp" required errors={errors.whatsappNumber}>
-          <Input
+          <PhoneInput
             id="whatsappNumber"
             name="whatsappNumber"
-            type="tel"
             required
-            defaultValue={v?.whatsappNumber ?? formatPhone(tenant.whatsappNumber)}
+            defaultValue={v?.whatsappNumber ?? tenant.whatsappNumber}
             {...describedBy("whatsappNumber", errors.whatsappNumber)}
           />
         </Field>

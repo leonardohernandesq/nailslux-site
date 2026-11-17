@@ -10,6 +10,8 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, Input, Textarea, describedBy } from "@/components/ui/field";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { splitPhone } from "@/lib/phone";
 import { formatDuration, formatPrice } from "@/lib/format";
 import { bookingDuration, dateBounds, isSlotFree, slotsFor, timeOffIntervals, type BusyInterval } from "@/lib/schedule";
 import { formatOpeningDays, type OpeningHours } from "@/lib/site";
@@ -394,23 +396,19 @@ export function BookingForm({
           label="O seu WhatsApp"
           required
           errors={errors.phone}
-          hint="Para confirmarmos a marcação. Se não for português, comece com o indicativo (ex.: +55)."
         >
-          <Input
+          <PhoneInput
             id={ids.phone}
             name="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
+            autoComplete="tel-national"
             required
             maxLength={20}
-            placeholder="912 345 678"
-            value={phone}
-            onChange={(e) => {
-              setPhone(e.target.value);
+            defaultCountry={splitPhone(whatsappNumber).code}
+            onChange={(value) => {
+              setPhone(value);
               setServerError(null);
             }}
-            {...describedBy(ids.phone, errors.phone, "hint")}
+            {...describedBy(ids.phone, errors.phone)}
           />
         </Field>
 

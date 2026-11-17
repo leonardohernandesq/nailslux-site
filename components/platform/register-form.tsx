@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Field, Input, describedBy } from "@/components/ui/field";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { register } from "@/lib/actions/registration";
 import { idleState } from "@/lib/actions/form-state";
 import { toPlan, type PlanCurrency, type PlanId } from "@/lib/plans";
@@ -64,14 +65,13 @@ export function RegisterForm({
       </Field>
 
       <Field id="whatsappNumber" label="WhatsApp do studio" required errors={errors.whatsappNumber} hint="Os pedidos de marcação chegam a este número.">
-        <Input
+        <PhoneInput
           id="whatsappNumber"
           name="whatsappNumber"
-          type="tel"
           required
-          autoComplete="tel"
-          placeholder="912 345 678"
+          autoComplete="tel-national"
           defaultValue={v?.whatsappNumber}
+          defaultCountry={currency === "BRL" ? "55" : "351"}
           {...describedBy("whatsappNumber", errors.whatsappNumber, "hint")}
         />
       </Field>
