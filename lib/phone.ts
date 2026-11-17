@@ -40,8 +40,8 @@ export function formatPhone(digits: string): string {
 
 /** The countries offered next to a phone field. */
 export const PHONE_COUNTRIES = [
-  { code: PT_CODE, flag: "🇵🇹", name: "Portugal", placeholder: "Ex.: 912 345 678" },
-  { code: BR_CODE, flag: "🇧🇷", name: "Brasil", placeholder: "Ex.: 11 98765 4321" },
+  { code: PT_CODE, name: "Portugal", placeholder: "Ex.: 912 345 678" },
+  { code: BR_CODE, name: "Brasil", placeholder: "Ex.: 11 98765 4321" },
 ] as const;
 
 export type PhoneCountryCode = (typeof PHONE_COUNTRIES)[number]["code"];
