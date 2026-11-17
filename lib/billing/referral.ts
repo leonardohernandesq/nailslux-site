@@ -3,6 +3,7 @@ import type { Types } from "mongoose";
 import { connectDB } from "../db/connect";
 import { Tenant } from "../db/models";
 import { extendSubscription } from "./free-time";
+import { findPartner } from "./partners";
 
 /** The sign-up link a studio shares. Its slug is the code: readable, and already unique. */
 export const referralUrl = (slug: string) => `${process.env.SITE_URL ?? "http://localhost:3000"}/registo?ref=${slug}`;
@@ -42,13 +43,15 @@ async function rewardSide(referredId: string, side: Side, subscriptionId: string
 export async function rewardReferral(tenantId: Types.ObjectId | string): Promise<void> {
   await connectDB();
   const referred = await Tenant.findOne(
-    { _id: tenantId, referredBy: { $ne: null } },
+    { _id: tenantId, $or: [{ referredBy: { $ne: null } }, { referralPartner: { $ne: null } }] },
     { referredBy: 1, stripeSubscriptionId: 1, subscriptionStatus: 1 },
   ).lean();
-  if (!referred?.referredBy || !PAYING.includes(referred.subscriptionStatus ?? "")) return;
+  if (!referred || !PAYING.includes(referred.subscriptionStatus ?? "")) return;
 
   const id = String(tenantId);
   await rewardSide(id, "referred", referred.stripeSubscriptionId);
+  // A partner's link: the partner has no subscription to extend.
+  if (!referred.referredBy) return;
 
   const referrer = await Tenant.findById(referred.referredBy, { stripeSubscriptionId: 1, subscriptionStatus: 1 }).lean();
   if (referrer && PAYING.includes(referrer.subscriptionStatus ?? "")) {
@@ -56,9 +59,14 @@ export async function rewardReferral(tenantId: Types.ObjectId | string): Promise
   }
 }
 
-/** The active studio behind a referral code, or null. `code` comes from the URL. */
-export async function findReferrer(code: unknown): Promise<{ id: string; name: string } | null> {
+/** Who invited: an active studio (`id`) or a partner (`partner`, its code). */
+export type Referrer = { name: string; id?: string; partner?: string };
+
+/** The active studio or partner behind a referral code, or null. `code` comes from the URL. */
+export async function findReferrer(code: unknown): Promise<Referrer | null> {
   if (typeof code !== "string" || !/^[a-z0-9-]{1,40}$/.test(code)) return null;
+  const partner = findPartner(code);
+  if (partner) return { name: partner.name, partner: partner.code };
   await connectDB();
   const tenant = await Tenant.findOne({ slug: code, status: "active" }, { name: 1 }).lean();
   return tenant ? { id: String(tenant._id), name: tenant.name } : null;

@@ -3,13 +3,16 @@
 import { isValidObjectId } from "mongoose";
 import { AuthError } from "next-auth";
 import { refresh, updateTag } from "next/cache";
+import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
 import { requirePlatformAdmin } from "../auth/dal";
 import { grantFreeTime } from "../billing/free-time";
 import { applySubscription, ENDED_SUBSCRIPTIONS } from "../billing/subscription";
 import { CACHE_TAGS } from "../constants";
 import { connectDB } from "../db/connect";
-import { Tenant, User } from "../db/models";
+import { AnalyticsEvent, Appointment, AuthToken, Client, PortfolioItem, Service, Tenant, User } from "../db/models";
+import { deleteImage } from "../db/images";
+import { getStripe } from "../stripe";
 import { toPlan } from "../plans";
 import { isBillingConfigured } from "../stripe";
 import { grantTimeSchema } from "../validation/grant";
@@ -110,4 +113,62 @@ export async function grantStudioTime(studioId: string, _prev: FormState, formDa
       ? `Subscrição gratuita ativa até ${until}. Se o studio não puser um cartão até lá, termina sozinha.`
       : `Próxima cobrança adiada para ${until}.`,
   };
+}
+
+/**
+ * Deletes a studio for good: its site, account, services, photos, bookings, client
+ * cards and statistics. A live Stripe subscription is cancelled first, so a deleted
+ * studio is never charged again; if Stripe refuses, nothing is deleted. `confirm`
+ * must be the studio's address, typed by hand in the dialog.
+ */
+export async function deleteStudio(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requirePlatformAdmin();
+  if (!isValidObjectId(id)) return { status: "error", message: "Studio não encontrado." };
+
+  await connectDB();
+  const tenant = await Tenant.findById(id).lean();
+  if (!tenant) return { status: "error", message: "Studio não encontrado." };
+  if (String(formData.get("confirm") ?? "").trim().toLowerCase() !== tenant.slug) {
+    return { status: "error", message: `Escreva ${tenant.slug} para confirmar.` };
+  }
+
+  if (tenant.stripeSubscriptionId && !ENDED_SUBSCRIPTIONS.includes(tenant.subscriptionStatus ?? "")) {
+    try {
+      await getStripe().subscriptions.cancel(tenant.stripeSubscriptionId);
+    } catch (error) {
+      // Already cancelled in Stripe is fine; anything else keeps the studio.
+      const code = (error as { code?: string }).code;
+      if (code !== "resource_missing") {
+        console.error("Could not cancel the subscription of a studio being deleted.", error);
+        return { status: "error", message: "A Stripe não cancelou a subscrição, por isso o studio não foi eliminado. Tente de novo." };
+      }
+    }
+  }
+
+  const tenantId = tenant._id;
+  const portfolio = await PortfolioItem.find({ tenantId }, { fileId: 1 }).lean();
+  const users = await User.find({ tenantId }, { _id: 1 }).lean();
+  const fileIds = [
+    tenant.logo?.fileId,
+    tenant.logo?.iconFileId,
+    tenant.banner?.fileId,
+    tenant.favicon?.fileId,
+    ...portfolio.map((item) => item.fileId),
+  ].filter((fileId) => fileId != null);
+
+  await Promise.all(fileIds.map((fileId) => deleteImage(fileId)));
+  await Promise.all([
+    Service.deleteMany({ tenantId }),
+    PortfolioItem.deleteMany({ tenantId }),
+    Appointment.deleteMany({ tenantId }),
+    Client.deleteMany({ tenantId }),
+    AnalyticsEvent.deleteMany({ tenantId }),
+    AuthToken.deleteMany({ userId: { $in: users.map((user) => user._id) } }),
+    User.deleteMany({ tenantId }),
+  ]);
+  // Studios it referred keep `referredBy`; the referrals page shows it as removed.
+  await Tenant.deleteOne({ _id: tenantId });
+
+  updateTag(CACHE_TAGS.tenant(tenant.slug));
+  redirect("/backoffice");
 }

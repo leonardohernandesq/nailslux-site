@@ -69,6 +69,8 @@ const tenantSchema = new Schema(
     // The studio whose link this one signed up through, and when each side got its
     // free month (see lib/billing/referral.ts).
     referredBy: { type: Schema.Types.ObjectId, ref: "Tenant" },
+    // Or the partner whose link it was (lib/billing/partners.ts), e.g. "markaii".
+    referralPartner: { type: String },
     referredFreeMonthAt: { type: Date },
     referrerFreeMonthAt: { type: Date },
     // Free time given by hand from the backoffice, newest last.
@@ -92,6 +94,7 @@ const tenantSchema = new Schema(
 );
 tenantSchema.index({ calendarToken: 1 }, { unique: true, sparse: true });
 tenantSchema.index({ referredBy: 1 }, { sparse: true });
+tenantSchema.index({ referralPartner: 1 }, { sparse: true });
 
 const tenantRef = { type: Schema.Types.ObjectId, ref: "Tenant", required: true } as const;
 

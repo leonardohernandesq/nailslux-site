@@ -61,3 +61,16 @@ test("the platform admin sees the studios and can suspend and reactivate one", a
   await page.goto("/admin/marcacoes");
   await expect(page).toHaveURL(/\/backoffice$/);
 });
+
+test("the referrals page lists the partner link, ready to copy", async ({ page }) => {
+  await login(page, E2E_PLATFORM);
+  await page.getByRole("navigation", { name: "Backoffice" }).getByRole("link", { name: "Indicações" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Indicações");
+  await expect(page.getByRole("heading", { name: /Markaii/ })).toBeVisible();
+  await expect(page.getByLabel("Link de indicação de Markaii")).toHaveValue(/\/registo\?ref=markaii$/);
+});
+
+test("a partner link invites with a free month", async ({ page }) => {
+  await page.goto("/registo?ref=markaii");
+  await expect(page.getByRole("status")).toContainText("Convite de Markaii");
+});

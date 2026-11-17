@@ -10,10 +10,18 @@ export default function PlatformPanelLayout({ children }: LayoutProps<"/backoffi
   return (
     <div className="min-h-dvh">
       <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 px-4 py-2 sm:px-6">
           <Link href="/backoffice" aria-label="Backoffice" className="-ml-3">
             <Image src="/brand/nailo/nailo-logo-horizontal.svg" alt="" width={463} height={146} unoptimized className="h-12 w-auto" />
           </Link>
+          <nav aria-label="Backoffice" className="mr-auto flex items-center gap-1">
+            <Link href="/backoffice" className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-ink-muted hover:bg-peach-50 hover:text-ink">
+              Studios
+            </Link>
+            <Link href="/backoffice/indicacoes" className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-ink-muted hover:bg-peach-50 hover:text-ink">
+              Indicações
+            </Link>
+          </nav>
           <form action={platformLogout}>
             <button
               type="submit"

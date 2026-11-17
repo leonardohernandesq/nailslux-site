@@ -73,7 +73,8 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
       name: studioName,
       whatsappNumber,
       status: "pending",
-      ...(referrer && { referredBy: referrer.id }),
+      ...(referrer?.id && { referredBy: referrer.id }),
+      ...(referrer?.partner && { referralPartner: referrer.partner }),
     });
   } catch (error) {
     if (!isDuplicate(error)) throw error;

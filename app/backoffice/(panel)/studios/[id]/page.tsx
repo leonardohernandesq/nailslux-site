@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { BrandSettings } from "@/components/admin/brand-settings";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { DeleteStudio } from "@/components/platform/delete-studio";
 import { GrantTime } from "@/components/platform/grant-time";
 import { daysUntil, getAccessGrants, getSubscriptionDetails } from "@/lib/billing/details";
 import { requirePlatformAdmin } from "@/lib/auth/dal";
@@ -72,6 +73,7 @@ export default async function StudioEditPage({ params }: PageProps<"/backoffice/
       </section>
       <BrandSettings brand={tenant.brand} studioId={tenant.id} />
       <SettingsForm tenant={tenant} studioId={tenant.id} />
+      <DeleteStudio id={tenant.id} name={tenant.name} slug={tenant.slug} billedByStripe={tenant.hasBillingAccount} />
     </>
   );
 }
