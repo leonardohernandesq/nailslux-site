@@ -49,6 +49,7 @@ const NAV = [
   { href: "#painel", label: "O painel" },
   { href: "#studios", label: "Studios" },
   { href: "#preco", label: "Preço" },
+  { href: "/contacto", label: "Contacto" },
 ];
 
 type NumberFact = { value: string; count: number; decimals?: number; prefix?: string; unit: string; label: string };
@@ -429,9 +430,6 @@ export default async function PlatformHome() {
               </Link>
               <Link href="/privacidade" className="inline-flex min-h-11 items-center hover:text-gold">
                 Privacidade
-              </Link>
-              <Link href="/contacto" className="inline-flex min-h-11 items-center hover:text-gold">
-                Contacto e sugestões
               </Link>
             </div>
           </div>

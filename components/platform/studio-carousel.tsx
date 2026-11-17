@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowRightIcon, ArrowSquareOutIcon, CaretLeftIcon, CaretRightIcon, PauseIcon, PlayIcon } from "@phosphor-icons/react";
+import { Flag } from "@/components/ui/flag";
 import type { ShowcaseStudio } from "@/lib/data/showcase";
 import { shuffled } from "@/lib/shuffle";
 
@@ -80,7 +81,10 @@ export function StudioCarousel({ studios, invite }: { studios: ShowcaseStudio[];
               </span>
               <span className="absolute right-5 bottom-5 left-5 flex items-end justify-between gap-3 text-cream">
                 <span className="min-w-0">
-                  <span className="block truncate text-2xl font-bold">{studio.name}</span>
+                  <span className="flex items-center gap-2 text-2xl font-bold">
+                    <span className="truncate">{studio.name}</span>
+                    <Flag code={studio.country} label className="h-5 w-7.5" />
+                  </span>
                   <span className="block truncate text-sm text-cream/80">{studio.tagline}</span>
                 </span>
                 <span className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-cream px-4 font-semibold text-ink">

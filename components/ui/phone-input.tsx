@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type Keyb
 import { CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
 import { localDigits, maskPhone, PHONE_COUNTRIES, splitPhone, withCountryCode, type PhoneCountryCode } from "@/lib/phone";
 import { controlClasses } from "./field";
+import { Flag } from "./flag";
 
 type PhoneInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "value" | "defaultValue" | "onChange" | "type"> & {
   id: string;
@@ -168,28 +169,5 @@ function CountryPicker({ code, onPick }: { code: PhoneCountryCode; onPick: (code
         </ul>
       )}
     </div>
-  );
-}
-
-/** Simplified flags, drawn the same on every system. */
-function Flag({ code }: { code: PhoneCountryCode }) {
-  const frame = "h-4 w-6 shrink-0 overflow-hidden rounded-[3px] ring-1 ring-black/10";
-  if (code === "55") {
-    return (
-      <svg viewBox="0 0 30 20" aria-hidden="true" className={frame}>
-        <rect width="30" height="20" fill="#009b3a" />
-        <path d="M15 2.5 27 10 15 17.5 3 10z" fill="#fedf00" />
-        <circle cx="15" cy="10" r="4.6" fill="#002776" />
-        <path d="M10.6 9.1c3-.9 6.3-.5 8.8 1" stroke="#fff" strokeWidth="0.9" fill="none" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 30 20" aria-hidden="true" className={frame}>
-      <rect width="30" height="20" fill="#da291c" />
-      <rect width="12" height="20" fill="#046a38" />
-      <circle cx="12" cy="10" r="4" fill="#ffe900" />
-      <path d="M10 7.5h4v3.3a2 2 0 0 1-4 0z" fill="#da291c" stroke="#fff" strokeWidth="0.6" />
-    </svg>
   );
 }
