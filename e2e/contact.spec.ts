@@ -11,7 +11,7 @@ test("a studio sends a suggestion from the contact page", async ({ page }) => {
   await expect(page.getByRole("radio", { name: "Agradecimento" })).toBeChecked();
 
   await page.getByRole("button", { name: "Enviar mensagem" }).click();
-  await expect(page.getByRole("alert")).toContainText("Corrija os campos assinalados");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("Corrija os campos assinalados");
 
   await page.getByLabel("O seu nome").fill("Inês");
   await page.getByLabel("Email").fill("ines@example.com");
@@ -21,5 +21,5 @@ test("a studio sends a suggestion from the contact page", async ({ page }) => {
   await expect(page.getByRole("radio", { name: "Agradecimento" })).toBeChecked();
   await page.getByRole("button", { name: "Enviar mensagem" }).click();
 
-  await expect(page.getByRole("status")).toContainText("Mensagem enviada");
+  await expect(page.getByRole("main").getByRole("status")).toContainText("Mensagem enviada");
 });
