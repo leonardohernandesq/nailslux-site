@@ -38,34 +38,57 @@ export function formatPhone(digits: string): string {
   return `+${digits}`;
 }
 
-/** The countries offered next to a phone field. */
+/** The countries offered next to a phone field, with how many digits follow the code. */
 export const PHONE_COUNTRIES = [
-  { code: PT_CODE, name: "Portugal", placeholder: "Ex.: 912 345 678" },
-  { code: BR_CODE, name: "Brasil", placeholder: "Ex.: 11 98765 4321" },
+  { code: PT_CODE, name: "Portugal", placeholder: "Ex.: 912 345 678", digits: 9 },
+  { code: BR_CODE, name: "Brasil", placeholder: "Ex.: (11) 98765-4321", digits: 11 },
 ] as const;
 
 export type PhoneCountryCode = (typeof PHONE_COUNTRIES)[number]["code"];
 
-/**
- * The chosen country code and the number typed, as one value for `normalizePhone`.
- * A number typed with its own code ("+44 …", "0044 …") keeps that one.
- */
-export function withCountryCode(code: PhoneCountryCode, local: string): string {
-  const value = local.trim();
-  if (!value || value.startsWith("+") || value.startsWith("00")) return value;
-  return `+${code} ${value}`;
+const countryOf = (code: PhoneCountryCode) => PHONE_COUNTRIES.find((c) => c.code === code) ?? PHONE_COUNTRIES[0];
+
+/** Only the digits that fit the country. A number pasted with its code loses the code. */
+export function localDigits(code: PhoneCountryCode, input: string): string {
+  let digits = input.replace(/\D/g, "");
+  const max = countryOf(code).digits;
+  for (const prefix of [`00${code}`, code]) {
+    if (digits.length > max && digits.startsWith(prefix)) digits = digits.slice(prefix.length);
+  }
+  return digits.slice(0, max);
 }
 
 /**
- * The other way round, to fill the field: a stored number ("5511987654321") or a value
- * from `withCountryCode` becomes the country and the rest. Anything else stays as typed.
+ * The digits as the field shows them while they're typed: "912 345 678" in Portugal,
+ * "(11) 98765-4321" or "(11) 3456-7890" in Brazil, where the hyphen moves once the
+ * eleventh digit (a mobile) arrives.
  */
-export function splitPhone(value: string, fallback: PhoneCountryCode = PT_CODE): { code: PhoneCountryCode; local: string } {
+export function maskPhone(code: PhoneCountryCode, digits: string): string {
+  if (code === PT_CODE) return digits.replace(/(\d{3})(?=\d)/g, "$1 ");
+  if (!digits) return "";
+  const area = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  if (!rest) return `(${area}`;
+  const split = digits.length === 11 ? 5 : 4;
+  return rest.length > split ? `(${area}) ${rest.slice(0, split)}-${rest.slice(split)}` : `(${area}) ${rest}`;
+}
+
+/** What the form sends: "+5511987654321", or "" when empty. The server keeps only the digits. */
+export function withCountryCode(code: PhoneCountryCode, digits: string): string {
+  return digits ? `+${code}${digits}` : "";
+}
+
+/** The other way round, to fill the field: a stored number ("5511987654321") or a sent value. */
+export function splitPhone(value: string, fallback: PhoneCountryCode = PT_CODE): { code: PhoneCountryCode; digits: string } {
   const trimmed = value.trim();
-  const stored = /^\d+$/.test(trimmed) ? formatPhone(trimmed) : trimmed;
-  for (const { code } of PHONE_COUNTRIES) {
-    const match = new RegExp(`^(?:\\+|00)${code}\\s*(.*)$`).exec(stored);
-    if (match) return { code, local: match[1] };
+  const all = trimmed.replace(/\D/g, "");
+  // Stored numbers are digits with the code; a local number has at most 9 digits.
+  const international = trimmed.startsWith("+") || trimmed.startsWith("00") || (/^\d+$/.test(trimmed) && all.length > 9);
+  if (international) {
+    const withCode = trimmed.startsWith("00") ? all.slice(2) : all;
+    for (const { code } of PHONE_COUNTRIES) {
+      if (withCode.startsWith(code)) return { code, digits: localDigits(code, withCode.slice(code.length)) };
+    }
   }
-  return { code: fallback, local: stored };
+  return { code: fallback, digits: localDigits(fallback, trimmed) };
 }

@@ -103,7 +103,7 @@ describe("BookingForm", () => {
     await waitFor(() => expect(popup.location.href).not.toBe(""));
     expect(requestAppointment).toHaveBeenCalledWith(
       "nailslux",
-      expect.objectContaining({ name: "Ana", phone: "+351 912 345 678", date: "2026-10-16", time: "10:30" }),
+      expect.objectContaining({ name: "Ana", phone: "+351912345678", date: "2026-10-16", time: "10:30" }),
     );
     expect(popup.opener).toBeNull();
     const url = new URL(popup.location.href);

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type KeyboardEvent } from "react";
 import { CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
-import { PHONE_COUNTRIES, splitPhone, withCountryCode, type PhoneCountryCode } from "@/lib/phone";
+import { localDigits, maskPhone, PHONE_COUNTRIES, splitPhone, withCountryCode, type PhoneCountryCode } from "@/lib/phone";
 import { controlClasses } from "./field";
 
 type PhoneInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "value" | "defaultValue" | "onChange" | "type"> & {
@@ -21,29 +21,38 @@ type PhoneInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "val
 export function PhoneInput({ id, name, defaultValue = "", defaultCountry, onChange, ...inputProps }: PhoneInputProps) {
   const [initial] = useState(() => splitPhone(defaultValue, defaultCountry));
   const [code, setCode] = useState<PhoneCountryCode>(initial.code);
-  const [local, setLocal] = useState(initial.local);
+  const [digits, setDigits] = useState(initial.digits);
   const country = PHONE_COUNTRIES.find((c) => c.code === code) ?? PHONE_COUNTRIES[0];
+  const shown = maskPhone(code, digits);
 
-  const update = (nextCode: PhoneCountryCode, nextLocal: string) => {
+  const update = (nextCode: PhoneCountryCode, nextDigits: string) => {
+    const fitting = localDigits(nextCode, nextDigits);
     setCode(nextCode);
-    setLocal(nextLocal);
-    onChange?.(withCountryCode(nextCode, nextLocal));
+    setDigits(fitting);
+    onChange?.(withCountryCode(nextCode, fitting));
+  };
+
+  const onType = (typed: string) => {
+    let next = localDigits(code, typed);
+    // Deleting a space, bracket or hyphen takes the digit before it, or nothing would happen.
+    if (typed.length < shown.length && next === digits) next = digits.slice(0, -1);
+    update(code, next);
   };
 
   return (
     <div className="flex gap-2">
-      <CountryPicker code={code} onPick={(next) => update(next, local)} />
+      <CountryPicker code={code} onPick={(next) => update(next, digits)} />
       <input
         {...inputProps}
         id={id}
         type="tel"
-        inputMode="tel"
+        inputMode="numeric"
         placeholder={country.placeholder}
-        value={local}
-        onChange={(event) => update(code, event.target.value)}
+        value={shown}
+        onChange={(event) => onType(event.target.value)}
         className={`${controlClasses} min-w-0 flex-1 ${inputProps.className ?? ""}`}
       />
-      <input type="hidden" name={name} value={withCountryCode(code, local)} />
+      <input type="hidden" name={name} value={withCountryCode(code, digits)} />
     </div>
   );
 }

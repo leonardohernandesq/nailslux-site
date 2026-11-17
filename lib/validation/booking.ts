@@ -29,7 +29,7 @@ export function createBookingSchema(options: {
         .transform((value, ctx) => {
           const phone = normalizePhone(value);
           if (!phone) {
-            ctx.addIssue({ code: "custom", message: "Indique um número válido, ex.: 912 345 678." });
+            ctx.addIssue({ code: "custom", message: "Número incompleto ou inválido." });
             return z.NEVER;
           }
           return phone;
