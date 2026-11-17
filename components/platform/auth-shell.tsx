@@ -5,10 +5,21 @@ import { sora } from "@/lib/fonts";
 import { PLATFORM } from "@/lib/site";
 
 /** The frame around sign-up and password pages. */
-export function AuthShell({ title, intro, children }: { title: string; intro: string; children: ReactNode }) {
+export function AuthShell({
+  title,
+  intro,
+  wide = false,
+  children,
+}: {
+  title: string;
+  intro: string;
+  /** For longer forms, such as /contacto. */
+  wide?: boolean;
+  children: ReactNode;
+}) {
   return (
     <main className={`nailo flex min-h-dvh items-center justify-center px-4 py-12 ${sora.variable}`}>
-      <div className="w-full max-w-md">
+      <div className={`w-full ${wide ? "max-w-2xl" : "max-w-md"}`}>
         <div className="mb-6 flex flex-col items-center text-center">
           <Link href="/" aria-label={`${PLATFORM.name}, início`}>
             <Image src="/brand/nailo/nailo-logo-horizontal.svg" alt="" width={463} height={146} priority unoptimized className="h-16 w-auto" />

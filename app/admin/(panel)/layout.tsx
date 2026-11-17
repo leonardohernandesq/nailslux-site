@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowSquareOutIcon, ChatCircleTextIcon, SignOutIcon } from "@phosphor-icons/react/ssr";
+import { ArrowSquareOutIcon, SignOutIcon } from "@phosphor-icons/react/ssr";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { SetupBanner } from "@/components/admin/setup-banner";
 import { logout } from "@/lib/actions/auth";
@@ -29,15 +29,6 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
             <Suspense fallback={<div className="h-10 w-24" />}>
               <ViewSiteLink />
             </Suspense>
-            <Link
-              href="/contacto"
-              target="_blank"
-              aria-label="Sugestões"
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-ink-muted hover:bg-peach-50 hover:text-ink"
-            >
-              <ChatCircleTextIcon size={16} aria-hidden="true" />
-              <span className="hidden sm:inline">Sugestões</span>
-            </Link>
             <form action={logout}>
               <button
                 type="submit"

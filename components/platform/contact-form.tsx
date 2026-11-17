@@ -28,7 +28,7 @@ export function ContactForm() {
             *
           </span>
         </legend>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {CONTACT_KINDS.map((kind) => (
             <label
               key={kind.value}
@@ -39,7 +39,7 @@ export function ContactForm() {
                 name="kind"
                 value={kind.value}
                 defaultChecked={(values.kind ?? "sugestao") === kind.value}
-                className="size-4 accent-(--color-accent)"
+                className="size-4 accent-accent"
               />
               {kind.label}
             </label>
@@ -48,20 +48,22 @@ export function ContactForm() {
         <FieldError id="kind-error" errors={errors.kind} />
       </fieldset>
 
-      <Field id="name" label="O seu nome" required errors={errors.name}>
-        <Input id="name" name="name" required autoComplete="name" defaultValue={values.name} {...describedBy("name", errors.name)} />
-      </Field>
-      <Field id="email" label="Email" required errors={errors.email} hint="Respondemos para este email.">
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          defaultValue={values.email}
-          {...describedBy("email", errors.email, "hint")}
-        />
-      </Field>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field id="name" label="O seu nome" required errors={errors.name}>
+          <Input id="name" name="name" required autoComplete="name" defaultValue={values.name} {...describedBy("name", errors.name)} />
+        </Field>
+        <Field id="email" label="Email" required errors={errors.email} hint="Respondemos para este email.">
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            defaultValue={values.email}
+            {...describedBy("email", errors.email, "hint")}
+          />
+        </Field>
+      </div>
       <Field id="site" label="Nome ou endereço do seu studio" errors={errors.site} hint="Ex.: unhas-da-ines">
         <Input id="site" name="site" defaultValue={values.site} {...describedBy("site", errors.site, "hint")} />
       </Field>
@@ -79,7 +81,7 @@ export function ContactForm() {
       </Field>
 
       {/* Hidden from people; see sendContactMessage. */}
-      <div aria-hidden="true" className="absolute -left-[9999px]">
+      <div aria-hidden="true" className="absolute left-[-9999px]">
         <label htmlFor="contact-website">Website</label>
         <input id="contact-website" name="website" tabIndex={-1} autoComplete="off" />
       </div>

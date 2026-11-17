@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <AuthShell title="Fale connosco" intro="Uma ideia para o seu site, algo que correu mal ou um obrigado: lemos tudo.">
+    <AuthShell wide title="Fale connosco" intro="Uma ideia para o seu site, algo que correu mal ou um obrigado: lemos tudo.">
       <ContactForm />
     </AuthShell>
   );

@@ -431,7 +431,7 @@ export default async function PlatformHome() {
                 Privacidade
               </Link>
               <Link href="/contacto" className="inline-flex min-h-11 items-center hover:text-gold">
-                Contacto
+                Contacto e sugestões
               </Link>
             </div>
           </div>
