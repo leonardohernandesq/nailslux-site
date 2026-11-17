@@ -430,6 +430,9 @@ export default async function PlatformHome() {
               <Link href="/privacidade" className="inline-flex min-h-11 items-center hover:text-gold">
                 Privacidade
               </Link>
+              <Link href="/contacto" className="inline-flex min-h-11 items-center hover:text-gold">
+                Contacto
+              </Link>
             </div>
           </div>
         </div>

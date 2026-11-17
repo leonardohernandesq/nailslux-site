@@ -39,7 +39,11 @@ export function LegalPage({ title, sections }: { title: string; sections: LegalS
             Para qualquer questão, incluindo pedidos sobre dados pessoais, escreva para{" "}
             <a href={`mailto:${PLATFORM.contactEmail}`} className="font-semibold text-accent underline wrap-anywhere">
               {PLATFORM.contactEmail}
-            </a>
+            </a>{" "}
+            ou use o{" "}
+            <Link href="/contacto" className="font-semibold text-accent underline">
+              formulário de contacto
+            </Link>
             .
             {contactUrl && (
               <>

@@ -1,6 +1,12 @@
 import "server-only";
 
-type Mail = { to: string; subject: string; text: string; html: string };
+/** `replyTo` makes "Reply" go to that address instead of the sender. */
+type Mail = { to: string; subject: string; text: string; html: string; replyTo?: string };
+
+/** For text typed by visitors that goes into an email's HTML. */
+export function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 
 /** False in production without a Resend key and sender, when no email can reach anyone. */
 export function canSendMail(): boolean {
@@ -28,7 +34,14 @@ export async function sendMail(mail: Mail): Promise<boolean> {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, ...mail }),
+      body: JSON.stringify({
+        from,
+        to: mail.to,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+        ...(mail.replyTo && { reply_to: mail.replyTo }),
+      }),
     });
     if (!response.ok) console.error(`Resend answered ${response.status}: ${await response.text().catch(() => "")}`);
     return response.ok;
