@@ -180,6 +180,11 @@ describe("getReferralOverview", () => {
     expect(referred).toMatchObject({ name: "Studio F", paying: true, freeMonth: true, paidMonths: ["2026-09", "2026-11"] });
     expect(byName.Madrinha.url).toMatch(/ref=madrinha$/);
 
+    // Every published studio shows with its link, even without referrals; a pending one doesn't.
+    expect(byName["Studio F"]).toMatchObject({ kind: "studio", referred: [] });
+    expect(byName["Studio F"].url).toMatch(/ref=studio-f$/);
+    expect(byName["Via parceiro"]).toBeUndefined();
+
     expect(byName["Studio eliminado"]).toMatchObject({ kind: "removed", url: null });
     expect(byName["Studio eliminado"].referred[0].paying).toBe(false);
   });

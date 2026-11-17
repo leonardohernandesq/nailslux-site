@@ -68,6 +68,14 @@ test("the referrals page lists the partner link, ready to copy", async ({ page }
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Indicações");
   await expect(page.getByRole("heading", { name: /Markaii/ })).toBeVisible();
   await expect(page.getByLabel("Link de indicação de Markaii")).toHaveValue(/\/registo\?ref=markaii$/);
+
+  // Published studios show too, each with its own link; the search narrows the list.
+  expect(await page.getByLabel(/^Link de indicação de /).count()).toBeGreaterThan(1);
+  const search = page.getByRole("searchbox", { name: "Procurar studio ou parceiro" });
+  await search.fill("markáii");
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(1);
+  await search.fill("ninguém-com-este-nome");
+  await expect(page.getByText("Nenhum studio ou parceiro com esse nome.")).toBeVisible();
 });
 
 test("a partner link invites with a free month", async ({ page }) => {

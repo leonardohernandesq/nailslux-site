@@ -56,8 +56,8 @@ async function monthsFor(customer: string | null | undefined): Promise<string[] 
 }
 
 /**
- * Everyone who referred a studio: studios and partners, with the studios that
- * signed up through their link. Partners show even before anyone used their link.
+ * Every partner and published studio, with the studios that signed up through
+ * their link, plus unpublished or deleted studios that did refer someone.
  */
 export async function getReferralOverview(): Promise<ReferrerGroup[]> {
   await requirePlatformAdmin();
@@ -81,8 +81,9 @@ export async function getReferralOverview(): Promise<ReferrerGroup[]> {
     .lean();
 
   const referrerIds = [...new Set(referred.flatMap((doc) => (doc.referredBy ? [String(doc.referredBy)] : [])))];
+  // Every published studio has a link, so each shows even before anyone used it.
   const [referrers, months] = await Promise.all([
-    Tenant.find({ _id: { $in: referrerIds } }, { name: 1, slug: 1, status: 1 }).lean(),
+    Tenant.find({ $or: [{ _id: { $in: referrerIds } }, { status: "active" }] }, { name: 1, slug: 1, status: 1 }).lean(),
     Promise.all(referred.map((doc) => monthsFor(doc.stripeCustomerId))),
   ]);
   const referrerById = new Map(referrers.map((doc) => [String(doc._id), doc]));
@@ -90,6 +91,11 @@ export async function getReferralOverview(): Promise<ReferrerGroup[]> {
   const groups = new Map<string, ReferrerGroup>();
   for (const partner of PARTNERS) {
     groups.set(`partner:${partner.code}`, { key: `partner:${partner.code}`, name: partner.name, kind: "partner", url: referralUrl(partner.code), referred: [] });
+  }
+  for (const doc of referrers) {
+    if (doc.status !== "active") continue;
+    const key = `studio:${String(doc._id)}`;
+    groups.set(key, { key, name: doc.name, kind: "studio", url: referralUrl(doc.slug), referred: [] });
   }
 
   referred.forEach((doc, index) => {
