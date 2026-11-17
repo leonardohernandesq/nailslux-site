@@ -85,12 +85,13 @@ function ImageField({ kind, label, hint, image, studioId }: ImageFieldProps) {
   }
 
   return (
-    <div>
+    // The hint grows, so the previews and buttons line up across the row whatever its length.
+    <div className="flex flex-col">
       <h3 className="font-bold">{label}</h3>
-      <p className="text-sm text-ink-muted">{hint}</p>
-      <div className="mt-3 flex min-h-28 items-center justify-center rounded-2xl bg-peach-50 p-3">
+      <p className="flex-1 text-sm text-ink-muted">{hint}</p>
+      <div className="mt-3 flex h-32 items-center justify-center rounded-2xl bg-peach-50 p-3">
         {image ? (
-          <Image src={image.src} alt={`${label} atual`} width={image.width} height={image.height} sizes="240px" className="max-h-24 w-auto rounded-lg object-contain" />
+          <Image src={image.src} alt={`${label} atual`} width={image.width} height={image.height} sizes="240px" className="max-h-full w-auto rounded-lg object-contain" />
         ) : (
           <p className="text-sm text-ink-muted">Ainda sem imagem</p>
         )}

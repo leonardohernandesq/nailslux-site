@@ -25,7 +25,12 @@ export default async function SettingsPage({ searchParams }: PageProps<"/admin/d
 
   return (
     <>
-      <h1 className="font-display text-4xl font-bold tracking-tight">{novo ? "Bem-vinda!" : "Definições"}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <h1 className="font-display text-4xl font-bold tracking-tight">{novo ? "Bem-vinda!" : "Definições"}</h1>
+        <Link href="/admin/subscricao" className="inline-flex min-h-11 items-center font-semibold text-accent hover:underline">
+          Ver subscrição
+        </Link>
+      </div>
       <p className="mt-1 mb-6 text-ink-muted">
         {novo
           ? "Confirme os dados do studio. Depois adicione os serviços e as fotografias."
@@ -40,11 +45,6 @@ export default async function SettingsPage({ searchParams }: PageProps<"/admin/d
         email={email}
         mailReady={canSendMail()}
       />
-      <p className="mt-6 text-center">
-        <Link href="/admin/subscricao" className="inline-flex min-h-11 items-center font-semibold text-accent hover:underline">
-          Ver subscrição
-        </Link>
-      </p>
     </>
   );
 }

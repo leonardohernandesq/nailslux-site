@@ -182,6 +182,10 @@ export function RankingChart({
     ...d,
     share: `${d.count} (${Math.round((d.count / total) * 100)}%)`,
   }));
+  // Long names wrap to several lines in the 120px axis (about 14 characters each),
+  // so each row is as tall as the longest name plus a gap before the next one.
+  const longest = Math.max(0, ...rows.map((d) => String(d.axisLabel).length));
+  const rowHeight = Math.max(44, Math.ceil(longest / 14) * 17 + 28);
 
   return (
     <ChartCard title={title} description={description}>
@@ -189,7 +193,7 @@ export function RankingChart({
         <p className="mt-4 text-ink-muted">{empty}</p>
       ) : (
         <>
-          <div aria-hidden="true" className="mt-4" style={{ height: rows.length * 44 + 8 }}>
+          <div aria-hidden="true" className="mt-4" style={{ height: rows.length * rowHeight + 8 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={rows} layout="vertical" margin={{ top: 0, right: 72, bottom: 0, left: 0 }}>
                 <XAxis type="number" hide allowDecimals={false} />
