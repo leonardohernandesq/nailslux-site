@@ -1,7 +1,7 @@
 import { ArrowRightIcon, CheckIcon, SparkleIcon } from "@phosphor-icons/react/ssr";
 import { buttonClasses } from "@/components/ui/button";
-import { formatPrice } from "@/lib/format";
-import { PLANS, TWELVE_MONTHS_CENTS } from "@/lib/plans";
+import { formatPlanPrice } from "@/lib/format";
+import { PLANS, taxNote, twelveMonthsCents, type PlanCurrency } from "@/lib/plans";
 
 const INCLUDED = [
   "Site com a marca do seu studio",
@@ -13,7 +13,9 @@ const INCLUDED = [
   "Portfólio e estatísticas do site",
 ];
 
-export function Pricing() {
+export function Pricing({ currency }: { currency: PlanCurrency }) {
+  const price = (cents: number) => formatPlanPrice(cents, currency);
+  const tax = taxNote(currency);
   return (
     <div className="mx-auto grid max-w-3xl gap-5 md:grid-cols-2">
       {PLANS.map((plan) => {
@@ -35,16 +37,20 @@ export function Pricing() {
             )}
             <h3 className="font-luxe text-3xl italic">{plan.name}</h3>
             <p className="mt-3">
-              <span className="font-display text-4xl font-bold tabular-nums">{formatPrice(plan.priceCents)}</span>
-              <span className={yearly ? "text-cream/70" : "text-ink-muted"}> por {plan.period} + IVA</span>
+              <span className="font-display text-4xl font-bold tabular-nums">{price(plan.prices[currency])}</span>
+              <span className={yearly ? "text-cream/70" : "text-ink-muted"}>
+                {" "}
+                por {plan.period}
+                {tax}
+              </span>
             </p>
             {yearly ? (
               <p className="mt-1 text-sm font-semibold text-cream/70">
                 <span className="sr-only">12 meses do plano mensal: </span>
-                <s>{formatPrice(TWELVE_MONTHS_CENTS)}</s>
+                <s>{price(twelveMonthsCents(currency))}</s>
               </p>
             ) : (
-              <p className="mt-1 text-sm font-semibold text-ink-muted">{formatPrice(TWELVE_MONTHS_CENTS)} por ano + IVA</p>
+              <p className="mt-1 text-sm font-semibold text-ink-muted">{price(twelveMonthsCents(currency))} por ano{tax}</p>
             )}
             <ul className="mt-6 flex flex-1 flex-col gap-3">
               {INCLUDED.map((item) => (

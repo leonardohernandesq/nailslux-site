@@ -6,13 +6,23 @@ import { SubmitButton } from "@/components/admin/submit-button";
 import { Field, Input, describedBy } from "@/components/ui/field";
 import { register } from "@/lib/actions/registration";
 import { idleState } from "@/lib/actions/form-state";
-import { toPlan, type PlanId } from "@/lib/plans";
+import { toPlan, type PlanCurrency, type PlanId } from "@/lib/plans";
 import { slugify } from "@/lib/validation/registration";
 import { FormMessage } from "./auth-shell";
 import { PlanPicker } from "./plan-picker";
 
 /** `referralCode` is the inviting studio's slug, from a ?ref= link. */
-export function RegisterForm({ siteHost, plan, referralCode }: { siteHost: string; plan: PlanId; referralCode?: string }) {
+export function RegisterForm({
+  siteHost,
+  plan,
+  currency,
+  referralCode,
+}: {
+  siteHost: string;
+  plan: PlanId;
+  currency: PlanCurrency;
+  referralCode?: string;
+}) {
   const [state, formAction] = useActionState(register, idleState);
   const errors = state.fieldErrors ?? {};
   const v = state.values;
@@ -26,7 +36,7 @@ export function RegisterForm({ siteHost, plan, referralCode }: { siteHost: strin
       {state.status === "error" && state.message && !state.fieldErrors && <FormMessage tone="error">{state.message}</FormMessage>}
 
       {/* React resets the form after an action, so the key restores the choice. */}
-      <PlanPicker key={v?.plan} defaultPlan={v?.plan ? toPlan(v.plan).id : plan} />
+      <PlanPicker key={v?.plan} defaultPlan={v?.plan ? toPlan(v.plan).id : plan} currency={currency} />
 
       <Field id="studioName" label="Nome do studio" required errors={errors.studioName}>
         <Input

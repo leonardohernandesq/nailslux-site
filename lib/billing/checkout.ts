@@ -1,6 +1,6 @@
 import "server-only";
 import { Tenant } from "../db/models";
-import type { PlanId } from "../plans";
+import type { PlanCurrency, PlanId } from "../plans";
 import { getStripe, priceIdFor } from "../stripe";
 
 export const billingPageUrl = () => `${process.env.SITE_URL ?? "http://localhost:3000"}/admin/subscricao`;
@@ -11,10 +11,11 @@ type CheckoutInput = {
   name: string;
   customer?: string | null;
   plan: PlanId;
+  currency: PlanCurrency;
 };
 
 /** A Stripe payment page for this studio, creating its Stripe customer the first time. */
-export async function createCheckoutUrl({ tenantId, email, name, customer, plan }: CheckoutInput): Promise<string | null> {
+export async function createCheckoutUrl({ tenantId, email, name, customer, plan, currency }: CheckoutInput): Promise<string | null> {
   const stripe = getStripe();
   if (!customer) {
     const created = await stripe.customers.create(
@@ -29,6 +30,8 @@ export async function createCheckoutUrl({ tenantId, email, name, customer, plan 
     customer,
     locale: "pt",
     line_items: [{ price: priceIdFor(plan), quantity: 1 }],
+    // The same currency the site showed. The Stripe price needs it as a currency option.
+    currency: currency.toLowerCase(),
     // How the webhook finds the studio. Payment methods come from the Stripe dashboard.
     subscription_data: { metadata: { tenantId } },
     success_url: `${billingPageUrl()}?pago=1`,

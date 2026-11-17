@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { ArrowRightIcon, GiftIcon } from "@phosphor-icons/react/ssr";
 import { PageMotion } from "@/components/motion/page-motion";
 import { BookingStory } from "@/components/platform/booking-story";
@@ -17,7 +18,8 @@ import { buttonClasses } from "@/components/ui/button";
 import { PORTFOLIO_MAX_ITEMS } from "@/lib/constants";
 import { getShowcaseStudios } from "@/lib/data/showcase";
 import { instrumentSerif, sora } from "@/lib/fonts";
-import { PLANS } from "@/lib/plans";
+import { getPlanCurrency } from "@/lib/plan-currency";
+import { PLANS, taxNote } from "@/lib/plans";
 import { isRegistrationOpen, PLATFORM } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -49,14 +51,48 @@ const NAV = [
   { href: "#preco", label: "Preço" },
 ];
 
-const MONTHLY_PRICE = (PLANS[0].priceCents / 100).toLocaleString("pt-PT", { minimumFractionDigits: 2 });
+type NumberFact = { value: string; count: number; decimals?: number; prefix?: string; unit: string; label: string };
 
 // Facts about the product, not vanity numbers; each one has to stay true.
-const NUMBERS = [
+const NUMBERS: NumberFact[] = [
   { value: "24", count: 24, unit: "h", label: "a receber pedidos, todos os dias" },
   { value: String(PORTFOLIO_MAX_ITEMS), count: PORTFOLIO_MAX_ITEMS, unit: "", label: "fotografias no seu portfólio" },
-  { value: MONTHLY_PRICE, count: PLANS[0].priceCents / 100, decimals: 2, unit: " €", label: "por mês + IVA, tudo incluído" },
 ];
+
+function NumberItem({ value, count, decimals, prefix, unit, label }: NumberFact) {
+  return (
+    <li className="flex flex-col items-center px-3 text-center sm:border-l sm:border-line sm:first:border-l-0">
+      <p className="font-luxe text-5xl leading-none text-ink tabular-nums sm:text-6xl">
+        {prefix && <span className="text-gold-deep">{prefix}</span>}
+        <span data-count={count} data-count-decimals={decimals}>
+          {value}
+        </span>
+        <span className="text-gold-deep">{unit}</span>
+      </p>
+      <p className="mt-2 max-w-[18ch] text-sm font-semibold text-ink-muted">{label}</p>
+    </li>
+  );
+}
+
+/** The monthly price in the visitor's currency, which depends on where the request comes from. */
+async function MonthlyPrice() {
+  const currency = await getPlanCurrency();
+  const amount = PLANS[0].prices[currency] / 100;
+  return (
+    <NumberItem
+      value={amount.toLocaleString("pt-PT", { minimumFractionDigits: 2 })}
+      count={amount}
+      decimals={2}
+      prefix={currency === "BRL" ? "R$ " : undefined}
+      unit={currency === "EUR" ? " €" : ""}
+      label={`por mês${taxNote(currency)}, tudo incluído`}
+    />
+  );
+}
+
+async function VisitorPricing() {
+  return <Pricing currency={await getPlanCurrency()} />;
+}
 
 // Specks of champagne drifting up behind the closing call to action.
 const DUST = [
@@ -201,17 +237,12 @@ export default async function PlatformHome() {
       <main id="conteudo">
         <section aria-label="O Nailo App em números" className="border-b border-line bg-surface">
           <ul data-reveal-group className="mx-auto grid max-w-5xl gap-y-8 px-4 py-12 sm:grid-cols-3 sm:px-6 md:py-14">
-            {NUMBERS.map(({ value, count, decimals, unit, label }) => (
-              <li key={label} className="flex flex-col items-center px-3 text-center sm:border-l sm:border-line sm:first:border-l-0">
-                <p className="font-luxe text-5xl leading-none text-ink tabular-nums sm:text-6xl">
-                  <span data-count={count} data-count-decimals={decimals}>
-                    {value}
-                  </span>
-                  <span className="text-gold-deep">{unit}</span>
-                </p>
-                <p className="mt-2 max-w-[18ch] text-sm font-semibold text-ink-muted">{label}</p>
-              </li>
+            {NUMBERS.map((fact) => (
+              <NumberItem key={fact.label} {...fact} />
             ))}
+            <Suspense fallback={<li aria-hidden="true" className="min-h-20" />}>
+              <MonthlyPrice />
+            </Suspense>
           </ul>
         </section>
 
@@ -291,7 +322,9 @@ export default async function PlatformHome() {
             <SectionHeading id="preco-title" eyebrow="Preço" title={<>Um preço simples, <em className={LUXE_ON_LIGHT}>tudo incluído</em></>}>
               Escolha pagar ao mês ou ao ano.
             </SectionHeading>
-            <Pricing />
+            <Suspense fallback={<div className="min-h-[40rem]" />}>
+              <VisitorPricing />
+            </Suspense>
           </div>
         </section>
 

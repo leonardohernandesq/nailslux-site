@@ -14,6 +14,7 @@ import { CACHE_TAGS } from "../constants";
 import { connectDB } from "../db/connect";
 import { Tenant, User } from "../db/models";
 import { actionMail, sendMail } from "../mail";
+import { getPlanCurrency } from "../plan-currency";
 import { toPlan } from "../plans";
 import { isRegistrationOpen, PLATFORM } from "../site";
 import { isBillingConfigured } from "../stripe";
@@ -98,7 +99,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   let checkoutUrl: string | null = null;
   if (isBillingConfigured(plan.id)) {
     try {
-      checkoutUrl = await createCheckoutUrl({ tenantId: String(tenant._id), email, name: studioName, plan: plan.id });
+      checkoutUrl = await createCheckoutUrl({ tenantId: String(tenant._id), email, name: studioName, plan: plan.id, currency: await getPlanCurrency() });
     } catch (error) {
       console.error("Could not open checkout after sign-up.", error);
     }

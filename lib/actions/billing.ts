@@ -6,6 +6,7 @@ import { billingPageUrl, createCheckoutUrl } from "../billing/checkout";
 import { MANAGED_IN_PORTAL } from "../billing/subscription";
 import { connectDB } from "../db/connect";
 import { Tenant } from "../db/models";
+import { getPlanCurrency } from "../plan-currency";
 import { toPlan } from "../plans";
 import { getStripe, isBillingConfigured } from "../stripe";
 import type { FormState } from "./form-state";
@@ -28,7 +29,7 @@ export async function openBilling(_prev: FormState, formData: FormData): Promise
       const portal = await getStripe().billingPortal.sessions.create({ customer: tenant.stripeCustomerId, return_url: billingPageUrl() });
       url = portal.url;
     } else {
-      url = await createCheckoutUrl({ tenantId, email, name: tenant.name, customer: tenant.stripeCustomerId, plan: plan.id });
+      url = await createCheckoutUrl({ tenantId, email, name: tenant.name, customer: tenant.stripeCustomerId, plan: plan.id, currency: await getPlanCurrency() });
     }
   } catch (error) {
     console.error("Could not open Stripe.", error);

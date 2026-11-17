@@ -18,10 +18,10 @@ test("the menu leads to the plans, and a plan to sign-up with it chosen", async 
   await page.locator('header a[href="#preco"]:visible').click();
 
   const pricing = page.locator("#preco");
-  await expect(pricing).toContainText("9,99");
-  await expect(pricing).toContainText("99,99 € por ano + IVA");
-  await expect(pricing).toContainText("119,88 € por ano + IVA");
-  await expect(pricing.locator("s")).toHaveText("119,88 €");
+  await expect(pricing).toContainText("4,90");
+  await expect(pricing).toContainText("46,90 € por ano + IVA");
+  await expect(pricing).toContainText("58,80 € por ano + IVA");
+  await expect(pricing.locator("s")).toHaveText("58,80 €");
   await expect(pricing).toContainText("Económico");
 
   await pricing.getByRole("link", { name: /plano Anual/ }).click();
@@ -29,11 +29,26 @@ test("the menu leads to the plans, and a plan to sign-up with it chosen", async 
   await expect(page.getByRole("radio", { name: /Anual/ })).toBeChecked();
 });
 
+test("a visitor from Brazil sees the plans in reais, without VAT", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-vercel-ip-country": "BR" });
+  await page.goto("/");
+
+  const pricing = page.locator("#preco");
+  await expect(pricing).toContainText("R$ 19,90");
+  await expect(pricing).toContainText("R$ 189,90 por ano");
+  await expect(pricing).not.toContainText("€");
+  await expect(pricing).not.toContainText("IVA");
+
+  await page.goto("/registo?plano=anual");
+  await expect(page.getByRole("radio", { name: /Anual/ })).toBeChecked();
+  await expect(page.getByRole("main")).toContainText("R$ 189,90 por ano");
+});
+
 test("the footer leads to the terms and the privacy policy", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("contentinfo").getByRole("link", { name: "Termos" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Termos de utilização");
-  await expect(page.getByRole("main")).toContainText("99,99 € por ano + IVA");
+  await expect(page.getByRole("main")).toContainText("46,90 € por ano + IVA");
 
   await page.goto("/");
   await page.getByRole("contentinfo").getByRole("link", { name: "Privacidade" }).click();

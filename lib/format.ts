@@ -1,4 +1,5 @@
 import { PLATFORM } from "./site";
+import type { PlanCurrency } from "./plans";
 
 const currency = new Intl.NumberFormat(PLATFORM.locale, {
   style: "currency",
@@ -38,4 +39,14 @@ export function formatLongDate(isoDate: string): string {
     month: "long",
     year: "numeric",
   }).format(parseISODate(isoDate));
+}
+
+const planCurrency = {
+  EUR: new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }),
+  BRL: new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }),
+};
+
+/** A subscription amount, in the currency the studio pays in: "4,90 €" or "R$ 19,90". */
+export function formatPlanPrice(cents: number, currency: PlanCurrency): string {
+  return planCurrency[currency].format(cents / 100);
 }

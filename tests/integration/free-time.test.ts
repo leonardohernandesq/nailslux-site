@@ -142,6 +142,7 @@ describe("subscription details", () => {
       free: true,
       hasCard: false,
       creditCents: 999,
+      currency: "EUR",
     });
   });
 

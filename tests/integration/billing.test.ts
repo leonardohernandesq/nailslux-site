@@ -5,6 +5,11 @@ import type Stripe from "stripe";
 const TENANT_ID = "64b00000000000000000000d";
 const WEBHOOK_SECRET = "whsec_test";
 
+// The visitor's country, as Vercel sends it on each request.
+const request = vi.hoisted(() => ({ country: null as string | null }));
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers(request.country ? { "x-vercel-ip-country": request.country } : {}),
+}));
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), cacheTag: vi.fn(), cacheLife: vi.fn() }));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
@@ -220,9 +225,23 @@ describe("openBilling", () => {
         mode: "subscription",
         customer: "cus_new",
         line_items: [{ price: "price_x", quantity: 1 }],
+        currency: "eur",
         subscription_data: { metadata: { tenantId: TENANT_ID } },
       }),
     );
+  });
+
+  it("charges a studio in Brazil in reais, the currency the site showed it", async () => {
+    await seed({ status: "pending", stripeCustomerId: "cus_1" });
+    const create = checkout();
+    request.country = "BR";
+
+    try {
+      await expect(billing()).rejects.toThrow("NEXT_REDIRECT");
+    } finally {
+      request.country = null;
+    }
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ line_items: [{ price: "price_x", quantity: 1 }], currency: "brl" }));
   });
 
   it("charges the yearly price for the yearly plan, and refuses it if it isn't set up", async () => {

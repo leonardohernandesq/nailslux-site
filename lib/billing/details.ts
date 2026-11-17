@@ -1,6 +1,7 @@
 import "server-only";
 import { connectDB } from "../db/connect";
 import { Tenant } from "../db/models";
+import type { PlanCurrency } from "../plans";
 import { getStripe } from "../stripe";
 import { nextChargeOf } from "./free-time";
 
@@ -16,6 +17,8 @@ export type SubscriptionDetails = {
   hasCard: boolean;
   /** Money in the studio's favour on Stripe, in cents (0 when none). */
   creditCents: number;
+  /** What the studio is billed in, and so what the credit is in. */
+  currency: PlanCurrency;
 };
 
 export type AccessGrant = { at: string; by: string; amount: number; unit: "days" | "months"; until: string };
@@ -50,6 +53,7 @@ export async function getSubscriptionDetails(tenantId: string): Promise<Subscrip
       ),
       // Stripe keeps credit as a negative balance.
       creditCents: balance < 0 ? -balance : 0,
+      currency: subscription.currency === "brl" ? "BRL" : "EUR",
     };
   } catch (error) {
     console.error("Could not read the subscription from Stripe.", error);

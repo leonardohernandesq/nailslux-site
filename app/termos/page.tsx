@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { LegalPage, type LegalSection } from "@/components/platform/legal-page";
-import { formatPrice } from "@/lib/format";
+import { formatPlanPrice } from "@/lib/format";
 import { PLANS } from "@/lib/plans";
 import { PLATFORM } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Termos de utilização" };
 
-const PRICES = PLANS.map((plan) => `${plan.name}: ${formatPrice(plan.priceCents)} por ${plan.period} + IVA`).join("; ");
+const PRICES = PLANS.map(
+  (plan) =>
+    `${plan.name}: ${formatPlanPrice(plan.prices.EUR, "EUR")} por ${plan.period} + IVA, ou ${formatPlanPrice(plan.prices.BRL, "BRL")} por ${plan.period} para studios no Brasil`,
+).join("; ");
 
 const SECTIONS: LegalSection[] = [
   {

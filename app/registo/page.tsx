@@ -7,6 +7,7 @@ import { RegisterForm } from "@/components/platform/register-form";
 import { buttonClasses } from "@/components/ui/button";
 import { GiftIcon } from "@phosphor-icons/react/ssr";
 import { findReferrer } from "@/lib/billing/referral";
+import { getPlanCurrency } from "@/lib/plan-currency";
 import { toPlan } from "@/lib/plans";
 import { isRegistrationOpen } from "@/lib/site";
 
@@ -44,7 +45,7 @@ async function RegisterWithPlan({ searchParams }: Pick<PageProps<"/registo">, "s
   const siteHost = new URL(process.env.SITE_URL ?? "http://localhost:3000").host;
   // The invite is looked up in the database, so this part renders per request.
   await connection();
-  const referrer = await findReferrer(ref);
+  const [referrer, currency] = await Promise.all([findReferrer(ref), getPlanCurrency()]);
   return (
     <>
       {referrer && (
@@ -56,7 +57,7 @@ async function RegisterWithPlan({ searchParams }: Pick<PageProps<"/registo">, "s
           </span>
         </p>
       )}
-      <RegisterForm siteHost={siteHost} plan={toPlan(plano).id} referralCode={referrer ? String(ref) : undefined} />
+      <RegisterForm siteHost={siteHost} plan={toPlan(plano).id} currency={currency} referralCode={referrer ? String(ref) : undefined} />
     </>
   );
 }

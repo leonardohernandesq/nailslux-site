@@ -6,6 +6,11 @@ const session = vi.hoisted(() => ({ user: { id: "", email: "" } }));
 const mail = vi.hoisted(() => ({ sent: [] as { to: string; text: string }[] }));
 
 vi.mock("@/auth", () => ({ signIn: vi.fn(async () => {}) }));
+// The visitor's country, as Vercel sends it on each request.
+const request = vi.hoisted(() => ({ country: null as string | null }));
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers(request.country ? { "x-vercel-ip-country": request.country } : {}),
+}));
 vi.mock("next/cache", () => ({ refresh: vi.fn(), updateTag: vi.fn(), revalidateTag: vi.fn(), cacheTag: vi.fn(), cacheLife: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/mail", () => ({

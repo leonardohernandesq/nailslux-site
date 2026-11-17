@@ -8,7 +8,8 @@ import { daysUntil, getSubscriptionDetails, type SubscriptionDetails } from "@/l
 import { getReferredStudios, referralUrl } from "@/lib/billing/referral";
 import { MANAGED_IN_PORTAL } from "@/lib/billing/subscription";
 import { getTenantById } from "@/lib/data/tenants";
-import { formatPrice } from "@/lib/format";
+import { formatPlanPrice } from "@/lib/format";
+import { getPlanCurrency } from "@/lib/plan-currency";
 
 export const metadata: Metadata = { title: "Subscrição" };
 
@@ -27,10 +28,11 @@ const longDate = new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "long
 
 export default async function BillingPage({ searchParams }: PageProps<"/admin/subscricao">) {
   const { tenantId } = await requireAdmin();
-  const [tenant, details, referred] = await Promise.all([
+  const [tenant, details, referred, currency] = await Promise.all([
     getTenantById(tenantId),
     getSubscriptionDetails(tenantId),
     getReferredStudios(tenantId),
+    getPlanCurrency(),
   ]);
   if (!tenant) notFound();
   const { pago } = await searchParams;
@@ -55,7 +57,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/admin/su
             <p>{status?.text ?? "Ative a subscrição para publicar o seu site."}</p>
             {details && details.status !== "canceled" && <Summary details={details} />}
             <p className="text-sm text-ink-muted">O pagamento é feito na Stripe. Os dados do cartão nunca passam pelos nossos servidores.</p>
-            <BillingButton label={canSubscribe ? "Ativar subscrição" : "Gerir subscrição"} choosePlan={canSubscribe} />
+            <BillingButton label={canSubscribe ? "Ativar subscrição" : "Gerir subscrição"} choosePlan={canSubscribe} currency={currency} />
           </>
         )}
       </div>
@@ -99,7 +101,7 @@ function Summary({ details }: { details: SubscriptionDetails }) {
           <CreditCardIcon size={24} aria-hidden="true" className="shrink-0" />
           <div>
             <dt className="text-sm font-bold">Crédito a seu favor</dt>
-            <dd className="font-semibold">{formatPrice(details.creditCents)}, descontado nas próximas faturas.</dd>
+            <dd className="font-semibold">{formatPlanPrice(details.creditCents, details.currency)}, descontado nas próximas faturas.</dd>
           </div>
         </div>
       )}

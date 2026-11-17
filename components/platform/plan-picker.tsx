@@ -1,8 +1,8 @@
-import { formatPrice } from "@/lib/format";
-import { PLANS, YEARLY_SAVING_CENTS, type PlanId } from "@/lib/plans";
+import { formatPlanPrice } from "@/lib/format";
+import { PLANS, taxNote, yearlySavingCents, type PlanCurrency, type PlanId } from "@/lib/plans";
 
 /** Radio buttons named "plan", for forms that lead to the payment page. */
-export function PlanPicker({ defaultPlan = "mensal" }: { defaultPlan?: PlanId }) {
+export function PlanPicker({ defaultPlan = "mensal", currency }: { defaultPlan?: PlanId; currency: PlanCurrency }) {
   return (
     <fieldset>
       <legend className="mb-2 font-semibold">Plano</legend>
@@ -16,9 +16,10 @@ export function PlanPicker({ defaultPlan = "mensal" }: { defaultPlan?: PlanId })
             <span>
               <span className="block font-bold">{plan.name}</span>
               <span className="block text-sm text-ink-muted">
-                {formatPrice(plan.priceCents)} por {plan.period} + IVA
+                {formatPlanPrice(plan.prices[currency], currency)} por {plan.period}
+                {taxNote(currency)}
               </span>
-              {plan.id === "anual" && <span className="block text-sm font-semibold text-accent">Poupa {formatPrice(YEARLY_SAVING_CENTS)}</span>}
+              {plan.id === "anual" && <span className="block text-sm font-semibold text-accent">Poupa {formatPlanPrice(yearlySavingCents(currency), currency)}</span>}
             </span>
           </label>
         ))}
