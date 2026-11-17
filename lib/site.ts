@@ -108,6 +108,8 @@ export const PLATFORM = {
   description: "Site, marcações e gestão para studios de unhas.",
   locale: "pt-PT",
   currency: "EUR",
+  /** Published on the legal pages for questions and data requests (RGPD/LGPD). */
+  contactEmail: "leonardo_hernandes@outlook.com.br",
 } as const;
 
 /** "351922269283" -> "+351 922 269 283" for display. */

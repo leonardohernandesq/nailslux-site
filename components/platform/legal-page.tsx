@@ -35,17 +35,23 @@ export function LegalPage({ title, sections }: { title: string; sections: LegalS
 
         <section className="mt-8">
           <h2 className="font-display text-xl font-bold">Contacto</h2>
-          {contactUrl ? (
-            <p className="mt-2 text-ink-muted">
-              Para qualquer questão,{" "}
-              <a href={contactUrl} className="font-semibold text-accent underline">
-                fale connosco
-              </a>
-              .
-            </p>
-          ) : (
-            <p className="mt-2 text-ink-muted">Os dados de contacto serão publicados aqui em breve.</p>
-          )}
+          <p className="mt-2 text-ink-muted">
+            Para qualquer questão, incluindo pedidos sobre dados pessoais, escreva para{" "}
+            <a href={`mailto:${PLATFORM.contactEmail}`} className="font-semibold text-accent underline wrap-anywhere">
+              {PLATFORM.contactEmail}
+            </a>
+            .
+            {contactUrl && (
+              <>
+                {" "}
+                Também pode{" "}
+                <a href={contactUrl} className="font-semibold text-accent underline">
+                  falar connosco
+                </a>
+                .
+              </>
+            )}
+          </p>
         </section>
       </article>
     </main>

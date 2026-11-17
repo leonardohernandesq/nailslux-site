@@ -83,7 +83,7 @@ const SECTIONS: LegalSection[] = [
   {
     title: "Encarregado de proteção de dados",
     body: [
-      "Os pedidos sobre dados pessoais, incluindo os dirigidos ao encarregado de proteção de dados (DPO), são feitos através do contacto indicado no fim desta página.",
+      `Os pedidos sobre dados pessoais, incluindo os dirigidos ao encarregado de proteção de dados (DPO), são feitos por email para ${PLATFORM.contactEmail}.`,
     ],
   },
 ];

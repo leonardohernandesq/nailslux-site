@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CheckIcon, CopyIcon, GiftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
+import { useState, useSyncExternalStore } from "react";
+import { CheckIcon, CopyIcon, ExportIcon, GiftIcon, ShareNetworkIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import type { ReferredStudio } from "@/lib/billing/referral";
 
@@ -24,6 +24,48 @@ function referralRules(billedDirectly: boolean): string[] {
   ];
 }
 
+type ShareKind = "apple" | "other" | null;
+
+/** Which share sheet the browser has, if any. Null on the server and where there's none. */
+function shareKind(): ShareKind {
+  if (typeof navigator.share !== "function") return null;
+  // iPhone, iPad and Mac show the box with an arrow; Android and Windows the three dots.
+  const apple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  return apple ? "apple" : "other";
+}
+const noSubscribe = () => () => {};
+
+/** The system's share sheet, with its own icon; a WhatsApp link where there's no sheet. */
+function ShareButton({ url, text }: { url: string; text: string }) {
+  const kind = useSyncExternalStore(noSubscribe, shareKind, () => null);
+  const className =
+    "inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-6 font-semibold text-on-accent hover:bg-accent-hover";
+
+  if (!kind) {
+    return (
+      <a href={`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`} target="_blank" rel="noopener noreferrer" className={className}>
+        <WhatsappLogoIcon size={18} weight="fill" aria-hidden="true" />
+        Partilhar
+      </a>
+    );
+  }
+
+  const Icon = kind === "apple" ? ExportIcon : ShareNetworkIcon;
+  async function share() {
+    try {
+      await navigator.share({ title: "Nailo App", text, url });
+    } catch {
+      // Closing the sheet without picking an app rejects; there's nothing to do.
+    }
+  }
+  return (
+    <button type="button" onClick={share} className={className}>
+      <Icon size={18} weight="bold" aria-hidden="true" />
+      Partilhar
+    </button>
+  );
+}
+
 /** The studio's referral link, and the studios that signed up through it. */
 export function ReferralCard({
   url,
@@ -40,7 +82,7 @@ export function ReferralCard({
 }) {
   const [copied, setCopied] = useState(false);
   const freeMonths = referred.filter((studio) => studio.rewarded).length;
-  const share = `Uso o Nailo App para as marcações do meu studio. Cria o teu site por aqui e ganhas um mês grátis: ${url}`;
+  const share = "Uso o Nailo App para as marcações do meu studio. Cria o teu site por aqui e ganhas um mês grátis:";
 
   async function copy() {
     await navigator.clipboard.writeText(url);
@@ -81,15 +123,7 @@ export function ReferralCard({
               {copied ? <CheckIcon size={18} aria-hidden="true" /> : <CopyIcon size={18} aria-hidden="true" />}
               {copied ? "Copiado" : "Copiar link"}
             </Button>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(share)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-6 font-semibold text-on-accent hover:bg-accent-hover"
-            >
-              <WhatsappLogoIcon size={18} weight="fill" aria-hidden="true" />
-              Partilhar
-            </a>
+            <ShareButton url={url} text={share} />
           </div>
           {referred.length === 0 ? (
             <p className="text-sm text-ink-muted">Ainda nenhum studio se registou pelo seu link.</p>
