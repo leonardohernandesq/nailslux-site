@@ -3,9 +3,10 @@ import Link from "next/link";
 import { sora } from "@/lib/fonts";
 import { PLATFORM } from "@/lib/site";
 
-export type LegalSection = { title: string; body: string[] };
+/** `id` gives the section an anchor, for links that point straight at it. */
+export type LegalSection = { id?: string; title: string; body: string[] };
 
-const UPDATED = "30 de outubro de 2026";
+const UPDATED = "17 de novembro de 2026";
 
 /** Long-form text pages, such as the terms and the privacy policy. */
 export function LegalPage({ title, sections }: { title: string; sections: LegalSection[] }) {
@@ -22,7 +23,7 @@ export function LegalPage({ title, sections }: { title: string; sections: LegalS
         <p className="mt-2 text-sm text-ink-muted">Versão provisória, atualizada a {UPDATED}.</p>
 
         {sections.map((section) => (
-          <section key={section.title} className="mt-8">
+          <section key={section.title} id={section.id} className="mt-8 scroll-mt-6">
             <h2 className="font-display text-xl font-bold">{section.title}</h2>
             {section.body.map((paragraph) => (
               <p key={paragraph} className="mt-2 text-ink-muted">

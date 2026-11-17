@@ -52,8 +52,8 @@ async function RegisterWithPlan({ searchParams }: Pick<PageProps<"/registo">, "s
         <p role="status" className="mb-5 flex items-start gap-3 rounded-2xl bg-peach-50 p-4 text-sm">
           <GiftIcon size={22} weight="duotone" aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
           <span>
-            Convite do studio <strong>{referrer.name}</strong>: quando a sua subscrição ficar ativa, ganha{" "}
-            <strong>um mês grátis</strong>.
+            Convite do studio <strong>{referrer.name}</strong>: paga o primeiro mês e{" "}
+            <strong>o mês seguinte é grátis</strong>.
           </span>
         </p>
       )}

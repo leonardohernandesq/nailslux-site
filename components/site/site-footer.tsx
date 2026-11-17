@@ -70,9 +70,14 @@ export function SiteFooter({ tenant, logo }: { tenant: TenantDTO; logo: StudioBr
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-5 text-sm text-ink-muted sm:px-6">
           <p>© {name} · {tagline}</p>
-          <Link href="/admin" className="inline-flex min-h-11 items-center hover:text-accent">
-            Área reservada
-          </Link>
+          <div className="flex flex-wrap gap-x-5">
+            <Link href="/privacidade" className="inline-flex min-h-11 items-center hover:text-accent">
+              Privacidade
+            </Link>
+            <Link href="/admin" className="inline-flex min-h-11 items-center hover:text-accent">
+              Área reservada
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

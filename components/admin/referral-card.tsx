@@ -7,6 +7,23 @@ import type { ReferredStudio } from "@/lib/billing/referral";
 
 const joined = new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "short", year: "numeric" });
 
+/** How the reward works, as lib/billing/referral.ts and the terms (app/termos) say. */
+function referralRules(billedDirectly: boolean): string[] {
+  const forYou = billedDirectly
+    ? ["A sua conta não é paga pela Stripe, por isso não há cobrança para adiar: só o studio indicado ganha o mês."]
+    : [
+        "Você ganha um mês no fim do período que já pagou: a sua próxima cobrança passa um mês para a frente.",
+        "Os meses somam: cada studio indicado que ativar a subscrição vale mais um mês.",
+        "Só ganha se a sua subscrição estiver ativa quando o studio indicado pagar. Um mês que não ganhou nessa altura não é dado mais tarde.",
+      ];
+  return [
+    "O studio indicado paga o primeiro mês normalmente e o mês seguinte é grátis.",
+    ...forYou,
+    "No plano anual, o mês grátis entra depois do ano já pago.",
+    "Cada studio indicado conta uma vez. O mês grátis não é convertível em dinheiro e nada é devolvido.",
+  ];
+}
+
 /** The studio's referral link, and the studios that signed up through it. */
 export function ReferralCard({
   url,
@@ -42,6 +59,14 @@ export function ReferralCard({
         <strong>{billedDirectly ? "esse studio ganha um mês grátis" : "os dois ganham um mês grátis"}</strong>: a próxima
         cobrança passa um mês para a frente.
       </p>
+      <div className="rounded-2xl bg-peach-50 p-4">
+        <h3 className="text-sm font-bold">Como funciona</h3>
+        <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 text-sm text-ink-muted marker:text-accent">
+          {referralRules(billedDirectly).map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
+      </div>
       {active ? (
         <>
           <div className="flex flex-col gap-2 sm:flex-row">

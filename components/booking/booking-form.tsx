@@ -14,7 +14,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { splitPhone } from "@/lib/phone";
 import { formatDuration, formatPrice } from "@/lib/format";
 import { bookingDuration, dateBounds, isSlotFree, slotsFor, timeOffIntervals, type BusyInterval } from "@/lib/schedule";
-import { formatOpeningDays, type OpeningHours } from "@/lib/site";
+import { formatOpeningDays, PLATFORM, type OpeningHours } from "@/lib/site";
 import { createBookingSchema } from "@/lib/validation/booking";
 import { buildBookingMessage, buildWhatsAppUrl } from "@/lib/whatsapp";
 import { requestAppointment, type BookingField } from "@/lib/actions/appointments";
@@ -460,6 +460,13 @@ export function BookingForm({
           <p className="text-center text-sm text-ink-muted">
             Abre o WhatsApp com a mensagem pronta. A marcação fica confirmada quando o studio
             responder.
+          </p>
+          <p className="text-center text-xs text-ink-muted">
+            Ao enviar, o seu nome, o seu WhatsApp e os dados do pedido são enviados para {studioName}, responsável por estes
+            dados. O {PLATFORM.name} não se responsabiliza pela forma como o studio os utiliza.{" "}
+            <a href="/privacidade#clientes" target="_blank" className="font-semibold underline hover:text-accent">
+              Política de privacidade
+            </a>
           </p>
         </div>
 

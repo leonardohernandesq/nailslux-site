@@ -38,8 +38,10 @@ const SECTIONS: LegalSection[] = [
   {
     title: "Indicações",
     body: [
-      "Cada studio tem um link de indicação. Quando um novo studio se regista por esse link e a primeira subscrição fica ativa, cada um ganha um mês grátis: a próxima cobrança passa um mês para a frente, sem custo nesse mês. Studios pagos fora da Stripe, ou sem subscrição ativa nesse momento, não recebem o mês; o studio indicado recebe-o na mesma.",
-      "O mês grátis é atribuído uma vez por studio indicado e não é convertível em dinheiro.",
+      "Cada studio tem um link de indicação. Quando um novo studio se regista por esse link e paga a primeira subscrição, cada um ganha um mês grátis: a próxima cobrança passa um mês para a frente, sem custo nesse mês. Para o studio indicado, isto quer dizer que paga o primeiro mês e o mês seguinte é grátis.",
+      "Quem indicou ganha o mês no fim do período que já pagou, desde que tenha uma subscrição ativa na Stripe no momento em que o studio indicado paga. Studios pagos fora da Stripe, ou sem subscrição ativa nesse momento, não recebem o mês, e esse mês não é atribuído mais tarde; o studio indicado recebe-o na mesma.",
+      "Os meses ganhos por indicações diferentes somam-se. No plano anual, o mês grátis entra depois do ano já pago.",
+      "O mês grátis é atribuído uma vez por studio indicado, não é convertível em dinheiro e não dá lugar a qualquer reembolso.",
     ],
   },
   {

@@ -343,8 +343,8 @@ export default async function PlatformHome() {
                 Um mês grátis <em className={LUXE_ON_LIGHT}>para os dois studios</em>
               </h2>
               <p className="mt-2 max-w-[52ch] text-ink-muted">
-                Cada studio tem um link para partilhar. Quando outro studio cria o site por esse link e ativa a subscrição,
-                ganham os dois um mês sem pagar.
+                Cada studio tem um link para partilhar. O studio indicado paga o primeiro mês e o seguinte é grátis, e
+                quem indicou ganha também um mês sem pagar. Cada indicação vale mais um mês.
               </p>
             </div>
           </div>

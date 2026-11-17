@@ -24,7 +24,7 @@ const QUESTIONS = [
   {
     question: "Como funciona o mês grátis por indicação?",
     answer:
-      "No painel tem um link para partilhar. Quando outro studio cria conta por esse link e ativa a subscrição, a próxima cobrança de cada um passa um mês para a frente. Se indicar três studios, ganha três meses.",
+      "No painel tem um link para partilhar. Quando outro studio cria conta por esse link e paga o primeiro mês, o mês seguinte dele é grátis, e a sua próxima cobrança passa um mês para a frente, desde que a sua subscrição esteja ativa nesse momento. Se indicar três studios, ganha três meses. No plano anual, o mês entra depois do ano pago.",
   },
   {
     question: "Posso cancelar quando quiser?",
