@@ -96,6 +96,10 @@ async function seed() {
     address: "Rua das Flores 12, Lisboa",
     notifyNewBookings: false,
     emailConfirmedAt: new Date(),
+    // A paying customer, so the panel shows the subscription and referral as most
+    // studios see them. No subscription id: the pages never call Stripe.
+    stripeCustomerId: "cus_demo",
+    subscriptionStatus: "active",
   });
   const tenantId = tenant._id;
 
@@ -112,6 +116,11 @@ async function seed() {
       banner: { fileId: await saveImage(banner.buffer, "banner.webp"), width: banner.width, height: banner.height, blurDataUrl: banner.blurDataUrl },
     },
   );
+  // Two studios that signed up through NailsLux's link.
+  await Tenant.create([
+    { slug: "unhas-da-rita", name: "Unhas da Rita", whatsappNumber: "351931000111", status: "active", subscriptionStatus: "active", referredBy: tenantId, referredFreeMonthAt: new Date(), referrerFreeMonthAt: new Date() },
+    { slug: "studio-bela", name: "Studio Bela", whatsappNumber: "5511987650000", status: "pending", referredBy: tenantId },
+  ]);
   await User.create({ tenantId, name: "Ana Lux", email: DEMO_ADMIN.email, passwordHash: await bcrypt.hash(DEMO_ADMIN.password, 4) });
 
   const services = await Service.create(SERVICES.map((service, index) => ({ tenantId, order: index + 1, ...service })));
@@ -218,6 +227,8 @@ async function main() {
       AUTH_SECRET: "demo-only-secret-not-for-production-0000",
       REGISTRATION_OPEN: "true",
       NEXT_DIST_DIR: ".next-demo",
+      // Links shown on screen (the referral link) use the public address.
+      SITE_URL: process.env.VIDEO_SITE_URL ?? "https://nailslux.vercel.app",
       // No payments or emails from the demo.
       STRIPE_SECRET_KEY: "",
       STRIPE_PRICE_ID: "",

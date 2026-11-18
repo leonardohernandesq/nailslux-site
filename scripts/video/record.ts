@@ -11,7 +11,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium, type Page } from "@playwright/test";
+import { chromium, type Frame } from "@playwright/test";
 
 const BASE = `http://localhost:${process.env.DEMO_PORT ?? 3200}`;
 const ADMIN = { email: "ana@nailslux.demo", password: "demo-password-123" };
@@ -35,6 +35,7 @@ const isoDay = (offset: number) => new Intl.DateTimeFormat("en-CA", { timeZone: 
  * finger taps. Their state lives in sessionStorage, so it survives navigations.
  */
 function overlay() {
+  if (location.pathname === "/__stage") return;
   const css = `
     #v-caption{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:2147483647;max-width:calc(100% - 28px);
       padding:10px 18px;border-radius:999px;background:rgba(15,24,48,.92);color:#fff;font:700 17px/1.25 Quicksand,system-ui,sans-serif;
@@ -101,14 +102,14 @@ function overlay() {
   window.open = () => ({ opener: null, location: { href: "" }, close() {} }) as unknown as Window;
 }
 
-async function setCaption(page: Page, text: string) {
+async function setCaption(page: Frame, text: string) {
   await page.evaluate((value) => {
     sessionStorage.setItem("v-caption", value);
     (window as unknown as { __vRender: () => void }).__vRender();
   }, text);
 }
 
-async function setCard(page: Page, card: { title: string; note?: string } | null) {
+async function setCard(page: Frame, card: { title: string; note?: string } | null) {
   await page.evaluate((value) => {
     if (value) sessionStorage.setItem("v-card", JSON.stringify(value));
     else sessionStorage.removeItem("v-card");
@@ -117,7 +118,7 @@ async function setCard(page: Page, card: { title: string; note?: string } | null
 }
 
 /** Scrolls the page smoothly by `distance` pixels over `ms`. */
-async function glide(page: Page, distance: number, ms = 1600) {
+async function glide(page: Frame, distance: number, ms = 1600) {
   await page.evaluate(
     ({ distance, ms }) =>
       new Promise<void>((resolve) => {
@@ -137,13 +138,13 @@ async function glide(page: Page, distance: number, ms = 1600) {
 }
 
 /** Scrolls smoothly until `selector` sits near the top, under the caption. */
-async function glideTo(page: Page, selector: string, ms = 1600, offset = 70) {
+async function glideTo(page: Frame, selector: string, ms = 1600, offset = 70) {
   const top = await page.locator(selector).first().evaluate((el) => el.getBoundingClientRect().top);
   await glide(page, top - offset, ms);
 }
 
 /** Opens a page and waits until it has painted its content, not a loading state. */
-async function go(page: Page, url: string) {
+async function go(page: Frame, url: string) {
   await page.goto(`${BASE}${url}`, { waitUntil: "networkidle" });
   await page.locator("h1").first().waitFor({ state: "visible" });
   // Images in view, at most 3 s: lazy ones further down only load when scrolled to.
@@ -156,7 +157,7 @@ async function go(page: Page, url: string) {
 }
 
 /** What happens on screen in each scene, in order. */
-const ACTIONS: Record<string, (page: Page, lang: Lang) => Promise<void>> = {
+const ACTIONS: Record<string, (page: Frame, lang: Lang) => Promise<void>> = {
   async intro(page, lang) {
     await setCard(page, { title: lang === "pt" ? "O seu studio, organizado" : "Seu studio, organizado" });
     await sleep(3400);
@@ -267,11 +268,12 @@ async function record(lang: Lang) {
   const raw = path.join(OUT, `raw-${lang}`);
   await rm(raw, { recursive: true, force: true });
 
-  const browser = await chromium.launch();
+  // Time fields follow the browser's language, not the page's locale: 24-hour clock.
+  const browser = await chromium.launch({ args: [`--lang=${lang === "pt" ? "pt-PT" : "pt-BR"}`] });
+  // The app runs in a 432x768 frame scaled 2.5x on a 1080x1920 stage: it lays out
+  // as a phone, and the recorder captures every pixel (it ignores deviceScaleFactor).
   const context = await browser.newContext({
-    viewport: { width: 432, height: 768 },
-    deviceScaleFactor: 2.5,
-    isMobile: true,
+    viewport: { width: 1080, height: 1920 },
     hasTouch: true,
     locale: "pt-PT",
     timezoneId: "Europe/Lisbon",
@@ -279,7 +281,14 @@ async function record(lang: Lang) {
     extraHTTPHeaders: lang === "br" ? { "x-vercel-ip-country": "BR" } : {},
     recordVideo: { dir: raw, size: { width: 1080, height: 1920 } },
   });
-  // tsx wraps named functions in __name(), which the page doesn't have.
+  await context.route(`${BASE}/__stage`, (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      // Fixed, so the scaled frame isn't clipped by the body's own (unscaled) height.
+      body: `<!doctype html><style>html{overflow:hidden}html,body{margin:0;background:#0f1830}
+        iframe{position:fixed;top:0;left:0;border:0;width:432px;height:768px;transform:scale(2.5);transform-origin:0 0}</style><iframe src="about:blank"></iframe>`,
+    }),
+  );
   await context.addInitScript({ content: `window.__name = (target) => target; (${overlay.toString()})();` });
 
   // Signs in off camera: this page's video is thrown away.
@@ -296,8 +305,10 @@ async function record(lang: Lang) {
   await login.close();
   const loginVideo = await login.video()?.path();
 
-  const page = await context.newPage();
+  const stage = await context.newPage();
   const opened = Date.now();
+  await stage.goto(`${BASE}/__stage`);
+  const page = stage.mainFrame().childFrames()[0];
   await go(page, "/");
   await setCard(page, { title: lang === "pt" ? "O seu studio, organizado" : "Seu studio, organizado" });
   await sleep(500);
@@ -311,7 +322,7 @@ async function record(lang: Lang) {
     try {
       await ACTIONS[scene.id](page, lang);
     } catch (error) {
-      await page.screenshot({ path: path.join(OUT, `failed-${lang}-${scene.id}.png`) });
+      await stage.screenshot({ path: path.join(OUT, `failed-${lang}-${scene.id}.png`) });
       throw error;
     }
     const length = durations[lang][scene.id] * 1000 + LEAD_MS + GAP_MS;
@@ -322,8 +333,8 @@ async function record(lang: Lang) {
   await sleep(1500); // the end card stays a moment after the last line
   const total = Date.now() - begin;
 
-  const video = page.video()!;
-  await page.close();
+  const video = stage.video()!;
+  await stage.close();
   await context.close();
   await browser.close();
   if (loginVideo) await rm(loginVideo, { force: true });

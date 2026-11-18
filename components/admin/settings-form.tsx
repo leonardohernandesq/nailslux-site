@@ -76,15 +76,17 @@ export function SettingsForm({ tenant, studioId }: { tenant: TenantDTO; studioId
             const times = saved ?? DEFAULT_DAY_TIMES;
             const name = DAY_NAMES[day];
             return (
-              <div key={day} className="group flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line px-4 py-2 has-[input[type=checkbox]:checked]:border-accent has-[input[type=checkbox]:checked]:bg-peach-50">
+              <div key={day} className="group flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line px-3 py-2 sm:px-4 has-[input[type=checkbox]:checked]:border-accent has-[input[type=checkbox]:checked]:bg-peach-50">
                 <label className="flex min-h-11 w-28 cursor-pointer items-center gap-2">
                   <input type="checkbox" name={`open-${day}`} defaultChecked={v ? `open-${day}` in v : Boolean(saved)} className="size-4 accent-accent" />
                   <span className="text-sm font-semibold capitalize">{name}</span>
                 </label>
-                <div className="hidden flex-1 items-center gap-2 group-has-[input[type=checkbox]:checked]:flex">
-                  <Input aria-label={`Primeira marcação de ${name}`} name={`opens-${day}`} type="time" step={1800} defaultValue={v?.[`opens-${day}`] ?? times.opens} className="min-w-0" />
-                  <span className="text-sm text-ink-muted">até</span>
-                  <Input aria-label={`Última marcação de ${name}`} name={`lastStart-${day}`} type="time" step={1800} defaultValue={v?.[`lastStart-${day}`] ?? times.lastStart} className="min-w-0" />
+                {/* On phones the times take a line of their own, and each field may shrink:
+                    time inputs have a wide built-in minimum that pushed the second one out. */}
+                <div className="hidden min-w-0 basis-full items-center gap-1.5 group-has-[input[type=checkbox]:checked]:flex sm:flex-1 sm:basis-0">
+                  <Input aria-label={`Primeira marcação de ${name}`} name={`opens-${day}`} type="time" step={1800} defaultValue={v?.[`opens-${day}`] ?? times.opens} className="min-w-0 flex-1 px-2.5!" />
+                  <span className="shrink-0 text-sm text-ink-muted">até</span>
+                  <Input aria-label={`Última marcação de ${name}`} name={`lastStart-${day}`} type="time" step={1800} defaultValue={v?.[`lastStart-${day}`] ?? times.lastStart} className="min-w-0 flex-1 px-2.5!" />
                 </div>
                 <span className="text-sm text-ink-muted group-has-[input[type=checkbox]:checked]:hidden">Fechado</span>
               </div>
