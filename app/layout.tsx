@@ -31,15 +31,16 @@ export const metadata: Metadata = {
     icon: [{ url: "/brand/nailo/favicon.svg", type: "image/svg+xml" }],
     apple: "/brand/nailo/app-icon-180.png",
   },
-  // The card WhatsApp and others show for the platform's links. It must be a PNG or
-  // JPEG: they ignore SVG. Studio pages replace the whole `openGraph` with their own.
+  // The card WhatsApp and others show for the platform's links: the favicon on white,
+  // like a studio's (renderShareImage). It must be a PNG or JPEG: they ignore SVG.
+  // Studio pages replace the whole `openGraph` with their own.
   openGraph: {
     type: "website",
     locale: "pt_PT",
     siteName: PLATFORM.name,
     title: `${PLATFORM.name} · ${PLATFORM.description}`,
     description: "Site com marcações online, agenda e ficha de clientes para o seu studio de unhas.",
-    images: [{ url: "/brand/nailo/og-image.png", width: 1200, height: 630, alt: PLATFORM.name }],
+    images: [{ url: "/brand/nailo/share-icon.png", width: 1200, height: 630, alt: PLATFORM.name }],
   },
 };
 
