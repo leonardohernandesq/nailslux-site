@@ -69,7 +69,7 @@ test("with reduced motion the hero shows one clean screen", async ({ browser }) 
 test("links to the platform share a PNG card, which WhatsApp can show", async ({ page, request }) => {
   await page.goto("/");
   const image = await page.locator('meta[property="og:image"]').getAttribute("content");
-  expect(image).toMatch(/\/brand\/nailo\/share-icon\.png$/);
+  expect(image).toMatch(/\/brand\/nailo\/share-card\.png$/);
   const response = await request.get(new URL(image!).pathname);
   expect(response.ok()).toBe(true);
   expect(response.headers()["content-type"]).toBe("image/png");
