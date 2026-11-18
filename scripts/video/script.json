@@ -1,0 +1,93 @@
+{
+  "voices": { "pt": "pt-PT-RaquelNeural", "br": "pt-BR-FranciscaNeural" },
+  "scenes": [
+    {
+      "id": "intro",
+      "caption": { "pt": "O seu studio, organizado", "br": "Seu studio, organizado" },
+      "say": {
+        "pt": "O seu studio de unhas merece mais do que pedidos perdidos no WhatsApp. Conheça o Nailo App.",
+        "br": "Seu studio de unhas merece mais do que pedidos perdidos no WhatsApp. Conheça o Nailo App."
+      }
+    },
+    {
+      "id": "site",
+      "caption": { "pt": "Um site com a sua marca", "br": "Um site com a sua marca" },
+      "say": {
+        "pt": "Cada studio tem o seu próprio site, com os serviços, os preços e as fotografias do seu trabalho.",
+        "br": "Cada studio ganha o seu próprio site, com os serviços, os preços e as fotos do seu trabalho."
+      }
+    },
+    {
+      "id": "book",
+      "caption": { "pt": "Marcações online, a qualquer hora", "br": "Agendamento online, a qualquer hora" },
+      "say": {
+        "pt": "A cliente escolhe os serviços, o dia e a hora. Só aparecem horários livres, por isso nunca há marcações sobrepostas.",
+        "br": "A cliente escolhe os serviços, o dia e o horário. Só aparecem horários livres, então nunca tem agendamento duplicado."
+      }
+    },
+    {
+      "id": "send",
+      "caption": { "pt": "O pedido chega pelo WhatsApp", "br": "O pedido chega pelo WhatsApp" },
+      "say": {
+        "pt": "Depois deixa o nome e o WhatsApp, e o pedido chega-lhe pronto, com tudo o que precisa de saber.",
+        "br": "Depois ela deixa o nome e o WhatsApp, e o pedido chega pronto, com tudo o que você precisa saber."
+      }
+    },
+    {
+      "id": "requests",
+      "caption": { "pt": "Aceite ou recuse com um toque", "br": "Aceite ou recuse com um toque" },
+      "say": {
+        "pt": "No painel, os pedidos novos aparecem logo. Aceita ou recusa com um toque, e a agenda organiza-se sozinha.",
+        "br": "No painel, os pedidos novos aparecem na hora. Você aceita ou recusa com um toque, e a agenda se organiza sozinha."
+      }
+    },
+    {
+      "id": "clients",
+      "caption": { "pt": "A ficha de cada cliente", "br": "A ficha de cada cliente" },
+      "say": {
+        "pt": "Cada cliente tem a sua ficha, com o histórico de visitas, os moldes das unhas e as suas notas.",
+        "br": "Cada cliente tem a sua ficha, com o histórico de visitas, os moldes das unhas e as suas anotações."
+      }
+    },
+    {
+      "id": "content",
+      "caption": { "pt": "Serviços e fotos, sem depender de ninguém", "br": "Serviços e fotos, sem depender de ninguém" },
+      "say": {
+        "pt": "Serviços, preços e fotografias mudam-se em segundos, sem depender de ninguém.",
+        "br": "Serviços, preços e fotos você muda em segundos, sem depender de ninguém."
+      }
+    },
+    {
+      "id": "stats",
+      "caption": { "pt": "Os números do seu studio", "br": "Os números do seu studio" },
+      "say": {
+        "pt": "Nas estatísticas, vê quantas pessoas visitam o site, quantas pedem marcação e os serviços mais procurados.",
+        "br": "Nas estatísticas, você vê quantas pessoas visitam o site, quantas pedem horário e os serviços mais procurados."
+      }
+    },
+    {
+      "id": "settings",
+      "caption": { "pt": "Cores, horários e folgas", "br": "Cores, horários e folgas" },
+      "say": {
+        "pt": "Escolha as cores e o logótipo, defina os horários e as folgas, e veja a agenda no calendário do telemóvel.",
+        "br": "Escolha as cores e o logo, defina os horários e as folgas, e veja a agenda no calendário do celular."
+      }
+    },
+    {
+      "id": "referral",
+      "caption": { "pt": "Indique e ganhe um mês grátis", "br": "Indique e ganhe um mês grátis" },
+      "say": {
+        "pt": "E por cada studio que indicar, ganham as duas um mês grátis.",
+        "br": "E a cada studio que você indicar, vocês duas ganham um mês grátis."
+      }
+    },
+    {
+      "id": "outro",
+      "caption": { "pt": "Crie o seu site hoje", "br": "Crie seu site hoje" },
+      "say": {
+        "pt": "Nailo App. Site, marcações e gestão para o seu studio. Crie o seu hoje.",
+        "br": "Nailo App. Site, agendamento e gestão para o seu studio. Crie o seu hoje mesmo."
+      }
+    }
+  ]
+}

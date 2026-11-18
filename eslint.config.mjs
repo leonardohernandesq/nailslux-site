@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Project-specific
     ".next-e2e/**",
+    ".next-demo/**",
+    "video-out/**",
     ".claude/**",
     ".agents/**",
     "playwright-report/**",

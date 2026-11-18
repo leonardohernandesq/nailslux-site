@@ -50,3 +50,6 @@ next-env.d.ts
 
 # database backups: client data, never commit
 /backups/
+/.next-demo/
+# Promo video output (scripts/video)
+/video-out/
