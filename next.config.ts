@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
       { pathname: "/api/images/**", search: "" },
     ],
   },
+  // Instagram post images (public/social/) must stay fetchable by Meta, so they are not
+  // blocked in robots.txt; this keeps them out of search results instead.
+  headers() {
+    return [{ source: "/social/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex" }] }];
+  },
   turbopack: {
     rules: {
       "*.css": {

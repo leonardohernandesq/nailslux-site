@@ -1,0 +1,88 @@
+# Renders social/src/*.html to public/social/*.jpg and commits the JPEGs to master.
+# Vercel's Git integration deploys that commit, so the image goes live at
+# https://www.nailoapp.pt/social/<name>.jpg. The commit only touches public/social/,
+# so it does not match the paths filter below and cannot start this workflow again.
+name: Render social images
+
+on:
+  push:
+    branches: [master]
+    paths: ["social/src/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One run at a time, so two runs never race to push.
+concurrency:
+  group: render-social
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # npm ci runs "prepare" (husky); with HUSKY=0 no git hooks are installed, so the
+      # push below does not run the pre-push test suite.
+      HUSKY: "0"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Full history: the renderer compares the last commit time of each .html and .jpg.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Get Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Chromium system dependencies
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Render stale posts
+        id: render
+        run: |
+          set -o pipefail
+          if ! node scripts/render-social.mjs --stale > rendered.txt; then
+            echo "::error title=Social render failed::One or more posts in social/src could not be rendered. See the log above for the file and the reason."
+            exit 1
+          fi
+          echo "names=$(paste -sd ' ' rendered.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push JPEGs
+        if: steps.render.outputs.names != ''
+        env:
+          NAMES: ${{ steps.render.outputs.names }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/social/*.jpg
+          if git diff --cached --quiet; then
+            echo "Rendered images are identical to the committed ones; nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore(social): render $NAMES"
+          for attempt in 1 2 3; do
+            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep 5
+          done
+          echo "::error title=Push failed::Could not push the rendered images to $GITHUB_REF_NAME."
+          exit 1
