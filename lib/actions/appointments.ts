@@ -4,8 +4,16 @@ import { isValidObjectId } from "mongoose";
 import { refresh } from "next/cache";
 import { after } from "next/server";
 import { requireAdmin } from "@/lib/auth/dal";
+import { CHANGE_REASON_MAX } from "@/lib/constants";
 import { connectDB } from "@/lib/db/connect";
-import { Appointment, Service, Tenant, User, type AppointmentStatus } from "@/lib/db/models";
+import {
+  Appointment,
+  Service,
+  Tenant,
+  User,
+  type AppointmentChangeKind,
+  type AppointmentStatus,
+} from "@/lib/db/models";
 import { getBusyIntervals } from "@/lib/data/appointments";
 import { getActiveTenant, getTenantById } from "@/lib/data/tenants";
 import { lisbonDay } from "@/lib/analytics/server";
@@ -162,11 +170,19 @@ async function notifyStudio(tenantId: string, request: NewRequest): Promise<void
   }
 }
 
+/** The studio's note on why it cancelled or moved an appointment; blank means none. */
+function cleanReason(value: unknown): string | undefined {
+  const text = typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, CHANGE_REASON_MAX) : "";
+  return text || undefined;
+}
+
 async function decide(
   id: string,
   from: AppointmentStatus[],
   to: AppointmentStatus,
   success: string,
+  /** Logged on the appointment so the client card can count it (cancellations only). */
+  change?: { kind: AppointmentChangeKind; reason?: string },
 ): Promise<FormState> {
   const { tenantId } = await requireAdmin();
   if (!isValidObjectId(id)) return { status: "error", message: "Marcação não encontrada." };
@@ -199,7 +215,12 @@ async function decide(
   // Only move on if nobody changed it in the meantime.
   const updated = await Appointment.updateOne(
     { _id: doc._id, tenantId, status: doc.status },
-    { $set: { status: to, decidedAt: new Date() } },
+    {
+      $set: { status: to, decidedAt: new Date() },
+      ...(change && {
+        $push: { changes: { ...change, at: new Date(), fromDate: doc.date, fromTime: doc.time } },
+      }),
+    },
   );
   if (updated.modifiedCount === 0) {
     return { status: "error", message: "Esta marcação já foi tratada. Atualize a página." };
@@ -211,13 +232,17 @@ async function decide(
 
 /** The studio's answer to a request; the form says which with `intent`. */
 export async function decideAppointment(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const reason = cleanReason(formData.get("reason"));
   switch (formData.get("intent")) {
     case "confirm":
       return decide(id, ["pending", "declined"], "confirmed", "Marcação confirmada. O horário ficou bloqueado no site.");
     case "decline":
-      return decide(id, ["pending"], "declined", "Pedido cancelado.");
+      return decide(id, ["pending"], "declined", "Pedido cancelado.", { kind: "declined", reason });
     case "cancel":
-      return decide(id, ["confirmed"], "cancelled", "Marcação cancelada. O horário voltou a ficar livre no site.");
+      return decide(id, ["confirmed"], "cancelled", "Marcação cancelada. O horário voltou a ficar livre no site.", {
+        kind: "cancelled",
+        reason,
+      });
     default:
       return { status: "error", message: "Ação desconhecida." };
   }
@@ -246,7 +271,12 @@ export type RescheduleResult =
  * The studio agreed the new time with the client, so it ends up confirmed and
  * blocks the agenda. The new time must be one the studio offers and still free.
  */
-export async function rescheduleAppointment(id: string, date: string, time: string): Promise<RescheduleResult> {
+export async function rescheduleAppointment(
+  id: string,
+  date: string,
+  time: string,
+  reason?: string,
+): Promise<RescheduleResult> {
   const { tenantId } = await requireAdmin();
   if (!isValidObjectId(id)) return { status: "error", message: "Marcação não encontrada." };
   if (!ISO_DATE.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
@@ -285,6 +315,17 @@ export async function rescheduleAppointment(id: string, date: string, time: stri
         endMinutes: start + duration,
         status: "confirmed",
         decidedAt: new Date(),
+      },
+      $push: {
+        changes: {
+          kind: "rescheduled",
+          at: new Date(),
+          reason: cleanReason(reason),
+          fromDate: doc.date,
+          fromTime: doc.time,
+          toDate: date,
+          toTime: time,
+        },
       },
     },
   );

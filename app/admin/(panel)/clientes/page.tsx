@@ -61,6 +61,18 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/cl
                         ? ` · última: ${formatLongDate(client.lastVisit)}`
                         : ""}
                   </p>
+                  {(client.cancellations > 0 || client.reschedules > 0) && (
+                    <p className="text-sm text-ink-muted">
+                      {[
+                        client.cancellations > 0 &&
+                          (client.cancellations === 1 ? "1 cancelamento" : `${client.cancellations} cancelamentos`),
+                        client.reschedules > 0 &&
+                          (client.reschedules === 1 ? "1 remarcação" : `${client.reschedules} remarcações`),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
                 </div>
                 <span className="hidden font-bold tabular-nums sm:block">{formatPrice(client.spentCents)}</span>
                 <CaretRightIcon size={20} aria-hidden="true" className="shrink-0 text-ink-muted group-hover:text-ink" />

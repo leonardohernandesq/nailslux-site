@@ -7,6 +7,7 @@ import {
   ClockIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
+import { ChangeReason } from "@/components/admin/change-reason";
 import { DatePicker } from "@/components/booking/date-picker";
 import { useNow } from "@/components/booking/use-now";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,9 @@ export function RescheduleAppointment({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const reasonId = useId();
   const now = useNow();
+  const [reason, setReason] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [busyByDate, setBusyByDate] = useState<Record<string, BusyInterval[]>>({});
@@ -75,6 +78,7 @@ export function RescheduleAppointment({
   function open() {
     setDate("");
     setTime("");
+    setReason("");
     setError(null);
     setBusyByDate({});
     dialogRef.current?.showModal();
@@ -97,7 +101,7 @@ export function RescheduleAppointment({
     if (whatsapp) whatsapp.opener = null;
 
     startTransition(async () => {
-      const result = await rescheduleAppointment(id, date, time).catch(() => ({
+      const result = await rescheduleAppointment(id, date, time, reason).catch(() => ({
         status: "error" as const,
         message: "Não foi possível remarcar. Verifique a ligação e tente novamente.",
       }));
@@ -207,6 +211,8 @@ export function RescheduleAppointment({
             </div>
           )}
         </fieldset>
+
+        <ChangeReason id={reasonId} value={reason} onChange={setReason} disabled={pending} />
 
         {error && (
           <p

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeftIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status";
+import { ChangeLog } from "@/components/admin/change-log";
 import { ClientCardForm } from "@/components/admin/client-card-form";
 import { getClient } from "@/lib/data/clients";
 import { formatLongDate, formatPrice } from "@/lib/format";
@@ -16,10 +17,27 @@ export const instant = false;
 
 const shortDate = (date: string | null) => (date ? formatLongDate(date).replace(/ de \d{4}$/, "") : "—");
 
-export default async function ClientPage({ params }: PageProps<"/admin/clientes/[id]">) {
-  const { id } = await params;
+/** The filter on "Cancelamentos e remarcações", kept in the URL (?alteracoes=). */
+const CHANGE_FILTERS = [
+  { value: "", label: "Todas" },
+  { value: "cancelamentos", label: "Cancelamentos" },
+  { value: "remarcacoes", label: "Remarcações" },
+] as const;
+
+export default async function ClientPage({ params, searchParams }: PageProps<"/admin/clientes/[id]">) {
+  const [{ id }, { alteracoes }] = await Promise.all([params, searchParams]);
   const client = await getClient(id);
   if (!client) notFound();
+
+  const filter = CHANGE_FILTERS.find((f) => f.value && f.value === alteracoes)?.value ?? "";
+  const changes = client.changes.filter((change) =>
+    filter === "cancelamentos" ? change.kind !== "rescheduled" : filter === "remarcacoes" ? change.kind === "rescheduled" : true,
+  );
+  const counts: Record<(typeof CHANGE_FILTERS)[number]["value"], number> = {
+    "": client.changes.length,
+    cancelamentos: client.changes.filter((c) => c.kind !== "rescheduled").length,
+    remarcacoes: client.changes.filter((c) => c.kind === "rescheduled").length,
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,13 +59,18 @@ export default async function ClientPage({ params }: PageProps<"/admin/clientes/
           {formatPhone(client.phone)}
         </a>
 
-        <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Stat label="Visitas">{client.visits}</Stat>
           <Stat label="Total gasto">{formatPrice(client.spentCents)}</Stat>
           <Stat label="Última visita">{shortDate(client.lastVisit)}</Stat>
           <Stat label="Próxima">{shortDate(client.nextVisit)}</Stat>
+          <Stat label="Cancelamentos">{client.cancellations}</Stat>
+          <Stat label="Remarcações">{client.reschedules}</Stat>
         </dl>
-        <p className="mt-2 text-xs text-ink-muted">Visitas e total contam as marcações confirmadas até hoje.</p>
+        <p className="mt-2 text-xs text-ink-muted">
+          Visitas e total contam as marcações confirmadas até hoje. Cancelamentos e remarcações contam cada vez que
+          aconteceram.
+        </p>
       </article>
 
       <section aria-labelledby="card-title" className="rounded-3xl bg-surface p-5 shadow-soft sm:p-8">
@@ -55,6 +78,46 @@ export default async function ClientPage({ params }: PageProps<"/admin/clientes/
           Notas e moldes
         </h2>
         <ClientCardForm clientId={client.id} handMold={client.handMold} footMold={client.footMold} notes={client.notes} />
+      </section>
+
+      <section id="alteracoes" aria-labelledby="changes-title" className="flex scroll-mt-6 flex-col gap-3">
+        <h2 id="changes-title" className="font-display text-2xl font-semibold">
+          Cancelamentos e remarcações
+        </h2>
+        {client.changes.length === 0 ? (
+          <p className="rounded-3xl bg-surface p-6 text-ink-muted shadow-soft">
+            Nenhum cancelamento nem remarcação registados.
+          </p>
+        ) : (
+          <>
+            <nav aria-label="Filtrar cancelamentos e remarcações" className="flex flex-wrap gap-2">
+              {CHANGE_FILTERS.map((option) => {
+                const active = option.value === filter;
+                return (
+                  <Link
+                    key={option.value}
+                    href={`/admin/clientes/${client.id}${option.value ? `?alteracoes=${option.value}` : ""}#alteracoes`}
+                    scroll={false}
+                    aria-current={active ? "page" : undefined}
+                    className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors ${
+                      active ? "bg-accent text-on-accent" : "bg-surface text-ink shadow-soft hover:bg-peach-50"
+                    }`}
+                  >
+                    {option.label}
+                    <span className="tabular-nums opacity-75">{counts[option.value]}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+            {changes.length === 0 ? (
+              <p className="rounded-3xl bg-surface p-6 text-ink-muted shadow-soft">
+                {filter === "cancelamentos" ? "Nenhum cancelamento registado." : "Nenhuma remarcação registada."}
+              </p>
+            ) : (
+              <ChangeLog items={changes} />
+            )}
+          </>
+        )}
       </section>
 
       <section aria-labelledby="history-title" className="flex flex-col gap-3">

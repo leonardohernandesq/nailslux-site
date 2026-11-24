@@ -1,4 +1,5 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
+import { CHANGE_REASON_MAX } from "../constants";
 import { DEFAULT_DAY_TIMES, DEFAULT_OPENING_HOURS } from "../site";
 import { tenantScoped } from "./tenant-scope";
 
@@ -180,6 +181,25 @@ analyticsEventSchema.plugin(tenantScoped);
 export const APPOINTMENT_STATUSES = ["pending", "confirmed", "declined", "cancelled"] as const;
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
+/** What the studio did to an appointment, kept so the client card can count it. */
+export const APPOINTMENT_CHANGE_KINDS = ["declined", "cancelled", "rescheduled"] as const;
+export type AppointmentChangeKind = (typeof APPOINTMENT_CHANGE_KINDS)[number];
+
+const appointmentChangeSchema = new Schema(
+  {
+    kind: { type: String, required: true, enum: APPOINTMENT_CHANGE_KINDS },
+    at: { type: Date, required: true },
+    // What happened, in the studio's words ("a cliente ficou doente").
+    reason: { type: String, trim: true, maxlength: CHANGE_REASON_MAX },
+    // The date and time the appointment had before; for reschedules also where it went.
+    fromDate: { type: String, required: true },
+    fromTime: { type: String, required: true },
+    toDate: { type: String },
+    toTime: { type: String },
+  },
+  { _id: false },
+);
+
 /**
  * A booking request sent from the site. Only "confirmed" appointments block the
  * schedule; their [startMinutes, endMinutes) range is taken for that date.
@@ -201,6 +221,8 @@ const appointmentSchema = new Schema(
     notes: { type: String, trim: true, maxlength: 300 },
     status: { type: String, required: true, enum: APPOINTMENT_STATUSES, default: "pending" },
     decidedAt: { type: Date },
+    // Cancellations and reschedules, oldest first.
+    changes: { type: [appointmentChangeSchema], default: undefined },
   },
   { timestamps: true },
 );

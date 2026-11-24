@@ -14,7 +14,8 @@ vi.mock("next/server", () => ({ connection: vi.fn(async () => {}), after: vi.fn(
 
 const { connectDB, disconnectDB } = await import("@/lib/db/connect");
 const { Appointment, Client, Service, Tenant } = await import("@/lib/db/models");
-const { requestAppointment, decideAppointment } = await import("@/lib/actions/appointments");
+const { requestAppointment, decideAppointment, rescheduleAppointment } = await import("@/lib/actions/appointments");
+const { getClient, getClients } = await import("@/lib/data/clients");
 const { saveClientMolds } = await import("@/lib/actions/clients");
 const { getBusyIntervals, getAppointment, getAppointmentsOverview } = await import("@/lib/data/appointments");
 const { idleState } = await import("@/lib/actions/form-state");
@@ -148,6 +149,51 @@ describe("decideAppointment", () => {
     expect(await decideAppointment(created.id, idleState, intent("decline"))).toMatchObject({ status: "success" });
     expect((await Appointment.findOne({ _id: created.id, tenantId: TENANT_ID }).lean())?.status).toBe("declined");
     expect(await getBusyIntervals(TENANT_ID, DAY)).toEqual([]);
+  });
+});
+
+describe("cancellation and reschedule history", () => {
+  const withReason = (value: string, reason: string) => {
+    const data = intent(value);
+    data.set("reason", reason);
+    return data;
+  };
+
+  it("logs each cancellation and reschedule with the studio's note, and counts them on the client card", async () => {
+    const a = await request([gel], "10:00");
+    const b = await request([gel], "12:00");
+    if (!a.ok || !b.ok) throw new Error("setup");
+
+    await decideAppointment(a.id, idleState, intent("confirm"));
+    expect(await rescheduleAppointment(a.id, DAY, "15:00", "  Pediu   para mais tarde ")).toMatchObject({ status: "success" });
+    expect(await decideAppointment(a.id, idleState, withReason("cancel", "Ficou doente"))).toMatchObject({ status: "success" });
+    expect(await decideAppointment(b.id, idleState, withReason("decline", ""))).toMatchObject({ status: "success" });
+
+    const saved = await Appointment.findOne({ _id: a.id, tenantId: TENANT_ID }).lean();
+    expect(saved?.changes).toMatchObject([
+      { kind: "rescheduled", reason: "Pediu para mais tarde", fromDate: DAY, fromTime: "10:00", toDate: DAY, toTime: "15:00" },
+      { kind: "cancelled", reason: "Ficou doente", fromDate: DAY, fromTime: "15:00" },
+    ]);
+    expect((await getAppointment(a.id))?.appointment.changes.map((c) => c.kind)).toEqual(["rescheduled", "cancelled"]);
+
+    const [summary] = await getClients();
+    expect(summary).toMatchObject({ cancellations: 2, reschedules: 1 });
+    const card = await getClient(summary.id);
+    expect(card).toMatchObject({ cancellations: 2, reschedules: 1 });
+    // Newest first; a blank note is left out.
+    expect(card?.changes.map((c) => c.kind)).toEqual(["declined", "cancelled", "rescheduled"]);
+    expect(card?.changes[0].reason).toBeUndefined();
+    expect(card?.changes[0].serviceNames).toEqual(["Verniz gel"]);
+  });
+
+  it("logs nothing when the action fails or only confirms", async () => {
+    const created = await request([gel], "10:00");
+    if (!created.ok) throw new Error(created.message);
+    await decideAppointment(created.id, idleState, intent("confirm"));
+    // Can't cancel a request that's already confirmed by declining it.
+    expect(await decideAppointment(created.id, idleState, withReason("decline", "x"))).toMatchObject({ status: "error" });
+    expect(await rescheduleAppointment(created.id, DAY, "10:00", "same time")).toMatchObject({ status: "error" });
+    expect((await Appointment.findOne({ _id: created.id, tenantId: TENANT_ID }).lean())?.changes).toBeUndefined();
   });
 });
 

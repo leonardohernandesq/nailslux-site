@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AddressBookIcon, ArrowLeftIcon, BellRingingIcon, WarningIcon, WhatsappLogoIcon } from "@phosphor-icons/react/ssr";
 import { AppointmentActions } from "@/components/admin/appointment-actions";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status";
+import { ChangeLog } from "@/components/admin/change-log";
 import { ClientMoldsForm } from "@/components/admin/client-molds-form";
 import { lisbonDay } from "@/lib/analytics/server";
 import { requireAdmin } from "@/lib/auth/dal";
@@ -168,6 +169,15 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/marc
           </p>
         )}
       </section>
+
+      {appointment.changes.length > 0 && (
+        <section aria-labelledby="changes-title" className="flex flex-col gap-3">
+          <h2 id="changes-title" className="font-display text-2xl font-semibold">
+            Cancelamentos e remarcações
+          </h2>
+          <ChangeLog items={[...appointment.changes].reverse()} />
+        </section>
+      )}
 
       {open && conflicts.length > 0 && (
         <div role="note" className="flex gap-3 rounded-2xl border border-danger/25 bg-danger-soft p-4 text-danger">

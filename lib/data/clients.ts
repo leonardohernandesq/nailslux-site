@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { lisbonDay } from "@/lib/analytics/server";
 import { requireAdmin } from "@/lib/auth/dal";
 import { connectDB } from "@/lib/db/connect";
-import { Appointment, Client, type AppointmentStatus } from "@/lib/db/models";
+import { Appointment, Client, type AppointmentChangeKind, type AppointmentStatus } from "@/lib/db/models";
 import { fromMinutes } from "@/lib/schedule";
 
 export type ClientSummary = {
@@ -16,6 +16,9 @@ export type ClientSummary = {
   spentCents: number;
   lastVisit: string | null;
   nextVisit: string | null;
+  /** Appointments or requests the studio cancelled, every time it happened. */
+  cancellations: number;
+  reschedules: number;
 };
 
 export type ClientHistoryItem = {
@@ -28,11 +31,27 @@ export type ClientHistoryItem = {
   status: AppointmentStatus;
 };
 
+/** A cancellation or reschedule of one of the client's appointments. */
+export type ClientChange = {
+  appointmentId: string;
+  kind: AppointmentChangeKind;
+  /** When the studio made the change (ISO). */
+  at: string;
+  reason?: string;
+  serviceNames: string[];
+  fromDate: string;
+  fromTime: string;
+  toDate?: string;
+  toTime?: string;
+};
+
 export type ClientCard = ClientSummary & {
   handMold?: string;
   footMold?: string;
   notes?: string;
   history: ClientHistoryItem[];
+  /** Newest first. */
+  changes: ClientChange[];
 };
 
 type Totals = {
@@ -42,7 +61,19 @@ type Totals = {
   spentCents: number;
   lastVisit: string | null;
   nextVisit: string | null;
+  cancellations: number;
+  reschedules: number;
 };
+
+/** How many of an appointment's logged changes are (or aren't) reschedules. */
+const countChanges = (rescheduled: boolean) => ({
+  $size: {
+    $filter: {
+      input: { $ifNull: ["$changes", []] },
+      cond: { [rescheduled ? "$eq" : "$ne"]: ["$$this.kind", "rescheduled"] },
+    },
+  },
+});
 
 /** Per phone: latest name, visits and money from confirmed appointments up to today. */
 async function totalsByPhone(tenantId: string, today: string, phones?: string[]): Promise<Totals[]> {
@@ -64,6 +95,8 @@ async function totalsByPhone(tenantId: string, today: string, phones?: string[])
         spentCents: { $sum: { $cond: [done, "$totalCents", 0] } },
         lastVisit: { $max: { $cond: [done, "$date", null] } },
         nextVisit: { $min: { $cond: [ahead, "$date", null] } },
+        cancellations: { $sum: countChanges(false) },
+        reschedules: { $sum: countChanges(true) },
       },
     },
   ]);
@@ -109,6 +142,8 @@ export async function getClients(search = ""): Promise<ClientSummary[]> {
       spentCents: t.spentCents,
       lastVisit: t.lastVisit,
       nextVisit: t.nextVisit,
+      cancellations: t.cancellations,
+      reschedules: t.reschedules,
     }))
     .sort((a, b) => (b.nextVisit ?? b.lastVisit ?? "").localeCompare(a.nextVisit ?? a.lastVisit ?? "") || a.name.localeCompare(b.name));
 }
@@ -130,6 +165,22 @@ export async function getClient(id: string): Promise<ClientCard | null> {
     .limit(200)
     .lean();
 
+  const changes: ClientChange[] = history
+    .flatMap((doc) =>
+      (doc.changes ?? []).map((change) => ({
+        appointmentId: String(doc._id),
+        kind: change.kind,
+        at: change.at.toISOString(),
+        reason: change.reason ?? undefined,
+        serviceNames: doc.serviceNames,
+        fromDate: change.fromDate,
+        fromTime: change.fromTime,
+        toDate: change.toDate ?? undefined,
+        toTime: change.toTime ?? undefined,
+      })),
+    )
+    .sort((a, b) => b.at.localeCompare(a.at));
+
   return {
     id: String(client._id),
     name: totals?.name ?? client.phone,
@@ -138,6 +189,8 @@ export async function getClient(id: string): Promise<ClientCard | null> {
     spentCents: totals?.spentCents ?? 0,
     lastVisit: totals?.lastVisit ?? null,
     nextVisit: totals?.nextVisit ?? null,
+    cancellations: totals?.cancellations ?? 0,
+    reschedules: totals?.reschedules ?? 0,
     handMold: client.handMold ?? undefined,
     footMold: client.footMold ?? undefined,
     notes: client.notes ?? undefined,
@@ -150,6 +203,7 @@ export async function getClient(id: string): Promise<ClientCard | null> {
       totalCents: doc.totalCents,
       status: doc.status,
     })),
+    changes,
   };
 }
 

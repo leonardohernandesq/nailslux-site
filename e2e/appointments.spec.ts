@@ -94,16 +94,31 @@ test("the studio confirms a request in the admin and the time is blocked", async
   await expect(nextForm.getByRole("radio", { name: "14:00", exact: true })).toBeEnabled();
 
   // 4. Cancelling frees the time again.
+  // The owner notes what happened: it goes to the client's history, not to WhatsApp.
   await owner.getByRole("button", { name: "Cancelar marcação" }).click();
+  const cancelDialog = owner.getByRole("dialog", { name: "Tem a certeza que deseja cancelar esta marcação?" });
+  await cancelDialog.getByLabel(/O que aconteceu\?/).fill("A cliente ficou doente");
   const cancelPopup = owner.waitForEvent("popup");
-  await owner.getByRole("button", { name: "Sim, cancelar" }).click();
+  await cancelDialog.getByRole("button", { name: "Sim, cancelar" }).click();
   await expect(owner.getByRole("status").filter({ hasText: "Marcação cancelada" })).toBeVisible();
   const cancellation = await cancelPopup;
   await cancellation.waitForURL(/wa\.me/);
   const cancellationText = new URL(cancellation.url()).searchParams.get("text") ?? "";
   expect(cancellationText).toContain("foi cancelada");
   expect(cancellationText).toContain("Quer marcar para outra data?");
+  expect(cancellationText).not.toContain("doente");
   await cancellation.close();
+  await expect(owner.getByRole("region", { name: "Cancelamentos e remarcações" })).toContainText("A cliente ficou doente");
+
+  // The client card counts it and filters the list.
+  await owner.getByRole("link", { name: "Ver ficha da cliente" }).click();
+  const changes = owner.getByRole("region", { name: "Cancelamentos e remarcações" });
+  await changes.getByRole("link", { name: /^Cancelamentos/ }).click();
+  await expect(owner).toHaveURL(/alteracoes=cancelamentos/);
+  await expect(changes.getByRole("link", { name: /Marcação cancelada/ }).filter({ hasText: "A cliente ficou doente" })).toBeVisible();
+  await changes.getByRole("link", { name: /^Remarcações/ }).click();
+  await expect(owner).toHaveURL(/alteracoes=remarcacoes/);
+  await expect(changes.getByText("A cliente ficou doente")).toHaveCount(0);
 
   const later = await openForm(next.page);
   await expect(later.getByRole("radio", { name: "15:00", exact: true })).toBeEnabled();

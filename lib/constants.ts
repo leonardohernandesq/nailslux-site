@@ -38,3 +38,6 @@ export const RESERVED_SLUGS = ["admin", "api", "backoffice", "brand", "login", "
 
 /** The secret in a studio's calendar feed URL: 32 random bytes, base64url. */
 export const CALENDAR_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+
+/** Longest note the studio can leave on a cancellation or reschedule. */
+export const CHANGE_REASON_MAX = 300;

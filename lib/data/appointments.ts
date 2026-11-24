@@ -4,10 +4,21 @@ import { connection } from "next/server";
 import { lisbonDay } from "@/lib/analytics/server";
 import { requireAdmin } from "@/lib/auth/dal";
 import { connectDB } from "@/lib/db/connect";
-import { Appointment, Client, type AppointmentStatus } from "@/lib/db/models";
+import { Appointment, Client, type AppointmentChangeKind, type AppointmentStatus } from "@/lib/db/models";
 import { fromMinutes, overlaps, type BusyInterval } from "@/lib/schedule";
 
 export type ClientMolds = { handMold?: string; footMold?: string };
+
+export type AppointmentChangeDTO = {
+  kind: AppointmentChangeKind;
+  /** ISO */
+  at: string;
+  reason?: string;
+  fromDate: string;
+  fromTime: string;
+  toDate?: string;
+  toTime?: string;
+};
 
 export type AppointmentDTO = {
   id: string;
@@ -25,6 +36,8 @@ export type AppointmentDTO = {
   notes?: string;
   status: AppointmentStatus;
   createdAt: string;
+  /** Cancellations and reschedules, oldest first. */
+  changes: AppointmentChangeDTO[];
 };
 
 type AppointmentLean = {
@@ -40,6 +53,15 @@ type AppointmentLean = {
   notes?: string | null;
   status: AppointmentStatus;
   createdAt?: Date;
+  changes?: {
+    kind: AppointmentChangeKind;
+    at: Date;
+    reason?: string | null;
+    fromDate: string;
+    fromTime: string;
+    toDate?: string | null;
+    toTime?: string | null;
+  }[];
 };
 
 type MoldsByPhone = Map<string, ClientMolds>;
@@ -59,6 +81,15 @@ function toDTO(doc: AppointmentLean, molds: MoldsByPhone = new Map()): Appointme
     notes: doc.notes ?? undefined,
     status: doc.status,
     createdAt: (doc.createdAt ?? new Date(0)).toISOString(),
+    changes: (doc.changes ?? []).map((change) => ({
+      kind: change.kind,
+      at: change.at.toISOString(),
+      reason: change.reason ?? undefined,
+      fromDate: change.fromDate,
+      fromTime: change.fromTime,
+      toDate: change.toDate ?? undefined,
+      toTime: change.toTime ?? undefined,
+    })),
   };
 }
 

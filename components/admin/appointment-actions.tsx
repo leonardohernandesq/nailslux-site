@@ -3,6 +3,7 @@
 import { useId, useRef, useState, useTransition } from "react";
 import type { ComponentProps } from "react";
 import { CheckCircleIcon, CircleNotchIcon, ProhibitIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { ChangeReason } from "@/components/admin/change-reason";
 import { RescheduleAppointment } from "@/components/admin/reschedule-appointment";
 import { Button } from "@/components/ui/button";
 import { decideAppointment } from "@/lib/actions/appointments";
@@ -61,7 +62,9 @@ export function AppointmentActions({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const reasonId = useId();
   const [intent, setIntent] = useState<Intent>("confirm");
+  const [reason, setReason] = useState("");
   const [state, setState] = useState<FormState>(idleState);
   const [pending, startTransition] = useTransition();
   const error = state.status === "error";
@@ -72,6 +75,7 @@ export function AppointmentActions({
 
   function ask(next: Intent) {
     setIntent(next);
+    setReason("");
     dialogRef.current?.showModal();
   }
 
@@ -85,6 +89,7 @@ export function AppointmentActions({
     startTransition(async () => {
       const formData = new FormData();
       formData.set("intent", intent);
+      if (intent !== "confirm") formData.set("reason", reason);
       const result = await decideAppointment(id, idleState, formData);
       setState(result);
       dialogRef.current?.close();
@@ -157,8 +162,14 @@ export function AppointmentActions({
         <p className="mt-2 text-ink-muted">
           {question.body} {messages && WHATSAPP_NOTE[intent]}
         </p>
+        {intent !== "confirm" && <ChangeReason id={reasonId} value={reason} onChange={setReason} disabled={pending} />}
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button variant="ghost" onClick={() => dialogRef.current?.close()} disabled={pending} autoFocus>
+          <Button
+            variant="ghost"
+            onClick={() => dialogRef.current?.close()}
+            disabled={pending}
+            autoFocus={intent === "confirm"}
+          >
             Não
           </Button>
           <Button
